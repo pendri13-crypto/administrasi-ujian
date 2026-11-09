@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DEMO_PESERTA, DEMO_KELAS, DEMO_RUANG } from '@/lib/demo-data';
+import { DEMO_PESERTA, DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, generatePesertaFromSiswa } from '@/lib/demo-data';
 import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, Filter, Image as ImageIcon, QrCode } from 'lucide-react';
 
@@ -13,28 +13,32 @@ export default function KartuPesertaPage() {
 
   // Sinkronisasi data dan foto siswa dari localStorage (yang diinput via Excel / web)
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('adm_siswa_data');
-      if (saved) {
-        const parsedSiswa: Siswa[] = JSON.parse(saved);
-        if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
-          setPesertaList(prev => prev.map(p => {
-            const matchedSiswa = parsedSiswa.find(
-              s => s.id === p.siswa_id || (p.siswa?.nisn && s.nisn === p.siswa.nisn)
-            );
-            if (matchedSiswa) {
-              return {
-                ...p,
-                siswa: matchedSiswa, // Foto dan biodata siswa tersinkronisasi di sini
-              };
-            }
-            return p;
-          }));
+    const syncData = () => {
+      try {
+        const saved = localStorage.getItem('adm_siswa_data');
+        if (saved) {
+          const parsedSiswa: Siswa[] = JSON.parse(saved);
+          if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
+            // Bersihkan sisa foto dummy unsplash lama jika tersimpan di cache browser
+            const cleanedSiswa = parsedSiswa.map(s => {
+              if (s.foto_url && s.foto_url.includes('images.unsplash.com')) {
+                return { ...s, foto_url: null };
+              }
+              return s;
+            });
+            setPesertaList(generatePesertaFromSiswa(cleanedSiswa));
+            return;
+          }
         }
+        setPesertaList(generatePesertaFromSiswa(DEMO_SISWA));
+      } catch (e) {
+        console.error('Gagal memuat foto & data siswa tersimpan:', e);
       }
-    } catch (e) {
-      console.error('Gagal memuat foto & data siswa tersimpan:', e);
-    }
+    };
+
+    syncData();
+    window.addEventListener('storage', syncData);
+    return () => window.removeEventListener('storage', syncData);
   }, []);
 
   const filteredPeserta = pesertaList.filter((p) => {
@@ -148,18 +152,20 @@ export default function KartuPesertaPage() {
                       src={siswa.foto_url}
                       alt={siswa.nama_lengkap}
                       className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        const fb = parent?.querySelector('.fallback-foto');
+                        if (fb) (fb as HTMLElement).style.display = 'flex';
                       }}
                     />
                   ) : null}
-                  {!siswa?.foto_url ? (
-                    <div className="text-center p-2 text-slate-400">
-                      <ImageIcon className="w-8 h-8 mx-auto stroke-1" />
-                      <span className="text-[9px] font-medium block mt-1">Foto 3x4</span>
-                    </div>
-                  ) : null}
-                  <span className="absolute bottom-1 text-[8px] bg-black/60 text-white px-1 rounded">
+                  <div className={`fallback-foto text-center p-2 text-slate-400 flex flex-col items-center justify-center ${siswa?.foto_url ? 'hidden' : 'flex'}`}>
+                    <ImageIcon className="w-8 h-8 mx-auto stroke-1 text-slate-400" />
+                    <span className="text-[9px] font-medium block mt-1 text-slate-500">Foto 3x4</span>
+                  </div>
+                  <span className="absolute bottom-1 text-[8px] bg-black/60 text-white px-1.5 py-0.5 rounded font-medium">
                     {peserta.no_meja ? `Meja ${peserta.no_meja}` : 'Meja -'}
                   </span>
                 </div>

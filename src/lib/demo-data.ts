@@ -64,14 +64,14 @@ export const DEMO_MAPEL: Mapel[] = [
 ];
 
 export const DEMO_SISWA: Siswa[] = [
-  { id: 1, nisn: '3109930400', nis: '242570005', nama_lengkap: 'ADELFIO PRADITYA PUTRA', jenis_kelamin: 'L', kelas_id: 23, foto_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=400&fit=crop' },
-  { id: 2, nisn: '0127689085', nis: '242570024', nama_lengkap: 'AMIRA NUR RAMADHANI', jenis_kelamin: 'P', kelas_id: 23, foto_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&h=400&fit=crop' },
-  { id: 3, nisn: '0119732368', nis: '242570025', nama_lengkap: 'ANANDA RAISYA PUTRI', jenis_kelamin: 'P', kelas_id: 23, foto_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&h=400&fit=crop' },
-  { id: 4, nisn: '0124639713', nis: '242570042', nama_lengkap: 'ARFI INAYAH TUROHMAH', jenis_kelamin: 'P', kelas_id: 23, foto_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&h=400&fit=crop' },
-  { id: 5, nisn: '0117701011', nis: '242570047', nama_lengkap: 'ASQIA QOLBI', jenis_kelamin: 'P', kelas_id: 23, foto_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop' },
-  { id: 6, nisn: '0126300740', nis: '242570051', nama_lengkap: 'AULIA KIRANA NUR\'AENI', jenis_kelamin: 'P', kelas_id: 23, foto_url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=400&fit=crop' },
-  { id: 7, nisn: '0111645340', nis: '242570063', nama_lengkap: 'BISMA ANDIKHA TRIANDRA SUTIANA', jenis_kelamin: 'L', kelas_id: 23, foto_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=400&fit=crop' },
-  { id: 8, nisn: '0114603352', nis: '242570081', nama_lengkap: 'DENI RANGGA SUTARDI', jenis_kelamin: 'L', kelas_id: 23, foto_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&h=400&fit=crop' },
+  { id: 1, nisn: '3109930400', nis: '242570005', nama_lengkap: 'ADELFIO PRADITYA PUTRA', jenis_kelamin: 'L', kelas_id: 23, foto_url: null },
+  { id: 2, nisn: '0127689085', nis: '242570024', nama_lengkap: 'AMIRA NUR RAMADHANI', jenis_kelamin: 'P', kelas_id: 23, foto_url: null },
+  { id: 3, nisn: '0119732368', nis: '242570025', nama_lengkap: 'ANANDA RAISYA PUTRI', jenis_kelamin: 'P', kelas_id: 23, foto_url: null },
+  { id: 4, nisn: '0124639713', nis: '242570042', nama_lengkap: 'ARFI INAYAH TUROHMAH', jenis_kelamin: 'P', kelas_id: 23, foto_url: null },
+  { id: 5, nisn: '0117701011', nis: '242570047', nama_lengkap: 'ASQIA QOLBI', jenis_kelamin: 'P', kelas_id: 23, foto_url: null },
+  { id: 6, nisn: '0126300740', nis: '242570051', nama_lengkap: 'AULIA KIRANA NUR\'AENI', jenis_kelamin: 'P', kelas_id: 23, foto_url: null },
+  { id: 7, nisn: '0111645340', nis: '242570063', nama_lengkap: 'BISMA ANDIKHA TRIANDRA SUTIANA', jenis_kelamin: 'L', kelas_id: 23, foto_url: null },
+  { id: 8, nisn: '0114603352', nis: '242570081', nama_lengkap: 'DENI RANGGA SUTARDI', jenis_kelamin: 'L', kelas_id: 23, foto_url: null },
   { id: 9, nisn: '0113032237', nis: '242570087', nama_lengkap: 'DIAN DWI ISKANDAR', jenis_kelamin: 'L', kelas_id: 23, foto_url: null },
   { id: 10, nisn: '3111664170', nis: '242570089', nama_lengkap: 'DIMAS ABDILLAH MUBAROK', jenis_kelamin: 'L', kelas_id: 23, foto_url: null },
   { id: 11, nisn: '3111762329', nis: '242570091', nama_lengkap: 'DINAIRA DJUWITA DEWI', jenis_kelamin: 'P', kelas_id: 23, foto_url: null },
@@ -1179,16 +1179,16 @@ export const DEMO_JADWAL: JadwalUjian[] = [
   { id: 4, ujian_id: 1, mapel_id: 4, tanggal: '2026-11-23', jam_mulai: '07:30', jam_selesai: '09:30', mapel: DEMO_MAPEL[3] },
 ];
 
-export const DEMO_PESERTA: PesertaUjian[] = (() => {
+export function generatePesertaFromSiswa(siswaList: Siswa[]): PesertaUjian[] {
   const deskCount: Record<number, number> = {};
-  return DEMO_SISWA.map((siswa, idx) => {
-    const kId = siswa.kelas_id;
+  return siswaList.map((siswa, idx) => {
+    const kId = siswa.kelas_id || 1;
     deskCount[kId] = (deskCount[kId] || 0) + 1;
     const noMeja = deskCount[kId];
     const ruang = DEMO_RUANG.find(r => r.id === kId) || DEMO_RUANG[0];
     const noPeserta = '01-' + kId.toString().padStart(2, '0') + '-' + noMeja.toString().padStart(3, '0');
     return {
-      id: idx + 1,
+      id: siswa.id || (idx + 1),
       ujian_id: 1,
       siswa_id: siswa.id,
       no_peserta: noPeserta,
@@ -1200,7 +1200,9 @@ export const DEMO_PESERTA: PesertaUjian[] = (() => {
       ujian: DEMO_UJIAN[0]
     };
   });
-})();
+}
+
+export const DEMO_PESERTA: PesertaUjian[] = generatePesertaFromSiswa(DEMO_SISWA);
 
 export const DEMO_NILAI: NilaiUjian[] = (() => {
   const result: NilaiUjian[] = [];

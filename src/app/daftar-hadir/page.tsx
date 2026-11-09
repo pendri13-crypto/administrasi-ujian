@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { 
   DEMO_RUANG, 
   DEMO_PESERTA, 
+  DEMO_SISWA,
   DEMO_KELAS, 
   DEMO_MAPEL, 
   DEMO_JADWAL, 
-  DEMO_UJIAN 
+  DEMO_UJIAN,
+  generatePesertaFromSiswa
 } from '@/lib/demo-data';
 import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, DoorOpen } from 'lucide-react';
@@ -18,22 +20,25 @@ export default function DaftarHadirPage() {
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('adm_siswa_data');
-      if (saved) {
-        const parsedSiswa: Siswa[] = JSON.parse(saved);
-        if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
-          setPesertaList(prev => prev.map(p => {
-            const matchedSiswa = parsedSiswa.find(
-              s => s.id === p.siswa_id || (p.siswa?.nisn && s.nisn === p.siswa.nisn)
-            );
-            return matchedSiswa ? { ...p, siswa: matchedSiswa } : p;
-          }));
+    const syncData = () => {
+      try {
+        const saved = localStorage.getItem('adm_siswa_data');
+        if (saved) {
+          const parsedSiswa: Siswa[] = JSON.parse(saved);
+          if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
+            setPesertaList(generatePesertaFromSiswa(parsedSiswa));
+            return;
+          }
         }
+        setPesertaList(generatePesertaFromSiswa(DEMO_SISWA));
+      } catch (e) {
+        console.error(e);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    };
+
+    syncData();
+    window.addEventListener('storage', syncData);
+    return () => window.removeEventListener('storage', syncData);
   }, []);
 
   const currentRuang = DEMO_RUANG.find(r => r.id === selectedRuangId) || DEMO_RUANG[0];

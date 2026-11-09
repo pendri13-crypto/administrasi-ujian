@@ -35,10 +35,53 @@ function normalizePhotoUrl(rawUrl?: unknown): string | null {
                      url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (driveMatch && driveMatch[1]) {
     const fileId = driveMatch[1];
-    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w500`;
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w600`;
   }
 
   return url;
+}
+
+/**
+ * Kompresi foto upload lokal (JPEG max 300x400) agar muat di localStorage dan cepat ditampilkan
+ */
+async function compressImage(file: File, maxWidth = 300, maxHeight = 400, quality = 0.82): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } else {
+          resolve(e.target?.result as string);
+        }
+      };
+      img.onerror = () => resolve(e.target?.result as string);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function SiswaPage() {
@@ -52,9 +95,17 @@ export default function SiswaPage() {
     try {
       const saved = localStorage.getItem('adm_siswa_data');
       if (saved) {
-        const parsed = JSON.parse(saved);
+        const parsed: Siswa[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setSiswaList(parsed);
+          // Bersihkan sisa dummy unsplash jika ada tersimpan di cache lama
+          const sanitized = parsed.map(s => {
+            if (s.foto_url && s.foto_url.includes('images.unsplash.com')) {
+              return { ...s, foto_url: null };
+            }
+            return s;
+          });
+          setSiswaList(sanitized);
+          return;
         }
       }
     } catch (e) {
@@ -146,26 +197,28 @@ export default function SiswaPage() {
     }
   };
 
-  // Handle Upload Foto Lokal / Base64 Preview
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, targetSiswaId?: number) => {
+  // Handle Upload Foto Lokal / Base64 Preview (dengan auto kompresi agar ringan)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, targetSiswaId?: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
+    try {
+      const compressedDataUrl = await compressImage(file);
+      if (!compressedDataUrl) return;
 
       if (targetSiswaId) {
         // Ganti foto siswa yang sudah ada
-        saveAndSetSiswaList(prev => prev.map(s => s.id === targetSiswaId ? { ...s, foto_url: result } : s));
+        saveAndSetSiswaList(prev => prev.map(s => s.id === targetSiswaId ? { ...s, foto_url: compressedDataUrl } : s));
         showToast('Foto siswa berhasil diperbarui!');
       } else {
         // Preview untuk siswa baru
-        setPreviewFoto(result);
+        setPreviewFoto(compressedDataUrl);
         setLinkFotoInput('');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Gagal memproses upload foto:', err);
+      alert('Gagal memproses file foto. Pastikan format file gambar valid.');
+    }
   };
 
   // Handle Input Link Foto Manual (Google Drive / Web)
@@ -242,7 +295,7 @@ export default function SiswaPage() {
         'NISN': '0081234561',
         'NAMA': 'Fajar Nugraha',
         'L/P': 'L',
-        'LINK': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=400&fit=crop',
+        'LINK': 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/view?usp=sharing',
       },
       {
         'KLS': 'VII-A',
@@ -250,7 +303,7 @@ export default function SiswaPage() {
         'NISN': '0081234562',
         'NAMA': 'Gita Permata',
         'L/P': 'P',
-        'LINK': 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&h=400&fit=crop',
+        'LINK': '',
       },
       {
         'KLS': 'VIII-A',
@@ -258,7 +311,7 @@ export default function SiswaPage() {
         'NISN': '0081234563',
         'NAMA': 'Hendra Setiawan',
         'L/P': 'L',
-        'LINK': 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/view?usp=sharing',
+        'LINK': '',
       },
     ];
 
@@ -346,8 +399,12 @@ export default function SiswaPage() {
           const matchedKelas = DEMO_KELAS.find(k => k.nama_kelas.toLowerCase() === rawKelas.toLowerCase());
           const kelasIdVal = matchedKelas ? matchedKelas.id : 1;
 
-          // Cek apakah siswa dengan NISN atau NIS ini sudah ada di database
-          const existingIdx = updatedList.findIndex(s => (rawNisn && s.nisn === rawNisn) || (rawNis && s.nis === rawNis));
+          // Cek apakah siswa dengan NISN, NIS, atau Nama ini sudah ada di database
+          const existingIdx = updatedList.findIndex(s => 
+            (rawNisn && String(s.nisn).trim() === rawNisn) || 
+            (rawNis && String(s.nis || '').trim() === rawNis) ||
+            (rawNama && s.nama_lengkap.trim().toLowerCase() === rawNama.toLowerCase())
+          );
 
           if (existingIdx !== -1) {
             // Update data dan foto siswa yang sudah ada
