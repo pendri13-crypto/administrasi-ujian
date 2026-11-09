@@ -10,11 +10,20 @@ import {
   DEMO_JADWAL,
   DEMO_UJIAN 
 } from '@/lib/demo-data';
-import { Printer, Download, CheckCircle, AlertTriangle } from 'lucide-react';
+import { NilaiUjian } from '@/types/database';
+import { Printer, Download, CheckCircle, AlertTriangle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function NilaiKelasPage() {
   const [selectedKelasId, setSelectedKelasId] = useState<number>(1);
+  const [nilaiList, setNilaiList] = useState<NilaiUjian[]>(DEMO_NILAI);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3000);
+  };
+
   const currentKelas = DEMO_KELAS.find(k => k.id === selectedKelasId);
   const ujian = DEMO_UJIAN[0];
 
@@ -34,7 +43,7 @@ export default function NilaiKelasPage() {
       const jadwal = DEMO_JADWAL.find(j => j.mapel_id === mapel.id);
       if (!peserta || !jadwal) return { mapelId: mapel.id, nilai: null, kkm: mapel.kkm, tuntas: false };
 
-      const record = DEMO_NILAI.find(
+      const record = nilaiList.find(
         n => n.peserta_ujian_id === peserta.id && n.jadwal_ujian_id === jadwal.id
       );
 
@@ -69,6 +78,120 @@ export default function NilaiKelasPage() {
     };
   });
 
+  const handleDownloadTemplate = () => {
+    const templateData = siswaList.map((siswa, idx) => {
+      const item: Record<string, string | number> = {
+        'No': idx + 1,
+        'NISN': siswa.nisn,
+        'Nama Lengkap': siswa.nama_lengkap,
+        'L/P': siswa.jenis_kelamin,
+      };
+      DEMO_MAPEL.forEach((mapel) => {
+        item[`${mapel.kode_mapel} (${mapel.nama_mapel})`] = '';
+      });
+      return item;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const cols = [
+      { wch: 6 },
+      { wch: 15 },
+      { wch: 28 },
+      { wch: 8 },
+    ];
+    DEMO_MAPEL.forEach(() => {
+      cols.push({ wch: 22 });
+    });
+    worksheet['!cols'] = cols;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Input Nilai Kelas');
+    XLSX.writeFile(workbook, `Template_Nilai_Kelas_${currentKelas?.nama_kelas?.replace(/\s+/g, '_') || 'Kelas'}.xlsx`);
+  };
+
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const workbook = XLSX.read(bstr, { type: 'binary' });
+        const wsname = workbook.SheetNames[0];
+        const ws = workbook.Sheets[wsname];
+        const importedData = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+
+        if (!importedData.length) {
+          alert('File Excel kosong atau format tidak sesuai.');
+          return;
+        }
+
+        let updatedEntries = 0;
+        setNilaiList((prevList) => {
+          const newList = [...prevList];
+
+          importedData.forEach((row) => {
+            const nisn = String(row['NISN'] || row['nisn'] || '').trim();
+            const siswa = siswaList.find(s => s.nisn === nisn);
+            if (!siswa) return;
+
+            const peserta = DEMO_PESERTA.find(p => p.siswa_id === siswa.id);
+            if (!peserta) return;
+
+            DEMO_MAPEL.forEach((mapel) => {
+              const jadwal = DEMO_JADWAL.find(j => j.mapel_id === mapel.id);
+              if (!jadwal) return;
+
+              let val: unknown = undefined;
+              for (const key of Object.keys(row)) {
+                if (key.includes(mapel.kode_mapel) || key.toLowerCase().includes(mapel.nama_mapel.toLowerCase())) {
+                  val = row[key];
+                  break;
+                }
+              }
+
+              if (val !== undefined && val !== '' && val !== null) {
+                const numVal = Number(val);
+                if (!isNaN(numVal)) {
+                  const existingIdx = newList.findIndex(
+                    n => n.peserta_ujian_id === peserta.id && n.jadwal_ujian_id === jadwal.id
+                  );
+
+                  if (existingIdx >= 0) {
+                    newList[existingIdx] = {
+                      ...newList[existingIdx],
+                      nilai_akhir: numVal,
+                    };
+                  } else {
+                    newList.push({
+                      id: Date.now() + Math.random(),
+                      peserta_ujian_id: peserta.id,
+                      jadwal_ujian_id: jadwal.id,
+                      nilai_pg: Math.round(numVal * 0.6),
+                      nilai_esai: Math.round(numVal * 0.4),
+                      nilai_akhir: numVal,
+                      keterangan: 'Hadir',
+                    });
+                  }
+                  updatedEntries++;
+                }
+              }
+            });
+          });
+
+          return newList;
+        });
+
+        showToast(`Berhasil memperbarui nilai untuk ${updatedEntries} data mapel!`);
+        e.target.value = '';
+      } catch {
+        alert('Gagal membaca file Excel. Pastikan format file adalah .xlsx atau .xls.');
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
   const handleExportExcel = () => {
     const data = rows.map((row) => {
       const item: Record<string, string | number> = {
@@ -95,6 +218,14 @@ export default function NilaiKelasPage() {
 
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {notification && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-xs font-bold animate-bounce">
+          <CheckCircle2 className="w-4 h-4" />
+          {notification}
+        </div>
+      )}
+
       {/* Control Bar (Hidden on print) */}
       <div className="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -104,24 +235,50 @@ export default function NilaiKelasPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="text-xs font-semibold text-slate-700">Pilih Kelas:</label>
-          <select
-            value={selectedKelasId}
-            onChange={(e) => setSelectedKelasId(Number(e.target.value))}
-            className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            {DEMO_KELAS.map((k) => (
-              <option key={k.id} value={k.id}>{k.nama_kelas}</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 mr-2">
+            <label className="text-xs font-semibold text-slate-700">Pilih Kelas:</label>
+            <select
+              value={selectedKelasId}
+              onChange={(e) => setSelectedKelasId(Number(e.target.value))}
+              className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              {DEMO_KELAS.map((k) => (
+                <option key={k.id} value={k.id}>{k.nama_kelas}</option>
+              ))}
+            </select>
+          </div>
 
+          {/* Tombol Unduh Template Leger Kelas */}
+          <button
+            onClick={handleDownloadTemplate}
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 text-xs font-bold rounded-lg shadow-sm transition"
+            title="Unduh format template Excel untuk input nilai kelas ini"
+          >
+            <Download className="w-4 h-4 text-blue-600" />
+            Unduh Template (.xlsx)
+          </button>
+
+          {/* Tombol Impor Nilai dari Excel */}
+          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-bold shadow-sm transition">
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            Impor Nilai Excel
+            <input
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              onChange={handleImportExcel}
+              className="hidden"
+            />
+          </label>
+
+          {/* Tombol Unduh Leger Kelas */}
           <button
             onClick={handleExportExcel}
-            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-bold rounded-lg shadow-sm transition"
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-bold rounded-lg shadow-sm transition"
+            title="Unduh file leger nilai lengkap kelas ini"
           >
             <Download className="w-4 h-4" />
-            Unduh Excel (.xlsx)
+            Unduh Leger (.xlsx)
           </button>
 
           <button

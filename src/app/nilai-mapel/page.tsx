@@ -10,11 +10,20 @@ import {
   DEMO_JADWAL,
   DEMO_UJIAN 
 } from '@/lib/demo-data';
-import { Printer, Download, Award, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
+import { NilaiUjian } from '@/types/database';
+import { Printer, Download, Award, TrendingUp, CheckCircle, AlertCircle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function NilaiMapelPage() {
   const [selectedMapelId, setSelectedMapelId] = useState<number>(2); // Default Matematika
+  const [nilaiList, setNilaiList] = useState<NilaiUjian[]>(DEMO_NILAI);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3000);
+  };
+
   const currentMapel = DEMO_MAPEL.find(m => m.id === selectedMapelId) || DEMO_MAPEL[0];
   const jadwal = DEMO_JADWAL.find(j => j.mapel_id === currentMapel.id);
   const ujian = DEMO_UJIAN[0];
@@ -23,7 +32,7 @@ export default function NilaiMapelPage() {
   const rawList = DEMO_PESERTA.map((peserta) => {
     const siswa = DEMO_SISWA.find(s => s.id === peserta.siswa_id);
     const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
-    const nilaiRecord = DEMO_NILAI.find(
+    const nilaiRecord = nilaiList.find(
       n => n.peserta_ujian_id === peserta.id && n.jadwal_ujian_id === jadwal?.id
     );
 
@@ -55,6 +64,110 @@ export default function NilaiMapelPage() {
   const tuntasCount = sortedList.filter(item => item.tuntas).length;
   const persentaseTuntas = sortedList.length > 0 ? Math.round((tuntasCount / sortedList.length) * 100) : 0;
 
+  const handleDownloadTemplate = () => {
+    const templateData = DEMO_PESERTA.map((peserta) => {
+      const siswa = DEMO_SISWA.find(s => s.id === peserta.siswa_id);
+      const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
+      return {
+        'No. Peserta': peserta.no_peserta,
+        'NISN': siswa?.nisn || '',
+        'Nama Siswa': siswa?.nama_lengkap || '',
+        'Kelas': kelas?.nama_kelas || '',
+        'Nilai PG': '',
+        'Nilai Esai': '',
+        'Keterangan': 'Hadir',
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    worksheet['!cols'] = [
+      { wch: 18 },
+      { wch: 15 },
+      { wch: 28 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 14 },
+    ];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Input Nilai');
+    XLSX.writeFile(workbook, `Template_Nilai_${currentMapel.kode_mapel}_${currentMapel.nama_mapel.replace(/\s+/g, '_')}.xlsx`);
+  };
+
+  const handleImportNilai = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const workbook = XLSX.read(bstr, { type: 'binary' });
+        const wsname = workbook.SheetNames[0];
+        const ws = workbook.Sheets[wsname];
+        const importedData = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+
+        if (!importedData.length) {
+          alert('File Excel kosong atau format tidak sesuai.');
+          return;
+        }
+
+        let updatedCount = 0;
+        setNilaiList((prevList) => {
+          const newList = [...prevList];
+          importedData.forEach((row) => {
+            const noPeserta = String(row['No. Peserta'] || row['no_peserta'] || row['Nomor Peserta'] || '').trim();
+            const nisn = String(row['NISN'] || row['nisn'] || '').trim();
+            const peserta = DEMO_PESERTA.find(p => {
+              if (noPeserta && p.no_peserta === noPeserta) return true;
+              const s = DEMO_SISWA.find(sw => sw.id === p.siswa_id);
+              return Boolean(nisn && s?.nisn === nisn);
+            });
+
+            if (peserta && jadwal) {
+              const pg = Number(row['Nilai PG'] || row['nilai_pg'] || 0) || 0;
+              const esai = Number(row['Nilai Esai'] || row['nilai_esai'] || 0) || 0;
+              const total = pg + esai;
+              const ket = (row['Keterangan'] || 'Hadir') as 'Hadir' | 'Susulan' | 'Tidak Hadir';
+
+              const existingIdx = newList.findIndex(
+                n => n.peserta_ujian_id === peserta.id && n.jadwal_ujian_id === jadwal.id
+              );
+
+              if (existingIdx >= 0) {
+                newList[existingIdx] = {
+                  ...newList[existingIdx],
+                  nilai_pg: pg,
+                  nilai_esai: esai,
+                  nilai_akhir: total,
+                  keterangan: ket,
+                };
+              } else {
+                newList.push({
+                  id: Date.now() + Math.random(),
+                  peserta_ujian_id: peserta.id,
+                  jadwal_ujian_id: jadwal.id,
+                  nilai_pg: pg,
+                  nilai_esai: esai,
+                  nilai_akhir: total,
+                  keterangan: ket,
+                });
+              }
+              updatedCount++;
+            }
+          });
+          return newList;
+        });
+
+        showToast(`Berhasil mengimpor nilai untuk ${updatedCount} siswa!`);
+        e.target.value = '';
+      } catch {
+        alert('Gagal membaca file Excel. Pastikan format file adalah .xlsx atau .xls.');
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
   const handleExportExcel = () => {
     const data = sortedList.map((item, idx) => ({
       'Peringkat': idx + 1,
@@ -77,6 +190,14 @@ export default function NilaiMapelPage() {
 
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {notification && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-xs font-bold animate-bounce">
+          <CheckCircle2 className="w-4 h-4" />
+          {notification}
+        </div>
+      )}
+
       {/* Control Bar (Hidden on print) */}
       <div className="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -86,24 +207,50 @@ export default function NilaiMapelPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="text-xs font-semibold text-slate-700">Pilih Mapel:</label>
-          <select
-            value={selectedMapelId}
-            onChange={(e) => setSelectedMapelId(Number(e.target.value))}
-            className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-          >
-            {DEMO_MAPEL.map((m) => (
-              <option key={m.id} value={m.id}>{m.kode_mapel} - {m.nama_mapel} (KKM: {m.kkm})</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 mr-2">
+            <label className="text-xs font-semibold text-slate-700">Pilih Mapel:</label>
+            <select
+              value={selectedMapelId}
+              onChange={(e) => setSelectedMapelId(Number(e.target.value))}
+              className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+              {DEMO_MAPEL.map((m) => (
+                <option key={m.id} value={m.id}>{m.kode_mapel} - {m.nama_mapel} (KKM: {m.kkm})</option>
+              ))}
+            </select>
+          </div>
 
+          {/* Tombol Unduh Template Nilai Excel */}
+          <button
+            onClick={handleDownloadTemplate}
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 text-xs font-bold rounded-lg shadow-sm transition"
+            title="Unduh format template Excel untuk input nilai mapel ini"
+          >
+            <Download className="w-4 h-4 text-blue-600" />
+            Unduh Template (.xlsx)
+          </button>
+
+          {/* Tombol Impor Nilai dari Excel */}
+          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-bold shadow-sm transition">
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            Impor Nilai Excel
+            <input
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              onChange={handleImportNilai}
+              className="hidden"
+            />
+          </label>
+
+          {/* Tombol Unduh Rekap Hasil Nilai */}
           <button
             onClick={handleExportExcel}
-            className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 text-xs font-bold rounded-lg shadow-sm transition"
+            className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 text-xs font-bold rounded-lg shadow-sm transition"
+            title="Unduh rekapitulasi nilai dan ranking siswa mapel ini"
           >
             <Download className="w-4 h-4" />
-            Unduh Excel (.xlsx)
+            Unduh Rekap (.xlsx)
           </button>
 
           <button
