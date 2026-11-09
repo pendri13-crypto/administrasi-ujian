@@ -3,7 +3,21 @@
 import { useState, useEffect } from 'react';
 import { DEMO_SISWA, DEMO_KELAS } from '@/lib/demo-data';
 import { Siswa } from '@/types/database';
-import { Upload, Plus, Trash2, Image as ImageIcon, Search, CheckCircle2, Download, FileSpreadsheet, Link2 } from 'lucide-react';
+import { 
+  Upload, 
+  Plus, 
+  Trash2, 
+  Image as ImageIcon, 
+  Search, 
+  CheckCircle2, 
+  Download, 
+  FileSpreadsheet, 
+  Link2,
+  CheckSquare,
+  Square,
+  RotateCcw,
+  AlertTriangle
+} from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 /**
@@ -78,6 +92,59 @@ export default function SiswaPage() {
     const matchKelas = selectedKelas === 'all' || s.kelas_id.toString() === selectedKelas;
     return matchSearch && matchKelas;
   });
+
+  // State Ceklis / Pilihan Multi-Siswa untuk Hapus Sekaligus
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  const isAllSelected = filteredList.length > 0 && filteredList.every(s => selectedIds.includes(s.id));
+  const isSomeSelected = filteredList.some(s => selectedIds.includes(s.id)) && !isAllSelected;
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      // Hilangkan ceklis semua siswa yang tampil saat ini
+      const currentFilteredIds = new Set(filteredList.map(s => s.id));
+      setSelectedIds(prev => prev.filter(id => !currentFilteredIds.has(id)));
+    } else {
+      // Ceklis semua siswa yang tampil saat ini
+      const currentFilteredIds = filteredList.map(s => s.id);
+      setSelectedIds(prev => Array.from(new Set([...prev, ...currentFilteredIds])));
+    }
+  };
+
+  const handleToggleRow = (id: number) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  // Hapus Data Siswa Terpilih Sekaligus
+  const handleDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    if (confirm(`Yakin ingin menghapus ${selectedIds.length} data siswa yang dipilih secara sekaligus?`)) {
+      const remaining = siswaList.filter(s => !selectedIds.includes(s.id));
+      saveAndSetSiswaList(remaining);
+      setSelectedIds([]);
+      showToast(`Berhasil menghapus ${selectedIds.length} data siswa.`);
+    }
+  };
+
+  // Kosongkan Seluruh Data Siswa
+  const handleClearAll = () => {
+    if (confirm('PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN SELURUH data siswa? Seluruh data dan pas foto akan terhapus.')) {
+      saveAndSetSiswaList([]);
+      setSelectedIds([]);
+      showToast('Seluruh data siswa berhasil dikosongkan.');
+    }
+  };
+
+  // Reset Kembali ke Data Awal Bawaan Sekolah (1.094 Siswa)
+  const handleResetDefault = () => {
+    if (confirm('Kembalikan data siswa ke database awal sekolah (1.094 siswa)?')) {
+      saveAndSetSiswaList(DEMO_SISWA);
+      setSelectedIds([]);
+      showToast('Data siswa berhasil dikembalikan ke data awal.');
+    }
+  };
 
   // Handle Upload Foto Lokal / Base64 Preview
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, targetSiswaId?: number) => {
@@ -370,6 +437,37 @@ export default function SiswaPage() {
             <Download className="w-4 h-4 text-slate-600" />
             Ekspor Data (.xlsx)
           </button>
+
+          {/* Tombol Hapus Pilihan Sekaligus */}
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleDeleteSelected}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition animate-bounce"
+            >
+              <Trash2 className="w-4 h-4" />
+              Hapus Terpilih ({selectedIds.length})
+            </button>
+          )}
+
+          {/* Tombol Kosongkan Data Siswa */}
+          <button
+            onClick={handleClearAll}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-semibold shadow-sm transition"
+            title="Kosongkan seluruh data siswa untuk diganti baru"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+            Kosongkan Data
+          </button>
+
+          {/* Tombol Reset Data Awal */}
+          <button
+            onClick={handleResetDefault}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-lg text-xs font-semibold shadow-sm transition"
+            title="Kembalikan ke data 1.094 siswa bawaan sekolah"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+            Reset Data
+          </button>
         </div>
       </div>
 
@@ -527,11 +625,46 @@ export default function SiswaPage() {
           </div>
         </div>
 
+        {/* Banner Pilihan Aksi Massal */}
+        {selectedIds.length > 0 && (
+          <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+            <div className="flex items-center gap-2.5 text-xs font-bold text-rose-900">
+              <CheckSquare className="w-4 h-4 text-rose-600" />
+              <span>{selectedIds.length} data siswa dipilih untuk dihapus sekaligus</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSelectedIds([])}
+                className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold shadow-sm transition"
+              >
+                Batal Pilihan
+              </button>
+              <button
+                onClick={handleDeleteSelected}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow transition"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Hapus Terpilih ({selectedIds.length} Siswa)
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Tabel Data Siswa */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider">
+                <th className="py-3 px-3 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    ref={el => { if (el) el.indeterminate = isSomeSelected; }}
+                    onChange={handleToggleSelectAll}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                    title="Ceklis semua siswa yang tampil"
+                  />
+                </th>
                 <th className="py-3 px-3 w-12 text-center">Foto</th>
                 <th className="py-3 px-3 w-28">NISN</th>
                 <th className="py-3 px-3 w-24">NIS</th>
@@ -545,9 +678,18 @@ export default function SiswaPage() {
             <tbody className="divide-y divide-slate-100">
               {filteredList.map((siswa) => {
                 const kelas = DEMO_KELAS.find(k => k.id === siswa.kelas_id);
+                const isSelected = selectedIds.includes(siswa.id);
 
                 return (
-                  <tr key={siswa.id} className="hover:bg-slate-50/80 transition">
+                  <tr key={siswa.id} className={`hover:bg-slate-50/80 transition ${isSelected ? 'bg-rose-50/60 font-medium' : ''}`}>
+                    <td className="py-2.5 px-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleRow(siswa.id)}
+                        className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer accent-rose-600"
+                      />
+                    </td>
                     <td className="py-2.5 px-3 text-center">
                       <div className="w-9 h-12 border border-slate-300 rounded bg-slate-100 overflow-hidden mx-auto flex items-center justify-center relative group">
                         {siswa.foto_url ? (
