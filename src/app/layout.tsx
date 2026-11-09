@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
 import { 
-  GraduationCap, 
   CreditCard, 
   FileSpreadsheet, 
   Award, 
@@ -12,8 +11,11 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Sistem Administrasi Ujian Sekolah',
-  description: 'Aplikasi cetak kartu ujian, daftar hadir ruang, dan rekapitulasi nilai ujian.',
+  title: 'ADM UJIAN - SMPN 1 Rajapolah',
+  description: 'Sistem Administrasi & Asesmen SMPN 1 Rajapolah: cetak kartu peserta, label meja, daftar hadir, dan rekapitulasi nilai ujian.',
+  icons: {
+    icon: '/images/logo-sekolah-3d.png',
+  },
 };
 
 export default function RootLayout({
@@ -28,13 +30,17 @@ export default function RootLayout({
         <header className="no-print bg-white border-b border-slate-200 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16 items-center">
-              <Link href="/" className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-                  <GraduationCap className="w-6 h-6" />
+              <Link href="/" className="flex items-center gap-3 group">
+                <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
+                  <img 
+                    src="/images/logo-sekolah-3d.png" 
+                    alt="Logo SMPN 1 Rajapolah" 
+                    className="w-full h-full object-contain filter drop-shadow hover:scale-105 transition-transform" 
+                  />
                 </div>
                 <div>
                   <h1 className="text-base font-bold text-slate-900 leading-tight">ADM UJIAN</h1>
-                  <p className="text-xs text-slate-500">Sistem Administrasi & Asesmen Sekolah</p>
+                  <p className="text-xs text-slate-500">Sistem Administrasi & Asesmen SMPN 1 Rajapolah</p>
                 </div>
               </Link>
 
@@ -93,7 +99,7 @@ export default function RootLayout({
 
         {/* Footer (Hidden on print) */}
         <footer className="no-print bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
-          <p>© 2026 Sistem Administrasi Ujian Sekolah • Siap Hosting Gratis di Vercel & Supabase</p>
+          <p>© 2026 Sistem Administrasi & Asesmen SMPN 1 Rajapolah • Siap Hosting Gratis di Vercel & Supabase</p>
         </footer>
       </body>
     </html>

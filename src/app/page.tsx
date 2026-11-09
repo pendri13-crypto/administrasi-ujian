@@ -44,17 +44,22 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Banner / Header */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 sm:p-8 text-white shadow-lg">
-        <div className="max-w-3xl">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/30 text-blue-100 border border-blue-400/20 mb-3">
-            <Calendar className="w-3.5 h-3.5" /> Agenda Aktif: {aktifUjian?.nama_ujian || 'Sumatif Akhir Semester (SAS) Ganjil'}
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Administrasi Ujian & Penilaian
-          </h1>
-          <p className="mt-2 text-blue-100 text-sm sm:text-base leading-relaxed">
-            Kelola kartu peserta dengan foto siswa, cetak daftar hadir ujian per ruangan, 
-            serta cetak rekapitulasi nilai per kelas dan per mata pelajaran secara otomatis.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="max-w-3xl">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/30 text-blue-100 border border-blue-400/20 mb-3">
+              <Calendar className="w-3.5 h-3.5" /> Agenda Aktif: {aktifUjian?.nama_ujian || 'Sumatif Akhir Semester (SAS) Ganjil'}
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Administrasi Ujian & Penilaian SMPN 1 Rajapolah
+            </h1>
+            <p className="mt-2 text-blue-100 text-sm sm:text-base leading-relaxed">
+              Kelola kartu peserta dengan foto siswa, cetak daftar hadir ujian per ruangan, 
+              serta cetak rekapitulasi nilai per kelas dan per mata pelajaran secara otomatis.
+            </p>
+          </div>
+          <div className="hidden sm:flex flex-shrink-0 items-center justify-center p-3 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20 shadow-inner">
+            <img src="/images/logo-sekolah-3d.png" alt="Logo SMPN 1 Rajapolah" className="w-24 h-24 object-contain drop-shadow-xl" />
+          </div>
         </div>
 
         {/* Quick Stats */}
