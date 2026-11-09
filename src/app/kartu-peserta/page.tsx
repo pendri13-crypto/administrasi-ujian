@@ -4,14 +4,24 @@ import { useState, useEffect } from 'react';
 import { DEMO_PESERTA, DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, generatePesertaFromSiswa } from '@/lib/demo-data';
 import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, Filter, Image as ImageIcon, QrCode } from 'lucide-react';
+import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 
 export default function KartuPesertaPage() {
   const [selectedKelas, setSelectedKelas] = useState<string>('all');
   const [selectedRuang, setSelectedRuang] = useState<string>('all');
   const [layoutMode, setLayoutMode] = useState<'4' | '2'>('4'); // 4 per halaman atau 2 per halaman
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
-  // Sinkronisasi data dan foto siswa dari localStorage (yang diinput via Excel / web)
+  // Sinkronisasi data sekolah dan foto siswa dari localStorage
+  useEffect(() => {
+    const updateSettings = () => {
+      setSchoolSettings(getStoredSchoolSettings());
+    };
+    updateSettings();
+    window.addEventListener('school-settings-updated', updateSettings);
+    return () => window.removeEventListener('school-settings-updated', updateSettings);
+  }, []);
   useEffect(() => {
     const syncData = () => {
       try {
@@ -161,13 +171,13 @@ export default function KartuPesertaPage() {
                       KARTU PESERTA
                     </h3>
                     <h4 className="text-[13px] sm:text-[14px] font-black text-slate-900 uppercase">
-                      SUMATIF AKHIR SEMESTER (SAS)
+                      {schoolSettings.namaUjian}
                     </h4>
                     <p className="text-[12px] sm:text-[13px] font-black text-slate-900 uppercase">
-                      SMP NEGERI 1 RAJAPOLAH
+                      {schoolSettings.namaSekolah}
                     </p>
                     <p className="text-[11px] sm:text-[12px] font-extrabold text-slate-800 uppercase tracking-wide">
-                      TAHUN PELAJARAN 2025/2026
+                      TAHUN PELAJARAN {schoolSettings.tahunAjaran}
                     </p>
                   </div>
 
@@ -276,24 +286,28 @@ export default function KartuPesertaPage() {
                 </div>
 
                 <div className="text-center min-w-[170px]">
-                  <p className="text-[9px] text-slate-700 leading-tight">Rajapolah, 30 November 2026</p>
-                  <p className="text-[9px] font-medium text-slate-800 leading-tight">Kepala SMPN 1 Rajapolah,</p>
+                  <p className="text-[9px] text-slate-700 leading-tight">
+                    {schoolSettings.kotaTtd}, {schoolSettings.tanggalTtd}
+                  </p>
+                  <p className="text-[9px] font-medium text-slate-800 leading-tight">
+                    {schoolSettings.jabatanKepsek}
+                  </p>
                   
                   {/* Tanda Tangan Asli */}
                   <div className="relative h-10 my-0.5 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/images/ttd-kepsek.png"
+                      src={schoolSettings.ttdKepsekUrl || '/images/ttd-kepsek.png'}
                       alt="Tanda Tangan Kepala Sekolah"
                       className="max-h-11 w-auto object-contain select-none"
                     />
                   </div>
 
                   <p className="font-bold text-slate-950 text-[10px] leading-tight underline decoration-slate-900 underline-offset-2">
-                    H. UCU KARNI, M.Pd.
+                    {schoolSettings.namaKepsek}
                   </p>
                   <p className="text-[8.5px] font-bold text-slate-800 leading-tight mt-0.5">
-                    NIP. 19671116 199203 1 005
+                    NIP. {schoolSettings.nipKepsek}
                   </p>
                 </div>
               </div>

@@ -95,3 +95,11 @@ export function authenticateUser(
   };
 }
 
+export function isAdmin(user: AuthUser | null): boolean {
+  if (!user) return false;
+  const role = (user.role || '').toLowerCase();
+  const username = (user.username || '').toLowerCase();
+  return role.includes('admin') || username === 'admin' || username === 'panitia';
+}
+
+

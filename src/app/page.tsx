@@ -11,13 +11,25 @@ import {
   ArrowRight, 
   CheckCircle2, 
   Calendar,
-  Tag
+  Tag,
+  Settings
 } from 'lucide-react';
 import { DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, DEMO_UJIAN } from '@/lib/demo-data';
+import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 
 export default function Dashboard() {
   const aktifUjian = DEMO_UJIAN[0];
   const [totalSiswa, setTotalSiswa] = useState<number>(0);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+
+  useEffect(() => {
+    const updateSettings = () => {
+      setSchoolSettings(getStoredSchoolSettings());
+    };
+    updateSettings();
+    window.addEventListener('school-settings-updated', updateSettings);
+    return () => window.removeEventListener('school-settings-updated', updateSettings);
+  }, []);
 
   useEffect(() => {
     try {
@@ -47,7 +59,7 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="max-w-3xl">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/30 text-blue-100 border border-blue-400/20 mb-3">
-              <Calendar className="w-3.5 h-3.5" /> Agenda Aktif: {aktifUjian?.nama_ujian || 'Sumatif Akhir Semester (SAS) Ganjil'}
+              <Calendar className="w-3.5 h-3.5" /> Agenda Aktif: {schoolSettings.namaUjian} ({schoolSettings.semester}) • TP {schoolSettings.tahunAjaran}
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Administrasi Ujian & Penilaian SMPN 1 Rajapolah
@@ -217,25 +229,52 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Data Master Shortcut */}
-      <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-700">
-            <Users className="w-6 h-6" />
+      {/* Data Master & Admin Quick Shortcut */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700">
+              <Users className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900">Kelola Siswa & Upload Foto</h4>
+              <p className="text-xs text-slate-500">
+                Impor siswa baru atau pasang foto siswa agar muncul di Kartu Peserta.
+              </p>
+            </div>
           </div>
-          <div>
-            <h4 className="font-bold text-slate-900">Kelola Siswa & Upload Foto</h4>
-            <p className="text-xs text-slate-500">
-              Tambahkan siswa baru atau upload foto siswa agar otomatis muncul di Kartu Peserta.
-            </p>
-          </div>
+          <Link 
+            href="/siswa"
+            className="px-4 py-2 bg-white border border-slate-300 hover:border-slate-400 rounded-xl text-xs font-bold text-slate-700 shadow-sm transition whitespace-nowrap"
+          >
+            Buka Data Siswa
+          </Link>
         </div>
-        <Link 
-          href="/siswa"
-          className="px-4 py-2.5 bg-white border border-slate-300 hover:border-slate-400 rounded-xl text-xs font-bold text-slate-700 shadow-sm transition"
-        >
-          Buka Data Siswa
-        </Link>
+
+        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-200/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+              <Settings className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-slate-900">Pengaturan Ujian & Sekolah</h4>
+                <span className="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded border border-indigo-200">
+                  Role Admin
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Ubah Tahun Ajaran, status SAS/SAT, Nama/NIP Kepsek, TTD, & titimangsa.
+              </p>
+            </div>
+          </div>
+          <Link 
+            href="/pengaturan"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition whitespace-nowrap"
+          >
+            Buka Pengaturan
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -4,10 +4,21 @@ import { useState, useEffect } from 'react';
 import { DEMO_PESERTA, DEMO_SISWA, DEMO_RUANG, DEMO_KELAS, generatePesertaFromSiswa } from '@/lib/demo-data';
 import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, Filter } from 'lucide-react';
+import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 
 export default function NomorMejaPage() {
   const [selectedRuangId, setSelectedRuangId] = useState<string>('all');
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+
+  useEffect(() => {
+    const updateSettings = () => {
+      setSchoolSettings(getStoredSchoolSettings());
+    };
+    updateSettings();
+    window.addEventListener('school-settings-updated', updateSettings);
+    return () => window.removeEventListener('school-settings-updated', updateSettings);
+  }, []);
 
   useEffect(() => {
     const syncData = () => {
@@ -99,7 +110,7 @@ export default function NomorMejaPage() {
             >
               {/* Kop Kecil */}
               <div className="border-b border-slate-700 pb-1.5 flex justify-between items-center text-[10px]">
-                <span className="font-bold text-slate-700 uppercase">SUMATIF AKHIR SEMESTER (SAS)</span>
+                <span className="font-bold text-slate-700 uppercase">{schoolSettings.namaUjian}</span>
                 <span className="bg-slate-900 text-white px-2 py-0.5 rounded font-bold text-[9px]">
                   {ruang?.kode_ruang}
                 </span>

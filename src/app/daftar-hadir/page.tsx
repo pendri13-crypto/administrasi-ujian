@@ -13,11 +13,22 @@ import {
 } from '@/lib/demo-data';
 import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, DoorOpen } from 'lucide-react';
+import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 
 export default function DaftarHadirPage() {
   const [selectedRuangId, setSelectedRuangId] = useState<number>(1);
   const [selectedMapelId, setSelectedMapelId] = useState<number>(1);
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+
+  useEffect(() => {
+    const updateSettings = () => {
+      setSchoolSettings(getStoredSchoolSettings());
+    };
+    updateSettings();
+    window.addEventListener('school-settings-updated', updateSettings);
+    return () => window.removeEventListener('school-settings-updated', updateSettings);
+  }, []);
 
   useEffect(() => {
     const syncData = () => {
@@ -108,13 +119,13 @@ export default function DaftarHadirPage() {
         {/* Kop Resmi Ujian */}
         <div className="border-b-2 border-slate-900 pb-3 mb-4 text-center">
           <p className="text-[10px] tracking-widest font-bold text-slate-700 uppercase">
-            PANITIA PELAKSANA ASESMEN DAN UJIAN SEKOLAH
+            PANITIA PELAKSANA ASESMEN DAN UJIAN • {schoolSettings.namaSekolah}
           </p>
           <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 uppercase">
             DAFTAR HADIR PESERTA UJIAN
           </h2>
           <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">
-            {ujian.nama_ujian} • TAHUN PELAJARAN 2026/2027
+            {schoolSettings.namaUjian} • TAHUN PELAJARAN {schoolSettings.tahunAjaran}
           </p>
         </div>
 

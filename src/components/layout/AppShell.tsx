@@ -11,9 +11,10 @@ import {
   Users,
   Tag,
   LogOut,
-  UserCheck
+  UserCheck,
+  Settings
 } from 'lucide-react';
-import { getStoredUser, clearUserSession, AuthUser } from '@/lib/auth';
+import { getStoredUser, clearUserSession, isAdmin, AuthUser } from '@/lib/auth';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -166,6 +167,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <Users className="w-4 h-4 text-slate-600" />
                 Data Siswa
               </Link>
+
+              {isAdmin(currentUser) && (
+                <Link
+                  href="/pengaturan"
+                  className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
+                    pathname === '/pengaturan' 
+                      ? 'text-indigo-600 bg-indigo-50 font-bold' 
+                      : 'text-slate-700 hover:text-indigo-600 hover:bg-indigo-50'
+                  }`}
+                  title="Pengaturan Ujian & Sekolah (Khusus Role Admin)"
+                >
+                  <Settings className="w-4 h-4 text-indigo-600" />
+                  Pengaturan
+                </Link>
+              )}
             </nav>
 
             {/* User Session & Logout Action */}
