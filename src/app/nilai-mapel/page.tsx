@@ -17,6 +17,7 @@ import * as XLSX from 'xlsx';
 
 export default function NilaiMapelPage() {
   const [selectedMapelId, setSelectedMapelId] = useState<number>(1); // Default Mapel 1 (PAIBP)
+  const [selectedKelasId, setSelectedKelasId] = useState<string>('all'); // Filter Kelas
   const [nilaiList, setNilaiList] = useState<NilaiUjian[]>([]);
   const [allSiswa, setAllSiswa] = useState<Siswa[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
@@ -84,8 +85,21 @@ export default function NilaiMapelPage() {
     };
   });
 
-  // Urutkan berdasarkan nilai akhir tertinggi untuk ranking
-  const sortedList = [...rawList].sort((a, b) => b.nilaiAkhir - a.nilaiAkhir);
+  // Urutkan siswa per kelas dan nama A-Z
+  const sortedList = [...rawList]
+    .filter(item => selectedKelasId === 'all' || item.siswa?.kelas_id.toString() === selectedKelasId)
+    .sort((a, b) => {
+      // Urutkan berdasarkan Kelas terlebih dahulu
+      const kelasA = a.kelas?.nama_kelas || '';
+      const kelasB = b.kelas?.nama_kelas || '';
+      const cmpKelas = kelasA.localeCompare(kelasB, 'id', { numeric: true, sensitivity: 'base' });
+      if (cmpKelas !== 0) return cmpKelas;
+
+      // Kemudian urutkan berdasarkan Nama Siswa A-Z
+      const namaA = a.siswa?.nama_lengkap || '';
+      const namaB = b.siswa?.nama_lengkap || '';
+      return namaA.localeCompare(namaB, 'id', { sensitivity: 'base' });
+    });
 
   // Statistik
   const nilaiValues = sortedList.map(item => item.nilaiAkhir).filter(v => v > 0);
@@ -96,19 +110,36 @@ export default function NilaiMapelPage() {
   const persentaseTuntas = sortedList.length > 0 ? Math.round((tuntasCount / sortedList.length) * 100) : 0;
 
   const handleDownloadTemplate = () => {
-    const templateData = currentPeserta.map((peserta) => {
-      const siswa = allSiswa.find(s => s.id === peserta.siswa_id || (peserta.siswa?.nisn && s.nisn === peserta.siswa.nisn));
-      const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
-      return {
-        'No. Peserta': peserta.no_peserta,
-        'NISN': siswa?.nisn || '',
-        'Nama Siswa': siswa?.nama_lengkap || '',
-        'Kelas': kelas?.nama_kelas || '',
-        'Nilai PG': '',
-        'Nilai Esai': '',
-        'Keterangan': 'Hadir',
-      };
-    });
+    const templateData = currentPeserta
+      .filter(p => {
+        if (selectedKelasId === 'all') return true;
+        const s = allSiswa.find(sw => sw.id === p.siswa_id);
+        return s?.kelas_id.toString() === selectedKelasId;
+      })
+      .sort((a, b) => {
+        const sA = allSiswa.find(s => s.id === a.siswa_id);
+        const sB = allSiswa.find(s => s.id === b.siswa_id);
+        const kA = DEMO_KELAS.find(k => k.id === sA?.kelas_id)?.nama_kelas || '';
+        const kB = DEMO_KELAS.find(k => k.id === sB?.kelas_id)?.nama_kelas || '';
+        const cmpK = kA.localeCompare(kB, 'id', { numeric: true, sensitivity: 'base' });
+        if (cmpK !== 0) return cmpK;
+        const nA = sA?.nama_lengkap || '';
+        const nB = sB?.nama_lengkap || '';
+        return nA.localeCompare(nB, 'id', { sensitivity: 'base' });
+      })
+      .map((peserta) => {
+        const siswa = allSiswa.find(s => s.id === peserta.siswa_id || (peserta.siswa?.nisn && s.nisn === peserta.siswa.nisn));
+        const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
+        return {
+          'No. Peserta': peserta.no_peserta,
+          'NISN': siswa?.nisn || '',
+          'Nama Siswa': siswa?.nama_lengkap || '',
+          'Kelas': kelas?.nama_kelas || '',
+          'Nilai PG': '',
+          'Nilai Esai': '',
+          'Keterangan': 'Hadir',
+        };
+      });
 
     const worksheet = XLSX.utils.json_to_sheet(templateData);
     worksheet['!cols'] = [
@@ -263,6 +294,20 @@ export default function NilaiMapelPage() {
             </select>
           </div>
 
+          <div className="flex items-center gap-1.5 mr-2">
+            <label className="text-xs font-semibold text-slate-700">Filter Kelas:</label>
+            <select
+              value={selectedKelasId}
+              onChange={(e) => setSelectedKelasId(e.target.value)}
+              className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="all">Semua Kelas</option>
+              {DEMO_KELAS.map((k) => (
+                <option key={k.id} value={k.id.toString()}>{k.nama_kelas}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Tombol Unduh Template Nilai Excel */}
           <button
             onClick={handleDownloadTemplate}
@@ -356,7 +401,7 @@ export default function NilaiMapelPage() {
           <table className="w-full text-left border-collapse border border-slate-400 text-xs">
             <thead>
               <tr className="bg-slate-100 text-slate-800 uppercase font-bold text-[10px] tracking-wider text-center">
-                <th className="border border-slate-400 px-2 py-2.5 w-12">Rank</th>
+                <th className="border border-slate-400 px-2 py-2.5 w-12">No</th>
                 <th className="border border-slate-400 px-3 py-2.5 w-28">No. Peserta</th>
                 <th className="border border-slate-400 px-3 py-2.5 w-24">NISN</th>
                 <th className="border border-slate-400 px-3 py-2.5 text-left">Nama Lengkap Siswa</th>
@@ -378,8 +423,8 @@ export default function NilaiMapelPage() {
               )}
               {sortedList.map((row, idx) => (
                 <tr key={idx} className="hover:bg-slate-50">
-                  <td className="border border-slate-300 px-2 py-2 text-center font-bold">
-                    {idx === 0 ? '🥇 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : idx + 1}
+                  <td className="border border-slate-300 px-2 py-2 text-center font-medium">
+                    {idx + 1}
                   </td>
                   <td className="border border-slate-300 px-3 py-2 text-center font-mono text-slate-700">{row.noPeserta}</td>
                   <td className="border border-slate-300 px-3 py-2 text-center font-mono text-slate-700">{row.siswa?.nisn}</td>

@@ -56,8 +56,10 @@ export default function NilaiKelasPage() {
   const currentKelas = DEMO_KELAS.find(k => k.id === selectedKelasId);
   const ujian = DEMO_UJIAN[0];
 
-  // Siswa di kelas yang dipilih
-  const siswaList = allSiswa.filter(s => s.kelas_id === selectedKelasId);
+  // Siswa di kelas yang dipilih diurutkan A-Z berdasarkan Nama Lengkap
+  const siswaList = allSiswa
+    .filter(s => s.kelas_id === selectedKelasId)
+    .sort((a, b) => a.nama_lengkap.localeCompare(b.nama_lengkap, 'id', { sensitivity: 'base' }));
   const currentPeserta = generatePesertaFromSiswa(allSiswa);
 
   // Ambil nilai per siswa per mapel
