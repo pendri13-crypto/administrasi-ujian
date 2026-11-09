@@ -23,7 +23,7 @@ export default function Dashboard() {
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 sm:p-8 text-white shadow-lg">
         <div className="max-w-3xl">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/30 text-blue-100 border border-blue-400/20 mb-3">
-            <Calendar className="w-3.5 h-3.5" /> Agenda Aktif: {aktifUjian.nama_ujian}
+            <Calendar className="w-3.5 h-3.5" /> Agenda Aktif: {aktifUjian?.nama_ujian || 'Sumatif Akhir Semester (SAS) Ganjil'}
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
             Administrasi Ujian & Penilaian
