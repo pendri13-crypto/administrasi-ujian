@@ -26,11 +26,16 @@ export default function DaftarHadirPage() {
         if (saved) {
           const parsedSiswa: Siswa[] = JSON.parse(saved);
           if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
+            if (parsedSiswa.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
+              localStorage.removeItem('adm_siswa_data');
+              setPesertaList([]);
+              return;
+            }
             setPesertaList(generatePesertaFromSiswa(parsedSiswa));
             return;
           }
         }
-        setPesertaList(generatePesertaFromSiswa(DEMO_SISWA));
+        setPesertaList([]);
       } catch (e) {
         console.error(e);
       }
@@ -170,6 +175,13 @@ export default function DaftarHadirPage() {
               </tr>
             </thead>
             <tbody>
+              {pesertaRuang.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="border border-slate-400 py-10 text-center text-slate-400 italic">
+                    Belum ada peserta ujian di ruangan ini. Silakan masukkan atau impor data siswa pada menu <b>Data Siswa</b>.
+                  </td>
+                </tr>
+              )}
               {pesertaRuang.map((peserta, idx) => {
                 const siswa = peserta.siswa;
                 const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);

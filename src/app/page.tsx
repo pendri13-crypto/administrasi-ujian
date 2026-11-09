@@ -17,7 +17,7 @@ import { DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, DEMO_UJIAN } from '@/lib/demo-data'
 
 export default function Dashboard() {
   const aktifUjian = DEMO_UJIAN[0];
-  const [totalSiswa, setTotalSiswa] = useState<number>(DEMO_SISWA.length);
+  const [totalSiswa, setTotalSiswa] = useState<number>(0);
 
   useEffect(() => {
     try {
@@ -25,9 +25,16 @@ export default function Dashboard() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          if (parsed.some((s: { nama_lengkap?: string; id?: number }) => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
+            localStorage.removeItem('adm_siswa_data');
+            setTotalSiswa(0);
+            return;
+          }
           setTotalSiswa(parsed.length);
+          return;
         }
       }
+      setTotalSiswa(0);
     } catch (e) {
       console.error(e);
     }

@@ -97,17 +97,17 @@ export default function SiswaPage() {
       if (saved) {
         const parsed: Siswa[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Bersihkan sisa dummy unsplash jika ada tersimpan di cache lama
-          const sanitized = parsed.map(s => {
-            if (s.foto_url && s.foto_url.includes('images.unsplash.com')) {
-              return { ...s, foto_url: null };
-            }
-            return s;
-          });
-          setSiswaList(sanitized);
+          // Bersihkan data dummy bawaan lama jika masih tersimpan di cache
+          if (parsed.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
+            localStorage.removeItem('adm_siswa_data');
+            setSiswaList([]);
+            return;
+          }
+          setSiswaList(parsed);
           return;
         }
       }
+      setSiswaList([]);
     } catch (e) {
       console.error('Failed to load siswa from localStorage', e);
     }
@@ -188,12 +188,13 @@ export default function SiswaPage() {
     }
   };
 
-  // Reset Kembali ke Data Awal Bawaan Sekolah (1.094 Siswa)
+  // Reset / Bersihkan Seluruh Data Siswa
   const handleResetDefault = () => {
-    if (confirm('Kembalikan data siswa ke database awal sekolah (1.094 siswa)?')) {
-      saveAndSetSiswaList(DEMO_SISWA);
+    if (confirm('Apakah Anda yakin ingin mengosongkan seluruh data siswa?')) {
+      saveAndSetSiswaList([]);
+      localStorage.removeItem('adm_siswa_data');
       setSelectedIds([]);
-      showToast('Data siswa berhasil dikembalikan ke data awal.');
+      showToast('Data siswa berhasil dikosongkan.');
     }
   };
 
@@ -820,6 +821,14 @@ export default function SiswaPage() {
                   </tr>
                 );
               })}
+              {filteredList.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center text-slate-400">
+                    <p className="font-bold text-slate-700 text-sm">Belum ada data siswa</p>
+                    <p className="text-xs text-slate-400 mt-1">Silakan klik tombol <b>Impor dari Excel</b> atau <b>+ Tambah Siswa Baru</b> di atas.</p>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

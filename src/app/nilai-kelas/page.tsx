@@ -8,7 +8,8 @@ import {
   DEMO_PESERTA, 
   DEMO_NILAI, 
   DEMO_JADWAL, 
-  DEMO_UJIAN 
+  DEMO_UJIAN,
+  generatePesertaFromSiswa
 } from '@/lib/demo-data';
 import { NilaiUjian, Siswa } from '@/types/database';
 import { Printer, Download, CheckCircle, AlertTriangle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
@@ -16,8 +17,8 @@ import * as XLSX from 'xlsx';
 
 export default function NilaiKelasPage() {
   const [selectedKelasId, setSelectedKelasId] = useState<number>(1);
-  const [nilaiList, setNilaiList] = useState<NilaiUjian[]>(DEMO_NILAI);
-  const [allSiswa, setAllSiswa] = useState<Siswa[]>(DEMO_SISWA);
+  const [nilaiList, setNilaiList] = useState<NilaiUjian[]>([]);
+  const [allSiswa, setAllSiswa] = useState<Siswa[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,7 +27,20 @@ export default function NilaiKelasPage() {
       if (saved) {
         const parsed: Siswa[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setAllSiswa(parsed);
+          if (parsed.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
+            localStorage.removeItem('adm_siswa_data');
+            setAllSiswa([]);
+          } else {
+            setAllSiswa(parsed);
+          }
+        }
+      }
+
+      const savedNilai = localStorage.getItem('adm_nilai_data');
+      if (savedNilai) {
+        const parsedNilai = JSON.parse(savedNilai);
+        if (Array.isArray(parsedNilai)) {
+          setNilaiList(parsedNilai);
         }
       }
     } catch (e) {
@@ -44,10 +58,11 @@ export default function NilaiKelasPage() {
 
   // Siswa di kelas yang dipilih
   const siswaList = allSiswa.filter(s => s.kelas_id === selectedKelasId);
+  const currentPeserta = generatePesertaFromSiswa(allSiswa);
 
   // Ambil nilai per siswa per mapel
   const rows = siswaList.map((siswa, idx) => {
-    const peserta = DEMO_PESERTA.find(p => p.siswa_id === siswa.id);
+    const peserta = currentPeserta.find(p => p.siswa_id === siswa.id);
     
     // Nilai untuk setiap mapel
     let totalNilai = 0;
@@ -151,7 +166,7 @@ export default function NilaiKelasPage() {
             const siswa = siswaList.find(s => s.nisn === nisn);
             if (!siswa) return;
 
-            const peserta = DEMO_PESERTA.find(p => p.siswa_id === siswa.id);
+            const peserta = currentPeserta.find(p => p.siswa_id === siswa.id);
             if (!peserta) return;
 
             DEMO_MAPEL.forEach((mapel) => {
@@ -194,6 +209,12 @@ export default function NilaiKelasPage() {
               }
             });
           });
+
+          try {
+            localStorage.setItem('adm_nilai_data', JSON.stringify(newList));
+          } catch (err) {
+            console.error('Failed to save nilai to localStorage', err);
+          }
 
           return newList;
         });
@@ -348,6 +369,14 @@ export default function NilaiKelasPage() {
               </tr>
             </thead>
             <tbody>
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={6 + DEMO_MAPEL.length} className="border border-slate-300 py-12 text-center text-slate-400">
+                    <p className="font-bold text-slate-700 text-sm">Belum ada data siswa di kelas ini</p>
+                    <p className="text-xs text-slate-400 mt-1">Silakan masukkan data siswa pada menu <b>Data Siswa</b> atau impor nilai via Excel.</p>
+                  </td>
+                </tr>
+              )}
               {rows.map((row) => (
                 <tr key={row.siswa.id} className="hover:bg-slate-50">
                   <td className="border border-slate-300 px-2 py-2 text-center font-medium">{row.no}</td>

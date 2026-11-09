@@ -16,11 +16,16 @@ export default function NomorMejaPage() {
         if (saved) {
           const parsedSiswa: Siswa[] = JSON.parse(saved);
           if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
+            if (parsedSiswa.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
+              localStorage.removeItem('adm_siswa_data');
+              setPesertaList([]);
+              return;
+            }
             setPesertaList(generatePesertaFromSiswa(parsedSiswa));
             return;
           }
         }
-        setPesertaList(generatePesertaFromSiswa(DEMO_SISWA));
+        setPesertaList([]);
       } catch (e) {
         console.error(e);
       }
@@ -72,7 +77,15 @@ export default function NomorMejaPage() {
       </div>
 
       {/* Grid Label Meja - 2 Kolom x 4 Baris = 8 label per halaman A4 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-4">
+      {filteredPeserta.length === 0 ? (
+        <div className="bg-white p-16 rounded-2xl border border-slate-200 text-center shadow-sm">
+          <p className="font-bold text-slate-800 text-base">Belum Ada Data Nomor Meja</p>
+          <p className="text-xs text-slate-400 mt-1.5">
+            Silakan masukkan atau impor data siswa pada menu <b>Data Siswa</b> untuk mencetak nomor meja ujian.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-4">
         {filteredPeserta.map((peserta) => {
           const siswa = peserta.siswa;
           const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
@@ -126,6 +139,7 @@ export default function NomorMejaPage() {
           );
         })}
       </div>
+      )}
     </div>
   );
 }

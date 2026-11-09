@@ -8,16 +8,17 @@ import {
   DEMO_PESERTA, 
   DEMO_NILAI, 
   DEMO_JADWAL,
-  DEMO_UJIAN 
+  DEMO_UJIAN,
+  generatePesertaFromSiswa
 } from '@/lib/demo-data';
 import { NilaiUjian, Siswa } from '@/types/database';
 import { Printer, Download, Award, TrendingUp, CheckCircle, AlertCircle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function NilaiMapelPage() {
-  const [selectedMapelId, setSelectedMapelId] = useState<number>(2); // Default Matematika
-  const [nilaiList, setNilaiList] = useState<NilaiUjian[]>(DEMO_NILAI);
-  const [allSiswa, setAllSiswa] = useState<Siswa[]>(DEMO_SISWA);
+  const [selectedMapelId, setSelectedMapelId] = useState<number>(1); // Default Mapel 1 (PAIBP)
+  const [nilaiList, setNilaiList] = useState<NilaiUjian[]>([]);
+  const [allSiswa, setAllSiswa] = useState<Siswa[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,7 +27,20 @@ export default function NilaiMapelPage() {
       if (saved) {
         const parsed: Siswa[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setAllSiswa(parsed);
+          if (parsed.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
+            localStorage.removeItem('adm_siswa_data');
+            setAllSiswa([]);
+          } else {
+            setAllSiswa(parsed);
+          }
+        }
+      }
+
+      const savedNilai = localStorage.getItem('adm_nilai_data');
+      if (savedNilai) {
+        const parsedNilai = JSON.parse(savedNilai);
+        if (Array.isArray(parsedNilai)) {
+          setNilaiList(parsedNilai);
         }
       }
     } catch (e) {
@@ -43,8 +57,10 @@ export default function NilaiMapelPage() {
   const jadwal = DEMO_JADWAL.find(j => j.mapel_id === currentMapel.id);
   const ujian = DEMO_UJIAN[0];
 
+  const currentPeserta = generatePesertaFromSiswa(allSiswa);
+
   // Kumpulkan semua siswa yang mengambil mapel ini
-  const rawList = DEMO_PESERTA.map((peserta) => {
+  const rawList = currentPeserta.map((peserta) => {
     const siswa = allSiswa.find(s => s.id === peserta.siswa_id || (peserta.siswa?.nisn && s.nisn === peserta.siswa.nisn));
     const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
     const nilaiRecord = nilaiList.find(
@@ -80,7 +96,7 @@ export default function NilaiMapelPage() {
   const persentaseTuntas = sortedList.length > 0 ? Math.round((tuntasCount / sortedList.length) * 100) : 0;
 
   const handleDownloadTemplate = () => {
-    const templateData = DEMO_PESERTA.map((peserta) => {
+    const templateData = currentPeserta.map((peserta) => {
       const siswa = allSiswa.find(s => s.id === peserta.siswa_id || (peserta.siswa?.nisn && s.nisn === peserta.siswa.nisn));
       const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
       return {
@@ -133,10 +149,14 @@ export default function NilaiMapelPage() {
           importedData.forEach((row) => {
             const noPeserta = String(row['No. Peserta'] || row['no_peserta'] || row['Nomor Peserta'] || '').trim();
             const nisn = String(row['NISN'] || row['nisn'] || '').trim();
-            const peserta = DEMO_PESERTA.find(p => {
+            const rawNama = String(row['Nama Siswa'] || row['Nama Lengkap'] || row['nama_siswa'] || '').trim().toLowerCase();
+
+            const peserta = currentPeserta.find(p => {
               if (noPeserta && p.no_peserta === noPeserta) return true;
-              const s = DEMO_SISWA.find(sw => sw.id === p.siswa_id);
-              return Boolean(nisn && s?.nisn === nisn);
+              const s = allSiswa.find(sw => sw.id === p.siswa_id);
+              if (nisn && s?.nisn === nisn) return true;
+              if (rawNama && s?.nama_lengkap.trim().toLowerCase() === rawNama) return true;
+              return false;
             });
 
             if (peserta && jadwal) {
@@ -171,6 +191,13 @@ export default function NilaiMapelPage() {
               updatedCount++;
             }
           });
+
+          try {
+            localStorage.setItem('adm_nilai_data', JSON.stringify(newList));
+          } catch (err) {
+            console.error('Failed to save nilai to localStorage', err);
+          }
+
           return newList;
         });
 
@@ -341,6 +368,14 @@ export default function NilaiMapelPage() {
               </tr>
             </thead>
             <tbody>
+              {sortedList.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="border border-slate-300 py-12 text-center text-slate-400">
+                    <p className="font-bold text-slate-700 text-sm">Belum ada data siswa / nilai untuk mata pelajaran ini</p>
+                    <p className="text-xs text-slate-400 mt-1">Silakan masukkan data siswa pada menu <b>Data Siswa</b> atau impor nilai via Excel.</p>
+                  </td>
+                </tr>
+              )}
               {sortedList.map((row, idx) => (
                 <tr key={idx} className="hover:bg-slate-50">
                   <td className="border border-slate-300 px-2 py-2 text-center font-bold">
