@@ -4,13 +4,12 @@ import { useState } from 'react';
 import { 
   DEMO_RUANG, 
   DEMO_PESERTA, 
-  DEMO_SISWA, 
   DEMO_KELAS, 
   DEMO_MAPEL, 
   DEMO_JADWAL, 
   DEMO_UJIAN 
 } from '@/lib/demo-data';
-import { Printer, DoorOpen, Calendar, Clock, FileCheck } from 'lucide-react';
+import { Printer, DoorOpen } from 'lucide-react';
 
 export default function DaftarHadirPage() {
   const [selectedRuangId, setSelectedRuangId] = useState<number>(1);

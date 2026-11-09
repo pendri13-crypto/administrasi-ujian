@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { DEMO_SISWA, DEMO_KELAS } from '@/lib/demo-data';
 import { Siswa } from '@/types/database';
-import { Upload, Plus, Trash2, Image as ImageIcon, Search, CheckCircle2 } from 'lucide-react';
+import { Upload, Plus, Trash2, Image as ImageIcon, Search, CheckCircle2, Download, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 export default function SiswaPage() {
   const [siswaList, setSiswaList] = useState<Siswa[]>(DEMO_SISWA);
@@ -85,6 +86,75 @@ export default function SiswaPage() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const handleExportExcel = () => {
+    const data = filteredList.map((s, idx) => {
+      const kelas = DEMO_KELAS.find(k => k.id === s.kelas_id);
+      return {
+        'No': idx + 1,
+        'NISN': s.nisn,
+        'NIS': s.nis || '',
+        'Nama Lengkap': s.nama_lengkap,
+        'Jenis Kelamin': s.jenis_kelamin === 'L' ? 'L' : 'P',
+        'Kelas': kelas?.nama_kelas || '',
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Siswa');
+    XLSX.writeFile(workbook, `Data_Siswa_${selectedKelas !== 'all' ? DEMO_KELAS.find(k => k.id.toString() === selectedKelas)?.nama_kelas.replace(/\s+/g, '_') || 'Kelas' : 'Semua'}.xlsx`);
+  };
+
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const workbook = XLSX.read(bstr, { type: 'binary' });
+        const wsname = workbook.SheetNames[0];
+        const ws = workbook.Sheets[wsname];
+        const importedData = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+
+        if (!importedData.length) {
+          alert('File Excel kosong atau format tidak sesuai.');
+          return;
+        }
+
+        const newStudents: Siswa[] = importedData.map((row, idx) => {
+          const nama = String(row['Nama Lengkap'] || row['Nama'] || row['nama_lengkap'] || row['NAMA'] || `Siswa Baru ${idx + 1}`);
+          const nisnVal = String(row['NISN'] || row['nisn'] || Math.floor(1000000000 + Math.random() * 9000000000));
+          const nisVal = row['NIS'] || row['nis'] ? String(row['NIS'] || row['nis']) : '';
+          const rawJk = String(row['Jenis Kelamin'] || row['L/P'] || row['jk'] || 'L').toUpperCase();
+          const jkVal: 'L' | 'P' = rawJk.startsWith('P') ? 'P' : 'L';
+          
+          const rawKelas = String(row['Kelas'] || row['kelas'] || '').trim().toLowerCase();
+          const matchedKelas = DEMO_KELAS.find(k => k.nama_kelas.toLowerCase() === rawKelas);
+          const kelasIdVal = matchedKelas ? matchedKelas.id : 1;
+
+          return {
+            id: Date.now() + idx,
+            nisn: nisnVal,
+            nis: nisVal,
+            nama_lengkap: nama,
+            jenis_kelamin: jkVal,
+            kelas_id: kelasIdVal,
+            foto_url: null,
+          };
+        });
+
+        setSiswaList(prev => [...newStudents, ...prev]);
+        showToast(`Berhasil mengimpor ${newStudents.length} siswa dari Excel!`);
+        e.target.value = '';
+      } catch {
+        alert('Gagal membaca file Excel. Pastikan format file adalah .xlsx atau .xls.');
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
   return (
     <div className="space-y-8">
       {/* Toast Notification */}
@@ -102,6 +172,29 @@ export default function SiswaPage() {
           <p className="text-xs text-slate-500 mt-1">
             Data siswa dan pas foto 3x4 akan langsung terintegrasi ke Kartu Peserta Ujian dan Lembar Presensi.
           </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Tombol Impor Excel */}
+          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-bold shadow-sm transition">
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            Impor dari Excel
+            <input
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              onChange={handleImportExcel}
+              className="hidden"
+            />
+          </label>
+
+          {/* Tombol Ekspor Excel */}
+          <button
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold shadow-sm transition"
+          >
+            <Download className="w-4 h-4 text-slate-600" />
+            Ekspor Data (.xlsx)
+          </button>
         </div>
       </div>
 

@@ -10,8 +10,7 @@ import {
   ArrowRight, 
   CheckCircle2, 
   Calendar,
-  Layers,
-  DoorOpen
+  Tag
 } from 'lucide-react';
 import { DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, DEMO_UJIAN } from '@/lib/demo-data';
 
@@ -170,7 +169,7 @@ export default function Dashboard() {
           >
             <div className="flex items-start justify-between">
               <div className="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center text-violet-600 group-hover:bg-violet-600 group-hover:text-white transition">
-                <CreditCard className="w-6 h-6" />
+                <Tag className="w-6 h-6" />
               </div>
               <span className="text-slate-400 group-hover:text-violet-600 transition">
                 <ArrowRight className="w-5 h-5" />

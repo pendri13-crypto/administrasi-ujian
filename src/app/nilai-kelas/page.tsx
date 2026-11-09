@@ -10,7 +10,8 @@ import {
   DEMO_JADWAL,
   DEMO_UJIAN 
 } from '@/lib/demo-data';
-import { Printer, Download, FileSpreadsheet, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Printer, Download, CheckCircle, AlertTriangle } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 export default function NilaiKelasPage() {
   const [selectedKelasId, setSelectedKelasId] = useState<number>(1);
@@ -68,6 +69,30 @@ export default function NilaiKelasPage() {
     };
   });
 
+  const handleExportExcel = () => {
+    const data = rows.map((row) => {
+      const item: Record<string, string | number> = {
+        'No': row.no,
+        'NISN': row.siswa.nisn,
+        'Nama Siswa': row.siswa.nama_lengkap,
+        'L/P': row.siswa.jenis_kelamin,
+      };
+      row.nilaiPerMapel.forEach((m) => {
+        const mapel = DEMO_MAPEL.find(map => map.id === m.mapelId);
+        item[mapel ? `${mapel.kode_mapel} (${mapel.nama_mapel})` : `Mapel ${m.mapelId}`] = m.nilai !== null ? m.nilai : '-';
+      });
+      item['Total Nilai'] = row.totalNilai;
+      item['Rata-Rata'] = Number(row.rataRata);
+      item['Status'] = row.status;
+      return item;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Leger Nilai');
+    XLSX.writeFile(workbook, `Leger_Nilai_${currentKelas?.nama_kelas?.replace(/\s+/g, '_') || 'Kelas'}.xlsx`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Control Bar (Hidden on print) */}
@@ -90,6 +115,14 @@ export default function NilaiKelasPage() {
               <option key={k.id} value={k.id}>{k.nama_kelas}</option>
             ))}
           </select>
+
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-bold rounded-lg shadow-sm transition"
+          >
+            <Download className="w-4 h-4" />
+            Unduh Excel (.xlsx)
+          </button>
 
           <button
             onClick={() => window.print()}

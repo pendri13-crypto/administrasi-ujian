@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import { DEMO_PESERTA, DEMO_RUANG, DEMO_KELAS } from '@/lib/demo-data';
-import { Printer, Filter, Tag, CheckSquare } from 'lucide-react';
+import { Printer, Filter } from 'lucide-react';
 
 export default function NomorMejaPage() {
   const [selectedRuangId, setSelectedRuangId] = useState<string>('all');
-  const [itemsPerPage, setItemsPerPage] = useState<number>(8); // 8 label per lembar A4
 
   const filteredPeserta = DEMO_PESERTA.filter((p) => {
     return selectedRuangId === 'all' || p.ruang_id?.toString() === selectedRuangId;
@@ -106,3 +105,4 @@ export default function NomorMejaPage() {
     </div>
   );
 }
+

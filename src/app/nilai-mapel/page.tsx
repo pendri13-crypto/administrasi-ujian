@@ -10,7 +10,8 @@ import {
   DEMO_JADWAL,
   DEMO_UJIAN 
 } from '@/lib/demo-data';
-import { Printer, Award, TrendingUp, Users, CheckCircle, AlertCircle } from 'lucide-react';
+import { Printer, Download, Award, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 export default function NilaiMapelPage() {
   const [selectedMapelId, setSelectedMapelId] = useState<number>(2); // Default Matematika
@@ -54,6 +55,26 @@ export default function NilaiMapelPage() {
   const tuntasCount = sortedList.filter(item => item.tuntas).length;
   const persentaseTuntas = sortedList.length > 0 ? Math.round((tuntasCount / sortedList.length) * 100) : 0;
 
+  const handleExportExcel = () => {
+    const data = sortedList.map((item, idx) => ({
+      'Peringkat': idx + 1,
+      'No. Peserta': item.noPeserta,
+      'NISN': item.siswa?.nisn || '',
+      'Nama Siswa': item.siswa?.nama_lengkap || '',
+      'Kelas': item.kelas?.nama_kelas || '',
+      'Nilai PG': item.nilaiPG,
+      'Nilai Esai': item.nilaiEsai,
+      'Nilai Akhir': item.nilaiAkhir,
+      'Status KKM': item.tuntas ? 'TUNTAS' : 'REMEDIAL',
+      'Keterangan': item.keterangan,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Nilai Mapel');
+    XLSX.writeFile(workbook, `Nilai_${currentMapel.kode_mapel}_${currentMapel.nama_mapel.replace(/\s+/g, '_')}.xlsx`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Control Bar (Hidden on print) */}
@@ -76,6 +97,14 @@ export default function NilaiMapelPage() {
               <option key={m.id} value={m.id}>{m.kode_mapel} - {m.nama_mapel} (KKM: {m.kkm})</option>
             ))}
           </select>
+
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 text-xs font-bold rounded-lg shadow-sm transition"
+          >
+            <Download className="w-4 h-4" />
+            Unduh Excel (.xlsx)
+          </button>
 
           <button
             onClick={() => window.print()}
