@@ -84,8 +84,8 @@ export const DEMO_UJIAN: Ujian[] = [
   {
     id: 1,
     tahun_ajaran_id: 1,
-    nama_ujian: 'Penilaian Akhir Semester (PAS) Ganjil',
-    jenis_ujian: 'PAS',
+    nama_ujian: 'Sumatif Akhir Semester (SAS) Ganjil',
+    jenis_ujian: 'SAS',
     tgl_mulai: '2026-11-20',
     tgl_selesai: '2026-11-28',
     tahun_ajaran: DEMO_TAHUN_AJARAN[0]

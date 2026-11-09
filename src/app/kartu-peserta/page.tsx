@@ -105,7 +105,7 @@ export default function KartuPesertaPage() {
                   KARTU PESERTA UJIAN RESMI
                 </h3>
                 <p className="text-[11px] font-bold text-blue-700 mt-0.5">
-                  {ujian?.nama_ujian || 'PENILAIAN AKHIR SEMESTER'}
+                  {ujian?.nama_ujian || 'SUMATIF AKHIR SEMESTER (SAS)'}
                 </p>
                 <p className="text-[9px] text-slate-500">Tahun Ajaran 2026/2027 • Semester Ganjil</p>
               </div>

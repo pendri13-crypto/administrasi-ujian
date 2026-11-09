@@ -62,7 +62,7 @@ export default function NomorMejaPage() {
             >
               {/* Kop Kecil */}
               <div className="border-b border-slate-700 pb-1.5 flex justify-between items-center text-[10px]">
-                <span className="font-bold text-slate-700 uppercase">PENILAIAN AKHIR SEMESTER (PAS)</span>
+                <span className="font-bold text-slate-700 uppercase">SUMATIF AKHIR SEMESTER (SAS)</span>
                 <span className="bg-slate-900 text-white px-2 py-0.5 rounded font-bold text-[9px]">
                   {ruang?.kode_ruang}
                 </span>

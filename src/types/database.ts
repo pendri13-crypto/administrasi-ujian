@@ -41,7 +41,7 @@ export interface Ujian {
   id: number;
   tahun_ajaran_id: number;
   nama_ujian: string;
-  jenis_ujian: 'PTS' | 'PAS' | 'PAT' | 'US' | 'Simulasi';
+  jenis_ujian: 'PTS' | 'PAS' | 'PAT' | 'US' | 'Simulasi' | 'SAS' | 'STS';
   tgl_mulai: string;
   tgl_selesai: string;
   tahun_ajaran?: TahunAjaran;
