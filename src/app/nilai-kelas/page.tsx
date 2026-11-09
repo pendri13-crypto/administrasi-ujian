@@ -426,14 +426,17 @@ export default function NilaiKelasPage() {
         <div className="mt-8 pt-4 flex justify-between items-start text-xs text-slate-800">
           <div>
             <p>Mengetahui,</p>
-            <p>Kepala Sekolah</p>
-            <div className="h-14"></div>
-            <p className="font-bold border-b border-slate-900 inline-block">Drs. H. Mulyadi, M.Pd.</p>
-            <p className="text-[10px] text-slate-500">NIP. 19780512 200501 1 002</p>
+            <p>Kepala SMPN 1 Rajapolah</p>
+            <div className="h-14 flex items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/ttd-kepsek.png" alt="Tanda Tangan" className="max-h-12 w-auto object-contain" />
+            </div>
+            <p className="font-bold border-b border-slate-900 inline-block">H. UCU KARNI, M.Pd.</p>
+            <p className="text-[10px] text-slate-500">NIP. 19671116 199203 1 005</p>
           </div>
 
           <div className="text-right">
-            <p>Kota Pendidikan, 25 November 2026</p>
+            <p>Rajapolah, 30 November 2026</p>
             <p>Wali Kelas {currentKelas?.nama_kelas}</p>
             <div className="h-14"></div>
             <p className="font-bold border-b border-slate-900 inline-block">Siti Rahmawati, S.Pd.</p>

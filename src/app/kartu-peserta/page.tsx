@@ -137,14 +137,14 @@ export default function KartuPesertaPage() {
             >
               {/* Kop Kartu Peserta Resmi */}
               <div className="border-b-4 border-double border-slate-900 pb-2 mb-3">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-between gap-3">
                   {/* Logo Kiri: Pemda Kab. Tasikmalaya */}
-                  <div className="w-12 h-14 flex-shrink-0 flex items-center justify-center">
+                  <div className="w-[70px] h-[78px] flex-shrink-0 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/images/logo-tasikmalaya.png"
                       alt="Logo Pemda Kab. Tasikmalaya"
-                      className="max-h-14 max-w-full object-contain"
+                      className="max-h-[76px] max-w-[68px] w-auto h-auto object-contain filter drop-shadow-sm"
                       onError={(e) => {
                         e.currentTarget.src = 'https://i.ibb.co.com/p6j6TRD2/LOGO-PEMDA-KAB-TASIKMALAYA.png';
                       }}
@@ -152,28 +152,28 @@ export default function KartuPesertaPage() {
                   </div>
 
                   {/* Teks Kop Tengah */}
-                  <div className="flex-1 text-center leading-tight">
-                    <h3 className="text-[13px] font-black tracking-tight text-slate-950 uppercase">
+                  <div className="flex-1 text-center leading-tight px-1">
+                    <h3 className="text-[14px] font-black tracking-tight text-slate-950 uppercase">
                       KARTU PESERTA
                     </h3>
-                    <h4 className="text-[12px] font-black text-slate-900 uppercase">
+                    <h4 className="text-[13px] font-black text-slate-900 uppercase mt-0.5">
                       SUMATIF AKHIR SEMESTER (SAS)
                     </h4>
-                    <p className="text-[11px] font-black text-slate-900 uppercase">
+                    <p className="text-[12px] font-black text-slate-900 uppercase mt-0.5">
                       SMP NEGERI 1 RAJAPOLAH
                     </p>
-                    <p className="text-[10px] font-bold text-slate-800 uppercase tracking-wide">
+                    <p className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wide mt-0.5">
                       TAHUN PELAJARAN 2025/2026
                     </p>
                   </div>
 
                   {/* Logo Kanan: SMPN 1 Rajapolah */}
-                  <div className="w-12 h-14 flex-shrink-0 flex items-center justify-center">
+                  <div className="w-[70px] h-[78px] flex-shrink-0 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/images/logo-smpn1-rajapolah.png"
                       alt="Logo SMPN 1 Rajapolah"
-                      className="max-h-14 max-w-full object-contain"
+                      className="max-h-[76px] max-w-[68px] w-auto h-auto object-contain filter drop-shadow-sm"
                       onError={(e) => {
                         e.currentTarget.src = 'https://i.ibb.co.com/QvMS2L2J/LOGO-SEKOLAH-SMPN-1-RAJAPOLAH.png';
                       }}
@@ -265,7 +265,7 @@ export default function KartuPesertaPage() {
               {/* Footer Kartu & Tanda Tangan */}
               <div className="border-t-2 border-slate-800 pt-2 mt-2 flex items-end justify-between text-[9px]">
                 <div className="text-slate-600 space-y-0.5">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <QrCode className="w-8 h-8 text-slate-800" />
                     <div>
                       <p className="font-semibold text-slate-800">VERIFIKASI PANITIA</p>
@@ -274,13 +274,26 @@ export default function KartuPesertaPage() {
                   </div>
                 </div>
 
-                <div className="text-center w-36">
-                  <p>Kepala Sekolah,</p>
-                  <div className="h-9"></div>
-                  <p className="font-bold border-b border-slate-900 inline-block px-2">
-                    Drs. H. Mulyadi, M.Pd.
+                <div className="text-center min-w-[170px]">
+                  <p className="text-[9px] text-slate-700 leading-tight">Rajapolah, 30 November 2026</p>
+                  <p className="text-[9px] font-medium text-slate-800 leading-tight">Kepala SMPN 1 Rajapolah,</p>
+                  
+                  {/* Tanda Tangan Asli */}
+                  <div className="relative h-10 my-0.5 flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/images/ttd-kepsek.png"
+                      alt="Tanda Tangan Kepala Sekolah"
+                      className="max-h-11 w-auto object-contain select-none"
+                    />
+                  </div>
+
+                  <p className="font-bold text-slate-950 text-[10px] leading-tight underline decoration-slate-900 underline-offset-2">
+                    H. UCU KARNI, M.Pd.
                   </p>
-                  <p className="text-[8px] text-slate-600">NIP. 19780512 200501 1 002</p>
+                  <p className="text-[8.5px] font-bold text-slate-800 leading-tight mt-0.5">
+                    NIP. 19671116 199203 1 005
+                  </p>
                 </div>
               </div>
             </div>
