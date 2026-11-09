@@ -94,8 +94,17 @@ export const DEMO_JADWAL: JadwalUjian[] = DEMO_MAPEL.map((mapel, idx) => ({
 
 export function generatePesertaFromSiswa(siswaList: Siswa[]): PesertaUjian[] {
   if (!siswaList || siswaList.length === 0) return [];
+
+  // Urutkan siswa per kelas dan A-Z berdasarkan Nama Lengkap siswa
+  const sortedSiswa = [...siswaList].sort((a, b) => {
+    if (a.kelas_id !== b.kelas_id) {
+      return (a.kelas_id || 0) - (b.kelas_id || 0);
+    }
+    return (a.nama_lengkap || '').localeCompare(b.nama_lengkap || '', 'id', { sensitivity: 'base' });
+  });
+
   const deskCount: Record<number, number> = {};
-  return siswaList.map((siswa, idx) => {
+  return sortedSiswa.map((siswa, idx) => {
     const kId = siswa.kelas_id || 1;
     deskCount[kId] = (deskCount[kId] || 0) + 1;
     const noMeja = deskCount[kId];

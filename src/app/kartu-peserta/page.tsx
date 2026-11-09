@@ -40,11 +40,18 @@ export default function KartuPesertaPage() {
     return () => window.removeEventListener('storage', syncData);
   }, []);
 
-  const filteredPeserta = pesertaList.filter((p) => {
-    const matchKelas = selectedKelas === 'all' || p.siswa?.kelas_id.toString() === selectedKelas;
-    const matchRuang = selectedRuang === 'all' || p.ruang_id?.toString() === selectedRuang;
-    return matchKelas && matchRuang;
-  });
+  const filteredPeserta = pesertaList
+    .filter((p) => {
+      const matchKelas = selectedKelas === 'all' || p.siswa?.kelas_id.toString() === selectedKelas;
+      const matchRuang = selectedRuang === 'all' || p.ruang_id?.toString() === selectedRuang;
+      return matchKelas && matchRuang;
+    })
+    .sort((a, b) => {
+      // Urutkan Nama Siswa A-Z
+      const namaA = a.siswa?.nama_lengkap || '';
+      const namaB = b.siswa?.nama_lengkap || '';
+      return namaA.localeCompare(namaB, 'id', { sensitivity: 'base' });
+    });
 
   const handlePrint = () => {
     window.print();
