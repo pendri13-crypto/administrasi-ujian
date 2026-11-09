@@ -1,13 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DEMO_PESERTA, DEMO_RUANG, DEMO_KELAS } from '@/lib/demo-data';
+import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, Filter } from 'lucide-react';
 
 export default function NomorMejaPage() {
   const [selectedRuangId, setSelectedRuangId] = useState<string>('all');
+  const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
 
-  const filteredPeserta = DEMO_PESERTA.filter((p) => {
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('adm_siswa_data');
+      if (saved) {
+        const parsedSiswa: Siswa[] = JSON.parse(saved);
+        if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
+          setPesertaList(prev => prev.map(p => {
+            const matchedSiswa = parsedSiswa.find(
+              s => s.id === p.siswa_id || (p.siswa?.nisn && s.nisn === p.siswa.nisn)
+            );
+            return matchedSiswa ? { ...p, siswa: matchedSiswa } : p;
+          }));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const filteredPeserta = pesertaList.filter((p) => {
     return selectedRuangId === 'all' || p.ruang_id?.toString() === selectedRuangId;
   }).sort((a, b) => (a.no_meja || 0) - (b.no_meja || 0));
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   DEMO_RUANG, 
   DEMO_PESERTA, 
@@ -9,11 +9,32 @@ import {
   DEMO_JADWAL, 
   DEMO_UJIAN 
 } from '@/lib/demo-data';
+import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, DoorOpen } from 'lucide-react';
 
 export default function DaftarHadirPage() {
   const [selectedRuangId, setSelectedRuangId] = useState<number>(1);
   const [selectedMapelId, setSelectedMapelId] = useState<number>(1);
+  const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('adm_siswa_data');
+      if (saved) {
+        const parsedSiswa: Siswa[] = JSON.parse(saved);
+        if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
+          setPesertaList(prev => prev.map(p => {
+            const matchedSiswa = parsedSiswa.find(
+              s => s.id === p.siswa_id || (p.siswa?.nisn && s.nisn === p.siswa.nisn)
+            );
+            return matchedSiswa ? { ...p, siswa: matchedSiswa } : p;
+          }));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const currentRuang = DEMO_RUANG.find(r => r.id === selectedRuangId) || DEMO_RUANG[0];
   const currentMapel = DEMO_MAPEL.find(m => m.id === selectedMapelId) || DEMO_MAPEL[0];
@@ -21,7 +42,7 @@ export default function DaftarHadirPage() {
   const ujian = DEMO_UJIAN[0];
 
   // Peserta yang ditempatkan di ruang ini
-  const pesertaRuang = DEMO_PESERTA.filter(p => p.ruang_id === selectedRuangId)
+  const pesertaRuang = pesertaList.filter(p => p.ruang_id === selectedRuangId)
     .sort((a, b) => (a.no_meja || 0) - (b.no_meja || 0));
 
   return (

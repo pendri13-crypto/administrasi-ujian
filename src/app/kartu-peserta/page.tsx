@@ -1,15 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DEMO_PESERTA, DEMO_KELAS, DEMO_RUANG } from '@/lib/demo-data';
+import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, Filter, Image as ImageIcon, QrCode } from 'lucide-react';
 
 export default function KartuPesertaPage() {
   const [selectedKelas, setSelectedKelas] = useState<string>('all');
   const [selectedRuang, setSelectedRuang] = useState<string>('all');
   const [layoutMode, setLayoutMode] = useState<'4' | '2'>('4'); // 4 per halaman atau 2 per halaman
+  const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
 
-  const filteredPeserta = DEMO_PESERTA.filter((p) => {
+  // Sinkronisasi data dan foto siswa dari localStorage (yang diinput via Excel / web)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('adm_siswa_data');
+      if (saved) {
+        const parsedSiswa: Siswa[] = JSON.parse(saved);
+        if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
+          setPesertaList(prev => prev.map(p => {
+            const matchedSiswa = parsedSiswa.find(
+              s => s.id === p.siswa_id || (p.siswa?.nisn && s.nisn === p.siswa.nisn)
+            );
+            if (matchedSiswa) {
+              return {
+                ...p,
+                siswa: matchedSiswa, // Foto dan biodata siswa tersinkronisasi di sini
+              };
+            }
+            return p;
+          }));
+        }
+      }
+    } catch (e) {
+      console.error('Gagal memuat foto & data siswa tersimpan:', e);
+    }
+  }, []);
+
+  const filteredPeserta = pesertaList.filter((p) => {
     const matchKelas = selectedKelas === 'all' || p.siswa?.kelas_id.toString() === selectedKelas;
     const matchRuang = selectedRuang === 'all' || p.ruang_id?.toString() === selectedRuang;
     return matchKelas && matchRuang;
@@ -120,13 +148,17 @@ export default function KartuPesertaPage() {
                       src={siswa.foto_url}
                       alt={siswa.nama_lengkap}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
-                  ) : (
+                  ) : null}
+                  {!siswa?.foto_url ? (
                     <div className="text-center p-2 text-slate-400">
                       <ImageIcon className="w-8 h-8 mx-auto stroke-1" />
                       <span className="text-[9px] font-medium block mt-1">Foto 3x4</span>
                     </div>
-                  )}
+                  ) : null}
                   <span className="absolute bottom-1 text-[8px] bg-black/60 text-white px-1 rounded">
                     {peserta.no_meja ? `Meja ${peserta.no_meja}` : 'Meja -'}
                   </span>

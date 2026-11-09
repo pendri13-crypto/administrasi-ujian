@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DEMO_SISWA, DEMO_KELAS } from '@/lib/demo-data';
 import { Siswa } from '@/types/database';
 import { Upload, Plus, Trash2, Image as ImageIcon, Search, CheckCircle2, Download, FileSpreadsheet, Link2 } from 'lucide-react';
@@ -33,6 +33,34 @@ export default function SiswaPage() {
   const [selectedKelas, setSelectedKelas] = useState<string>('all');
   const [notification, setNotification] = useState<string | null>(null);
 
+  // Load data tersimpan di browser (jika ada) saat pertama kali buka
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('adm_siswa_data');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSiswaList(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load siswa from localStorage', e);
+    }
+  }, []);
+
+  // Simpan data siswa ke localStorage agar selalu sinkron dengan Kartu Peserta
+  const saveAndSetSiswaList = (newList: Siswa[] | ((prev: Siswa[]) => Siswa[])) => {
+    setSiswaList(prev => {
+      const next = typeof newList === 'function' ? newList(prev) : newList;
+      try {
+        localStorage.setItem('adm_siswa_data', JSON.stringify(next));
+      } catch (e) {
+        console.error('Failed to persist siswa to localStorage', e);
+      }
+      return next;
+    });
+  };
+
   // Form State Tambah Siswa
   const [namaLengkap, setNamaLengkap] = useState('');
   const [nisn, setNisn] = useState('');
@@ -62,7 +90,7 @@ export default function SiswaPage() {
 
       if (targetSiswaId) {
         // Ganti foto siswa yang sudah ada
-        setSiswaList(prev => prev.map(s => s.id === targetSiswaId ? { ...s, foto_url: result } : s));
+        saveAndSetSiswaList(prev => prev.map(s => s.id === targetSiswaId ? { ...s, foto_url: result } : s));
         showToast('Foto siswa berhasil diperbarui!');
       } else {
         // Preview untuk siswa baru
@@ -94,7 +122,7 @@ export default function SiswaPage() {
     if (input === null) return; // cancel
 
     const normalized = normalizePhotoUrl(input);
-    setSiswaList(prev => prev.map(s => s.id === targetSiswa.id ? { ...s, foto_url: normalized } : s));
+    saveAndSetSiswaList(prev => prev.map(s => s.id === targetSiswa.id ? { ...s, foto_url: normalized } : s));
     showToast(normalized ? 'Link foto berhasil disimpan!' : 'Foto siswa berhasil dihapus.');
   };
 
@@ -117,7 +145,7 @@ export default function SiswaPage() {
       foto_url: photoUrl,
     };
 
-    setSiswaList([newSiswa, ...siswaList]);
+    saveAndSetSiswaList([newSiswa, ...siswaList]);
     setNamaLengkap('');
     setNisn('');
     setNis('');
@@ -128,7 +156,7 @@ export default function SiswaPage() {
 
   const handleDelete = (id: number) => {
     if (confirm('Yakin ingin menghapus data siswa ini?')) {
-      setSiswaList(prev => prev.filter(s => s.id !== id));
+      saveAndSetSiswaList(prev => prev.filter(s => s.id !== id));
       showToast('Data siswa berhasil dihapus');
     }
   };
@@ -280,7 +308,7 @@ export default function SiswaPage() {
           }
         });
 
-        setSiswaList(updatedList);
+        saveAndSetSiswaList(updatedList);
         showToast(
           `Sukses! ${importedData.length} baris diproses (${updateCount} diperbarui, ${newCount} baru, ${photoCount} foto terisi via link).`
         );

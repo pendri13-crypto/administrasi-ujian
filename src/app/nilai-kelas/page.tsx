@@ -1,23 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   DEMO_KELAS, 
   DEMO_SISWA, 
   DEMO_MAPEL, 
   DEMO_PESERTA, 
   DEMO_NILAI, 
-  DEMO_JADWAL,
+  DEMO_JADWAL, 
   DEMO_UJIAN 
 } from '@/lib/demo-data';
-import { NilaiUjian } from '@/types/database';
+import { NilaiUjian, Siswa } from '@/types/database';
 import { Printer, Download, CheckCircle, AlertTriangle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function NilaiKelasPage() {
   const [selectedKelasId, setSelectedKelasId] = useState<number>(1);
   const [nilaiList, setNilaiList] = useState<NilaiUjian[]>(DEMO_NILAI);
+  const [allSiswa, setAllSiswa] = useState<Siswa[]>(DEMO_SISWA);
   const [notification, setNotification] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('adm_siswa_data');
+      if (saved) {
+        const parsed: Siswa[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAllSiswa(parsed);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const showToast = (msg: string) => {
     setNotification(msg);
@@ -28,7 +43,7 @@ export default function NilaiKelasPage() {
   const ujian = DEMO_UJIAN[0];
 
   // Siswa di kelas yang dipilih
-  const siswaList = DEMO_SISWA.filter(s => s.kelas_id === selectedKelasId);
+  const siswaList = allSiswa.filter(s => s.kelas_id === selectedKelasId);
 
   // Ambil nilai per siswa per mapel
   const rows = siswaList.map((siswa, idx) => {

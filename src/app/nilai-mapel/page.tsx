@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   DEMO_MAPEL, 
   DEMO_SISWA, 
@@ -10,14 +10,29 @@ import {
   DEMO_JADWAL,
   DEMO_UJIAN 
 } from '@/lib/demo-data';
-import { NilaiUjian } from '@/types/database';
+import { NilaiUjian, Siswa } from '@/types/database';
 import { Printer, Download, Award, TrendingUp, CheckCircle, AlertCircle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function NilaiMapelPage() {
   const [selectedMapelId, setSelectedMapelId] = useState<number>(2); // Default Matematika
   const [nilaiList, setNilaiList] = useState<NilaiUjian[]>(DEMO_NILAI);
+  const [allSiswa, setAllSiswa] = useState<Siswa[]>(DEMO_SISWA);
   const [notification, setNotification] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('adm_siswa_data');
+      if (saved) {
+        const parsed: Siswa[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAllSiswa(parsed);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const showToast = (msg: string) => {
     setNotification(msg);
@@ -30,7 +45,7 @@ export default function NilaiMapelPage() {
 
   // Kumpulkan semua siswa yang mengambil mapel ini
   const rawList = DEMO_PESERTA.map((peserta) => {
-    const siswa = DEMO_SISWA.find(s => s.id === peserta.siswa_id);
+    const siswa = allSiswa.find(s => s.id === peserta.siswa_id || (peserta.siswa?.nisn && s.nisn === peserta.siswa.nisn));
     const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
     const nilaiRecord = nilaiList.find(
       n => n.peserta_ujian_id === peserta.id && n.jadwal_ujian_id === jadwal?.id
@@ -66,7 +81,7 @@ export default function NilaiMapelPage() {
 
   const handleDownloadTemplate = () => {
     const templateData = DEMO_PESERTA.map((peserta) => {
-      const siswa = DEMO_SISWA.find(s => s.id === peserta.siswa_id);
+      const siswa = allSiswa.find(s => s.id === peserta.siswa_id || (peserta.siswa?.nisn && s.nisn === peserta.siswa.nisn));
       const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
       return {
         'No. Peserta': peserta.no_peserta,

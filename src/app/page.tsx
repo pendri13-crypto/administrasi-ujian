@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   CreditCard, 
@@ -16,6 +17,21 @@ import { DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, DEMO_UJIAN } from '@/lib/demo-data'
 
 export default function Dashboard() {
   const aktifUjian = DEMO_UJIAN[0];
+  const [totalSiswa, setTotalSiswa] = useState<number>(DEMO_SISWA.length);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('adm_siswa_data');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTotalSiswa(parsed.length);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -38,7 +54,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-blue-500/30">
           <div>
             <p className="text-xs text-blue-200">Total Siswa</p>
-            <p className="text-2xl font-bold mt-0.5">{DEMO_SISWA.length}</p>
+            <p className="text-2xl font-bold mt-0.5">{totalSiswa}</p>
           </div>
           <div>
             <p className="text-xs text-blue-200">Jumlah Rombel</p>
