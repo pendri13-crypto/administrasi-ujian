@@ -135,18 +135,51 @@ export default function KartuPesertaPage() {
               className="card-item bg-white border-2 border-slate-800 rounded-lg p-4 shadow-sm flex flex-col justify-between"
               style={{ minHeight: layoutMode === '4' ? '125mm' : '135mm' }}
             >
-              {/* Kop Kartu */}
-              <div className="border-b-2 border-slate-800 pb-2 mb-3 text-center">
-                <p className="text-[10px] tracking-wider font-semibold text-slate-700 uppercase">
-                  PEMERINTAH PROVINSI / KEMENTERIAN AGAMA
-                </p>
-                <h3 className="text-sm font-black tracking-tight text-slate-900 uppercase">
-                  KARTU PESERTA UJIAN RESMI
-                </h3>
-                <p className="text-[11px] font-bold text-blue-700 mt-0.5">
-                  {ujian?.nama_ujian || 'SUMATIF AKHIR SEMESTER (SAS)'}
-                </p>
-                <p className="text-[9px] text-slate-500">Tahun Ajaran 2026/2027 • Semester Ganjil</p>
+              {/* Kop Kartu Peserta Resmi */}
+              <div className="border-b-4 border-double border-slate-900 pb-2 mb-3">
+                <div className="flex items-center justify-between gap-2">
+                  {/* Logo Kiri: Pemda Kab. Tasikmalaya */}
+                  <div className="w-12 h-14 flex-shrink-0 flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/images/logo-tasikmalaya.png"
+                      alt="Logo Pemda Kab. Tasikmalaya"
+                      className="max-h-14 max-w-full object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://i.ibb.co.com/p6j6TRD2/LOGO-PEMDA-KAB-TASIKMALAYA.png';
+                      }}
+                    />
+                  </div>
+
+                  {/* Teks Kop Tengah */}
+                  <div className="flex-1 text-center leading-tight">
+                    <h3 className="text-[13px] font-black tracking-tight text-slate-950 uppercase">
+                      KARTU PESERTA
+                    </h3>
+                    <h4 className="text-[12px] font-black text-slate-900 uppercase">
+                      SUMATIF AKHIR SEMESTER (SAS)
+                    </h4>
+                    <p className="text-[11px] font-black text-slate-900 uppercase">
+                      SMP NEGERI 1 RAJAPOLAH
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-800 uppercase tracking-wide">
+                      TAHUN PELAJARAN 2025/2026
+                    </p>
+                  </div>
+
+                  {/* Logo Kanan: SMPN 1 Rajapolah */}
+                  <div className="w-12 h-14 flex-shrink-0 flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/images/logo-smpn1-rajapolah.png"
+                      alt="Logo SMPN 1 Rajapolah"
+                      className="max-h-14 max-w-full object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://i.ibb.co.com/QvMS2L2J/LOGO-SEKOLAH-SMPN-1-RAJAPOLAH.png';
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Konten Utama: Foto & Biodata */}
