@@ -8,10 +8,7 @@ import {
   Eye, 
   EyeOff, 
   ArrowRight, 
-  AlertCircle, 
-  ShieldCheck,
-  CheckCircle2,
-  Sparkles
+  AlertCircle
 } from 'lucide-react';
 import { authenticateUser, getStoredUser } from '@/lib/auth';
 
@@ -58,12 +55,6 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     }, 450);
-  };
-
-  const handleFillDemo = () => {
-    setUsername('admin');
-    setPassword('admin123');
-    setErrorMessage('');
   };
 
   return (
@@ -185,22 +176,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Quick Default Login Hint */}
-          <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-600">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-              <span>Akun Default: <strong>admin</strong> / <strong>admin123</strong></span>
-            </div>
-            <button
-              type="button"
-              onClick={handleFillDemo}
-              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-bold hover:underline"
-            >
-              <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>Isi Otomatis</span>
-            </button>
-          </div>
         </div>
 
         {/* Footer info */}
