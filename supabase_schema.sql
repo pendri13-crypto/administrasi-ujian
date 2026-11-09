@@ -127,22 +127,82 @@ INSERT INTO tahun_ajaran (nama, semester, status_aktif) VALUES
 
 -- Kelas
 INSERT INTO kelas (nama_kelas, tingkat, jurusan) VALUES 
-('X MIPA 1', '10', 'MIPA'),
-('X MIPA 2', '10', 'MIPA'),
-('X IPS 1', '10', 'IPS');
+('VII-A', '7', NULL),
+('VII-B', '7', NULL),
+('VII-C', '7', NULL),
+('VII-D', '7', NULL),
+('VII-E', '7', NULL),
+('VII-F', '7', NULL),
+('VII-G', '7', NULL),
+('VII-H', '7', NULL),
+('VII-I', '7', NULL),
+('VII-J', '7', NULL),
+('VII-K', '7', NULL),
+('VIII-A', '8', NULL),
+('VIII-B', '8', NULL),
+('VIII-C', '8', NULL),
+('VIII-D', '8', NULL),
+('VIII-E', '8', NULL),
+('VIII-F', '8', NULL),
+('VIII-G', '8', NULL),
+('VIII-H', '8', NULL),
+('VIII-I', '8', NULL),
+('VIII-J', '8', NULL),
+('VIII-K', '8', NULL),
+('IX-A', '9', NULL),
+('IX-B', '9', NULL),
+('IX-C', '9', NULL),
+('IX-D', '9', NULL),
+('IX-E', '9', NULL),
+('IX-F', '9', NULL),
+('IX-G', '9', NULL),
+('IX-H', '9', NULL),
+('IX-I', '9', NULL),
+('IX-J', '9', NULL),
+('IX-K', '9', NULL);
 
 -- Ruang Ujian
 INSERT INTO ruang (kode_ruang, nama_ruang, kapasitas) VALUES 
-('R-01', 'Ruang 01 (Lab Komputer 1)', 20),
-('R-02', 'Ruang 02 (Lab Komputer 2)', 20),
-('R-03', 'Ruang 03 (Ruang Kelas 10A)', 24);
+('R-01', 'Ruang 01 (VII-A)', 36),
+('R-02', 'Ruang 02 (VII-B)', 36),
+('R-03', 'Ruang 03 (VII-C)', 36),
+('R-04', 'Ruang 04 (VII-D)', 36),
+('R-05', 'Ruang 05 (VII-E)', 36),
+('R-06', 'Ruang 06 (VII-F)', 36),
+('R-07', 'Ruang 07 (VII-G)', 36),
+('R-08', 'Ruang 08 (VII-H)', 36),
+('R-09', 'Ruang 09 (VII-I)', 36),
+('R-10', 'Ruang 10 (VII-J)', 36),
+('R-11', 'Ruang 11 (VII-K)', 36),
+('R-12', 'Ruang 12 (VIII-A)', 36),
+('R-13', 'Ruang 13 (VIII-B)', 36),
+('R-14', 'Ruang 14 (VIII-C)', 36),
+('R-15', 'Ruang 15 (VIII-D)', 36),
+('R-16', 'Ruang 16 (VIII-E)', 36),
+('R-17', 'Ruang 17 (VIII-F)', 36),
+('R-18', 'Ruang 18 (VIII-G)', 36),
+('R-19', 'Ruang 19 (VIII-H)', 36),
+('R-20', 'Ruang 20 (VIII-I)', 36),
+('R-21', 'Ruang 21 (VIII-J)', 36),
+('R-22', 'Ruang 22 (VIII-K)', 36),
+('R-23', 'Ruang 23 (IX-A)', 36),
+('R-24', 'Ruang 24 (IX-B)', 36),
+('R-25', 'Ruang 25 (IX-C)', 36),
+('R-26', 'Ruang 26 (IX-D)', 36),
+('R-27', 'Ruang 27 (IX-E)', 36),
+('R-28', 'Ruang 28 (IX-F)', 36),
+('R-29', 'Ruang 29 (IX-G)', 36),
+('R-30', 'Ruang 30 (IX-H)', 36),
+('R-31', 'Ruang 31 (IX-I)', 36),
+('R-32', 'Ruang 32 (IX-J)', 36),
+('R-33', 'Ruang 33 (IX-K)', 36);
 
 -- Mapel
 INSERT INTO mapel (kode_mapel, nama_mapel, kkm) VALUES 
-('BIN-10', 'Bahasa Indonesia', 75.00),
-('MTK-10', 'Matematika Wajib', 70.00),
-('BIG-10', 'Bahasa Inggris', 75.00),
-('FIS-10', 'Fisika', 70.00);
+('BIN-SMP', 'Bahasa Indonesia', 75.00),
+('MTK-SMP', 'Matematika', 70.00),
+('BIG-SMP', 'Bahasa Inggris', 75.00),
+('IPA-SMP', 'Ilmu Pengetahuan Alam (IPA)', 72.00);
 
 -- Siswa Contoh
 INSERT INTO siswa (nisn, nis, nama_lengkap, jenis_kelamin, kelas_id, foto_url) VALUES 

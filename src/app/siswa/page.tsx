@@ -90,24 +90,24 @@ export default function SiswaPage() {
     const templateData = [
       {
         'NISN': '0081234561',
-        'NIS': '26011',
+        'NIS': '242570001',
         'Nama Lengkap': 'Fajar Nugraha',
         'Jenis Kelamin': 'L',
-        'Kelas': 'X MIPA 1',
+        'Kelas': 'VII-A',
       },
       {
         'NISN': '0081234562',
-        'NIS': '26012',
+        'NIS': '242570002',
         'Nama Lengkap': 'Gita Permata',
         'Jenis Kelamin': 'P',
-        'Kelas': 'X MIPA 1',
+        'Kelas': 'VII-A',
       },
       {
         'NISN': '0081234563',
-        'NIS': '26013',
+        'NIS': '242570003',
         'Nama Lengkap': 'Hendra Setiawan',
         'Jenis Kelamin': 'L',
-        'Kelas': 'X IPS 1',
+        'Kelas': 'VIII-A',
       },
     ];
 
