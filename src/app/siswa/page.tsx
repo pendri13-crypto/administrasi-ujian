@@ -86,6 +86,44 @@ export default function SiswaPage() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        'NISN': '0081234561',
+        'NIS': '26011',
+        'Nama Lengkap': 'Fajar Nugraha',
+        'Jenis Kelamin': 'L',
+        'Kelas': 'X MIPA 1',
+      },
+      {
+        'NISN': '0081234562',
+        'NIS': '26012',
+        'Nama Lengkap': 'Gita Permata',
+        'Jenis Kelamin': 'P',
+        'Kelas': 'X MIPA 1',
+      },
+      {
+        'NISN': '0081234563',
+        'NIS': '26013',
+        'Nama Lengkap': 'Hendra Setiawan',
+        'Jenis Kelamin': 'L',
+        'Kelas': 'X IPS 1',
+      },
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    worksheet['!cols'] = [
+      { wch: 16 },
+      { wch: 12 },
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 16 },
+    ];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template Siswa');
+    XLSX.writeFile(workbook, 'Template_Import_Siswa.xlsx');
+  };
+
   const handleExportExcel = () => {
     const data = filteredList.map((s, idx) => {
       const kelas = DEMO_KELAS.find(k => k.id === s.kelas_id);
@@ -175,6 +213,16 @@ export default function SiswaPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Tombol Unduh Template Excel */}
+          <button
+            onClick={handleDownloadTemplate}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-lg text-xs font-bold shadow-sm transition"
+            title="Unduh format file Excel kosong untuk pengisian data siswa"
+          >
+            <Download className="w-4 h-4 text-blue-600" />
+            Unduh Template (.xlsx)
+          </button>
+
           {/* Tombol Impor Excel */}
           <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-bold shadow-sm transition">
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
