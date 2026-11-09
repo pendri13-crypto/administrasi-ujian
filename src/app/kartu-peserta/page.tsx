@@ -144,46 +144,40 @@ export default function KartuPesertaPage() {
             >
               {/* Kop Kartu Peserta Resmi */}
               <div className="border-b-4 border-double border-slate-900 pb-2 mb-3">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-2 sm:gap-4 px-1">
                   {/* Logo Kiri: Pemda Kab. Tasikmalaya */}
-                  <div className="w-[70px] h-[78px] flex-shrink-0 flex items-center justify-center">
+                  <div className="w-[72px] h-[82px] flex-shrink-0 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/images/logo-tasikmalaya.png"
                       alt="Logo Pemda Kab. Tasikmalaya"
-                      className="max-h-[76px] max-w-[68px] w-auto h-auto object-contain filter drop-shadow-sm"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://i.ibb.co.com/p6j6TRD2/LOGO-PEMDA-KAB-TASIKMALAYA.png';
-                      }}
+                      className="w-full h-full object-contain filter drop-shadow-sm select-none"
                     />
                   </div>
 
                   {/* Teks Kop Tengah */}
-                  <div className="flex-1 text-center leading-tight px-1">
-                    <h3 className="text-[14px] font-black tracking-tight text-slate-950 uppercase">
+                  <div className="flex-1 text-center leading-snug px-1">
+                    <h3 className="text-[14px] sm:text-[15px] font-black tracking-tight text-slate-950 uppercase">
                       KARTU PESERTA
                     </h3>
-                    <h4 className="text-[13px] font-black text-slate-900 uppercase mt-0.5">
+                    <h4 className="text-[13px] sm:text-[14px] font-black text-slate-900 uppercase">
                       SUMATIF AKHIR SEMESTER (SAS)
                     </h4>
-                    <p className="text-[12px] font-black text-slate-900 uppercase mt-0.5">
+                    <p className="text-[12px] sm:text-[13px] font-black text-slate-900 uppercase">
                       SMP NEGERI 1 RAJAPOLAH
                     </p>
-                    <p className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wide mt-0.5">
+                    <p className="text-[11px] sm:text-[12px] font-extrabold text-slate-800 uppercase tracking-wide">
                       TAHUN PELAJARAN 2025/2026
                     </p>
                   </div>
 
                   {/* Logo Kanan: SMPN 1 Rajapolah */}
-                  <div className="w-[70px] h-[78px] flex-shrink-0 flex items-center justify-center">
+                  <div className="w-[72px] h-[82px] flex-shrink-0 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/images/logo-smpn1-rajapolah.png"
                       alt="Logo SMPN 1 Rajapolah"
-                      className="max-h-[76px] max-w-[68px] w-auto h-auto object-contain filter drop-shadow-sm"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://i.ibb.co.com/QvMS2L2J/LOGO-SEKOLAH-SMPN-1-RAJAPOLAH.png';
-                      }}
+                      className="w-full h-full object-contain filter drop-shadow-sm select-none"
                     />
                   </div>
                 </div>
