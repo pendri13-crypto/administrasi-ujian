@@ -11,6 +11,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { authenticateUser, getStoredUser } from '@/lib/auth';
+import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,6 +21,17 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+
+  useEffect(() => {
+    // Sinkronisasi logo & pengaturan sekolah
+    const updateSettings = () => {
+      setSchoolSettings(getStoredSchoolSettings());
+    };
+    updateSettings();
+    window.addEventListener('school-settings-updated', updateSettings);
+    return () => window.removeEventListener('school-settings-updated', updateSettings);
+  }, []);
 
   useEffect(() => {
     // Jika sudah login, langsung alihkan ke beranda
@@ -70,14 +82,15 @@ export default function LoginPage() {
           {/* Header Card */}
           <div className="pt-8 pb-6 px-8 text-center bg-gradient-to-b from-blue-50/70 to-transparent border-b border-slate-100">
             <div className="w-20 h-20 mx-auto mb-4 relative flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
-                src="/images/logo-sekolah-3d.png" 
-                alt="Logo SMPN 1 Rajapolah" 
+                src={schoolSettings.logoSekolahUrl || '/images/logo-sekolah-3d.png'} 
+                alt="Logo Sekolah" 
                 className="w-full h-full object-contain filter drop-shadow-md hover:scale-105 transition-transform"
               />
             </div>
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-              SMP NEGERI 1 RAJAPOLAH
+              {schoolSettings.namaSekolah || 'SMP NEGERI 1 RAJAPOLAH'}
             </h1>
             <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider mt-1">
               Sistem Administrasi & Asesmen Ujian

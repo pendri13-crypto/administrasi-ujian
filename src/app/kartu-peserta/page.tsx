@@ -159,8 +159,8 @@ export default function KartuPesertaPage() {
                   <div className="w-[72px] h-[82px] flex-shrink-0 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/images/logo-tasikmalaya.png"
-                      alt="Logo Pemda Kab. Tasikmalaya"
+                      src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl || '/images/logo-tasikmalaya.png'}
+                      alt="Logo Pemda"
                       className="w-full h-full object-contain filter drop-shadow-sm select-none"
                     />
                   </div>
@@ -185,8 +185,8 @@ export default function KartuPesertaPage() {
                   <div className="w-[72px] h-[82px] flex-shrink-0 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="/images/logo-smpn1-rajapolah.png"
-                      alt="Logo SMPN 1 Rajapolah"
+                      src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'}
+                      alt="Logo Sekolah"
                       className="w-full h-full object-contain filter drop-shadow-sm select-none"
                     />
                   </div>

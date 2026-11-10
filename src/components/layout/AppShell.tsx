@@ -15,12 +15,23 @@ import {
   Settings
 } from 'lucide-react';
 import { getStoredUser, clearUserSession, isAdmin, AuthUser } from '@/lib/auth';
+import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+
+  useEffect(() => {
+    const updateSettings = () => {
+      setSchoolSettings(getStoredSchoolSettings());
+    };
+    updateSettings();
+    window.addEventListener('school-settings-updated', updateSettings);
+    return () => window.removeEventListener('school-settings-updated', updateSettings);
+  }, []);
 
   useEffect(() => {
     const user = getStoredUser();
@@ -56,9 +67,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
         <div className="w-16 h-16 relative animate-pulse flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
-            src="/images/logo-sekolah-3d.png" 
-            alt="Logo SMPN 1 Rajapolah" 
+            src={schoolSettings.logoSekolahUrl || '/images/logo-sekolah-3d.png'} 
+            alt="Logo Sekolah" 
             className="w-full h-full object-contain" 
           />
         </div>
@@ -85,16 +97,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {/* Brand Logo & Title */}
             <Link href="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center flex-shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
-                  src="/images/logo-sekolah-3d.png" 
-                  alt="Logo SMPN 1 Rajapolah" 
+                  src={schoolSettings.logoSekolahUrl || '/images/logo-sekolah-3d.png'} 
+                  alt="Logo Sekolah" 
                   className="w-full h-full object-contain filter drop-shadow hover:scale-105 transition-transform" 
                 />
               </div>
               <div>
                 <h1 className="text-base font-bold text-slate-900 leading-tight">ADM UJIAN</h1>
                 <p className="text-[11px] text-slate-500 hidden sm:block">
-                  Sistem Administrasi & Asesmen SMPN 1 Rajapolah
+                  Sistem Administrasi & Asesmen {schoolSettings.namaSekolah || 'SMPN 1 Rajapolah'}
                 </p>
               </div>
             </Link>

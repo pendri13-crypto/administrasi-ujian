@@ -15,7 +15,8 @@ import {
   Eye, 
   ShieldAlert,
   Sparkles,
-  Info
+  Info,
+  Image as ImageIcon
 } from 'lucide-react';
 import { 
   SchoolSettings, 
@@ -29,6 +30,8 @@ import { getStoredUser, isAdmin } from '@/lib/auth';
 export default function PengaturanAdminPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoPemdaInputRef = useRef<HTMLInputElement>(null);
+  const logoSekolahInputRef = useRef<HTMLInputElement>(null);
 
   const [settings, setSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
   const [notification, setNotification] = useState<string | null>(null);
@@ -110,10 +113,86 @@ export default function PengaturanAdminPage() {
     showToast('Tanda tangan dikembalikan ke file bawaan.');
   };
 
+  const handleLogoPemdaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Mohon pilih file gambar (PNG, JPG, atau WebP).');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Ukuran file gambar maksimal 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setSettings(prev => ({
+          ...prev,
+          logoPemdaUrl: base64,
+          logoTasikmalayaUrl: base64,
+        }));
+        showToast('Logo PEMDA berhasil dimuat!');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResetLogoPemda = () => {
+    setSettings(prev => ({
+      ...prev,
+      logoPemdaUrl: DEFAULT_SCHOOL_SETTINGS.logoPemdaUrl,
+      logoTasikmalayaUrl: DEFAULT_SCHOOL_SETTINGS.logoPemdaUrl,
+    }));
+    if (logoPemdaInputRef.current) logoPemdaInputRef.current.value = '';
+    showToast('Logo PEMDA dikembalikan ke file bawaan.');
+  };
+
+  const handleLogoSekolahUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Mohon pilih file gambar (PNG, JPG, atau WebP).');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Ukuran file gambar maksimal 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setSettings(prev => ({
+          ...prev,
+          logoSekolahUrl: base64,
+        }));
+        showToast('Logo Sekolah berhasil dimuat dan disinkronkan ke Login & Dokumen!');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResetLogoSekolah = () => {
+    setSettings(prev => ({
+      ...prev,
+      logoSekolahUrl: DEFAULT_SCHOOL_SETTINGS.logoSekolahUrl,
+    }));
+    if (logoSekolahInputRef.current) logoSekolahInputRef.current.value = '';
+    showToast('Logo Sekolah dikembalikan ke file bawaan.');
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     saveStoredSchoolSettings(settings);
-    showToast('Pengaturan ujian dan sekolah berhasil disimpan! Seluruh dokumen cetak telah disinkronkan.');
+    showToast('Pengaturan ujian dan sekolah berhasil disimpan! Seluruh dokumen cetak dan halaman login telah disinkronkan.');
   };
 
   const handleResetAll = () => {
@@ -121,6 +200,8 @@ export default function PengaturanAdminPage() {
       resetStoredSchoolSettings();
       setSettings(DEFAULT_SCHOOL_SETTINGS);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      if (logoPemdaInputRef.current) logoPemdaInputRef.current.value = '';
+      if (logoSekolahInputRef.current) logoSekolahInputRef.current.value = '';
       showToast('Semua pengaturan dikembalikan ke data awal.');
     }
   };
@@ -368,12 +449,127 @@ export default function PengaturanAdminPage() {
             </div>
           </div>
 
-          {/* 4. Upload Gambar TTD Kepala Sekolah (Poin 4) */}
+          {/* 4. Upload Logo Sekolah & Logo PEMDA */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <ImageIcon className="w-5 h-5 text-blue-600" />
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">4. Upload Logo Sekolah & Logo PEMDA</h2>
+                <p className="text-[11px] text-slate-500">
+                  Logo sekolah otomatis tersinkronisasi ke Halaman Login, Navbar, dan Kop Kartu Peserta
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Card A: Logo PEMDA (Kop Kiri) */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">Logo PEMDA</span>
+                    <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-medium">Kop Kiri</span>
+                  </div>
+                  <div className="h-24 bg-white rounded-lg border border-slate-300 p-2 flex items-center justify-center relative shadow-inner overflow-hidden mb-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={settings.logoPemdaUrl || '/images/logo-tasikmalaya.png'}
+                      alt="Logo PEMDA"
+                      className="max-h-full max-w-full object-contain filter drop-shadow-sm"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500 mb-2">
+                    Tampil pada sudut kiri Kop resmi Kartu Peserta dan dokumen ujian.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <input
+                    ref={logoPemdaInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleLogoPemdaUpload}
+                    className="hidden"
+                    id="logo-pemda-file-upload"
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label
+                      htmlFor="logo-pemda-file-upload"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition shadow-sm"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Logo PEMDA</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleResetLogoPemda}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Bawaan</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card B: Logo Sekolah (Login, Navbar & Kanan Kop) */}
+              <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-200 space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">Logo Sekolah</span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded font-bold">
+                      Sinkron ke Login
+                    </span>
+                  </div>
+                  <div className="h-24 bg-white rounded-lg border border-blue-200 p-2 flex items-center justify-center relative shadow-inner overflow-hidden mb-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={settings.logoSekolahUrl || '/images/logo-sekolah-3d.png'}
+                      alt="Logo Sekolah"
+                      className="max-h-full max-w-full object-contain filter drop-shadow-md"
+                    />
+                  </div>
+                  <p className="text-[10px] text-blue-900 font-medium mb-2">
+                    Otomatis sinkron ke <strong>Halaman Login</strong>, <strong>Navbar</strong>, <strong>Beranda</strong>, dan <strong>Kop Kanan Kartu Peserta</strong>.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <input
+                    ref={logoSekolahInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleLogoSekolahUpload}
+                    className="hidden"
+                    id="logo-sekolah-file-upload"
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label
+                      htmlFor="logo-sekolah-file-upload"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer transition shadow-sm"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Logo Sekolah</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleResetLogoSekolah}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Bawaan</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Upload Gambar TTD Kepala Sekolah */}
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <FileSignature className="w-5 h-5 text-emerald-600" />
               <div>
-                <h2 className="text-sm font-bold text-slate-900">4. Tanda Tangan Kepala Sekolah</h2>
+                <h2 className="text-sm font-bold text-slate-900">5. Tanda Tangan Kepala Sekolah</h2>
                 <p className="text-[11px] text-slate-500">Upload scan / gambar tanda tangan asli dengan format transparan (PNG/WebP)</p>
               </div>
             </div>
@@ -427,12 +623,12 @@ export default function PengaturanAdminPage() {
             </div>
           </div>
 
-          {/* 5. Titimangsa Pelaksanaan (Poin 5) */}
+          {/* 6. Titimangsa Pelaksanaan */}
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <MapPin className="w-5 h-5 text-amber-600" />
               <div>
-                <h2 className="text-sm font-bold text-slate-900">5. Titimangsa Pelaksanaan / Cetak</h2>
+                <h2 className="text-sm font-bold text-slate-900">6. Titimangsa Pelaksanaan / Cetak</h2>
                 <p className="text-[11px] text-slate-500">Atur tempat dan tanggal penandatanganan dokumen ujian</p>
               </div>
             </div>
@@ -506,7 +702,7 @@ export default function PengaturanAdminPage() {
               <div className="border-b-2 border-slate-800 pb-2 flex items-center justify-between gap-2">
                 <div className="w-10 h-12 flex-shrink-0 flex items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/images/logo-tasikmalaya.png" alt="Logo Pemda" className="max-h-full max-w-full object-contain" />
+                  <img src={settings.logoPemdaUrl || '/images/logo-tasikmalaya.png'} alt="Logo Pemda" className="max-h-full max-w-full object-contain" />
                 </div>
                 <div className="text-center flex-1 leading-tight">
                   <p className="text-[11px] font-black uppercase text-slate-950">KARTU PESERTA</p>
@@ -518,7 +714,7 @@ export default function PengaturanAdminPage() {
                 </div>
                 <div className="w-10 h-12 flex-shrink-0 flex items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/images/logo-smpn1-rajapolah.png" alt="Logo SMPN 1" className="max-h-full max-w-full object-contain" />
+                  <img src={settings.logoSekolahUrl || '/images/logo-sekolah-3d.png'} alt="Logo Sekolah" className="max-h-full max-w-full object-contain" />
                 </div>
               </div>
 
@@ -578,10 +774,11 @@ export default function PengaturanAdminPage() {
                 <span>Terhubung Otomatis ke Menu:</span>
               </div>
               <ul className="list-disc list-inside text-[11px] space-y-1 text-slate-600">
-                <li><strong>Kartu Peserta Ujian</strong> (Kop, TTD & Titimangsa)</li>
+                <li><strong>Halaman Login</strong> (Logo sekolah 100% tersinkronisasi)</li>
+                <li><strong>Header Navbar & Beranda</strong> (Logo sekolah & Identitas)</li>
+                <li><strong>Kartu Peserta Ujian</strong> (Kop PEMDA & Sekolah, TTD, Titimangsa)</li>
                 <li><strong>Cetak Label Meja</strong> (Tahun Ajaran & SAS/SAT)</li>
                 <li><strong>Daftar Hadir Ruang</strong> (Kop & Tanggal Ujian)</li>
-                <li><strong>Rekap Nilai Per Kelas & Leger Mapel</strong></li>
               </ul>
             </div>
 
