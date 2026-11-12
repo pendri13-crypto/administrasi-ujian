@@ -111,11 +111,22 @@ export async function pushRuangToCloud(ruangList: Ruang[]): Promise<{ success: b
   if (ruangList.length === 0) return { success: true, count: 0 };
 
   try {
-    const payload = ruangList.map((r) => ({
-      kode_ruang: r.kode_ruang.trim(),
-      nama_ruang: r.nama_ruang.trim(),
-      kapasitas: Number(r.kapasitas) || 20,
-    }));
+    const seenKode = new Set<string>();
+    const payload: Array<{ kode_ruang: string; nama_ruang: string; kapasitas: number }> = [];
+
+    for (let i = 0; i < ruangList.length; i++) {
+      const r = ruangList[i];
+      let kode = r.kode_ruang.trim();
+      if (!kode) kode = `R-${(i + 1).toString().padStart(2, '0')}`;
+      if (seenKode.has(kode)) kode = `${kode}-${i + 1}`;
+      seenKode.add(kode);
+
+      payload.push({
+        kode_ruang: kode,
+        nama_ruang: r.nama_ruang.trim(),
+        kapasitas: Number(r.kapasitas) || 20,
+      });
+    }
 
     const { data, error } = await supabase
       .from('ruang')
@@ -232,29 +243,59 @@ export async function pushSiswaToCloud(siswaList: Siswa[]): Promise<{ success: b
       console.warn('Warning syncing kelas to Supabase:', kErr);
     }
 
-    // Siapkan payload yang sesuai skema tabel 'siswa'
-    const payload = siswaList.map((s, index) => ({
-      // Jangan sertakan ID jika ingin Supabase generate, atau sertakan jika numeric valid
-      nisn: String(s.nisn).trim(),
-      nis: s.nis ? String(s.nis).trim() : null,
-      nama_lengkap: s.nama_lengkap.trim(),
-      jenis_kelamin: s.jenis_kelamin === 'P' ? 'P' : 'L',
-      kelas_id: Number(s.kelas_id) || 1,
-      foto_url: s.foto_url || null,
-    }));
+    // 2. Sanitasi & Pastikan NISN 100% Unik (Mencegah PostgreSQL ON CONFLICT DO UPDATE cannot affect row a second time)
+    const seenNisn = new Set<string>();
+    const payload: Array<{
+      nisn: string;
+      nis: string | null;
+      nama_lengkap: string;
+      jenis_kelamin: 'L' | 'P';
+      kelas_id: number;
+      foto_url: string | null;
+    }> = [];
 
-    // Upsert berdasarkan 'nisn' yang unik
-    const { data, error } = await supabase
-      .from('siswa')
-      .upsert(payload, { onConflict: 'nisn' })
-      .select('id, nisn');
+    for (let i = 0; i < siswaList.length; i++) {
+      const s = siswaList[i];
+      let nisn = String(s.nisn || '').trim();
+      
+      // Jika NISN kosong, buat ID unik sementara agar tidak bentrok dengan siswa tanpa NISN lainnya
+      if (!nisn) {
+        nisn = `NONISN-${s.id || (i + 1)}-${Date.now()}`;
+      } else if (seenNisn.has(nisn)) {
+        // Jika terdapat duplikasi NISN di dalam daftar yang diunggah
+        nisn = `${nisn}-DUP${i + 1}`;
+      }
+      seenNisn.add(nisn);
 
-    if (error) {
-      console.error('Error upserting to Supabase:', error);
-      return { success: false, count: 0, error: error.message };
+      payload.push({
+        nisn,
+        nis: s.nis ? String(s.nis).trim() : null,
+        nama_lengkap: (s.nama_lengkap || `Siswa ${i + 1}`).trim(),
+        jenis_kelamin: s.jenis_kelamin === 'P' ? 'P' : 'L',
+        kelas_id: Number(s.kelas_id) || 1,
+        foto_url: s.foto_url || null,
+      });
     }
 
-    return { success: true, count: data?.length || payload.length };
+    // 3. Eksekusi Upsert secara bertahap / chunk (200 baris per batch) untuk stabilitas maksimal
+    const chunkSize = 200;
+    let totalUpserted = 0;
+
+    for (let i = 0; i < payload.length; i += chunkSize) {
+      const chunk = payload.slice(i, i + chunkSize);
+      const { data, error } = await supabase
+        .from('siswa')
+        .upsert(chunk, { onConflict: 'nisn' })
+        .select('id, nisn');
+
+      if (error) {
+        console.error('Error upserting chunk to Supabase:', error);
+        return { success: false, count: totalUpserted, error: error.message };
+      }
+      totalUpserted += data?.length || chunk.length;
+    }
+
+    return { success: true, count: totalUpserted };
   } catch (err: any) {
     console.error('Push siswa error:', err);
     return { success: false, count: 0, error: err?.message || 'Gagal menyimpan ke cloud' };
