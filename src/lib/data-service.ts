@@ -218,6 +218,20 @@ export async function pushSiswaToCloud(siswaList: Siswa[]): Promise<{ success: b
   }
 
   try {
+    // Pastikan seluruh 33 rombel kelas sudah ada di tabel 'kelas' Supabase
+    // agar tidak melanggar foreign key constraint 'siswa_kelas_id_fkey'
+    try {
+      const kelasPayload = DEMO_KELAS.map(k => ({
+        id: k.id,
+        nama_kelas: k.nama_kelas,
+        tingkat: k.tingkat,
+        jurusan: k.jurusan || null,
+      }));
+      await supabase.from('kelas').upsert(kelasPayload);
+    } catch (kErr) {
+      console.warn('Warning syncing kelas to Supabase:', kErr);
+    }
+
     // Siapkan payload yang sesuai skema tabel 'siswa'
     const payload = siswaList.map((s, index) => ({
       // Jangan sertakan ID jika ingin Supabase generate, atau sertakan jika numeric valid
