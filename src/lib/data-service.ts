@@ -1,10 +1,128 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { Siswa, NilaiUjian, PesertaUjian } from '@/types/database';
+import { Siswa, NilaiUjian, PesertaUjian, Ruang } from '@/types/database';
 import { SchoolSettings, getStoredSchoolSettings, saveStoredSchoolSettings } from './school-settings';
-import { DEMO_KELAS } from './demo-data';
+import { DEMO_KELAS, DEMO_RUANG } from './demo-data';
 
 const SISWA_STORAGE_KEY = 'adm_siswa_data';
 const NILAI_STORAGE_KEY = 'adm_nilai_data';
+const RUANG_STORAGE_KEY = 'adm_ruang_data';
+
+/**
+ * Mengambil data ruang dari localStorage atau default ke DEMO_RUANG
+ */
+export function getStoredRuang(): Ruang[] {
+  if (typeof window === 'undefined') return DEMO_RUANG;
+  try {
+    const raw = localStorage.getItem(RUANG_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Error reading ruang from localStorage:', e);
+  }
+  return DEMO_RUANG;
+}
+
+/**
+ * Menyimpan data ruang ke localStorage dan trigger event
+ */
+export function saveStoredRuang(ruangList: Ruang[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(RUANG_STORAGE_KEY, JSON.stringify(ruangList));
+  window.dispatchEvent(new Event('ruang-data-updated'));
+  window.dispatchEvent(new Event('storage'));
+}
+
+/**
+ * Mengambil data ruang dari Supabase Cloud
+ */
+export async function fetchRuangFromCloud(): Promise<Ruang[] | null> {
+  if (!supabase || !isSupabaseConfigured) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('ruang')
+      .select('id, kode_ruang, nama_ruang, kapasitas')
+      .order('id', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching ruang from Supabase:', error);
+      return null;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      const formatted: Ruang[] = data.map((r: any) => ({
+        id: Number(r.id),
+        kode_ruang: String(r.kode_ruang || ''),
+        nama_ruang: String(r.nama_ruang || ''),
+        kapasitas: Number(r.kapasitas) || 20,
+      }));
+
+      saveStoredRuang(formatted);
+      return formatted;
+    }
+
+    return null;
+  } catch (err) {
+    console.error('Failed to communicate with Supabase:', err);
+    return null;
+  }
+}
+
+/**
+ * Menyimpan daftar ruang ke Supabase Cloud
+ */
+export async function pushRuangToCloud(ruangList: Ruang[]): Promise<{ success: boolean; count: number; error?: string }> {
+  if (!supabase || !isSupabaseConfigured) {
+    return { success: false, count: 0, error: 'Supabase belum dikonfigurasi' };
+  }
+
+  if (ruangList.length === 0) return { success: true, count: 0 };
+
+  try {
+    const payload = ruangList.map((r) => ({
+      kode_ruang: r.kode_ruang.trim(),
+      nama_ruang: r.nama_ruang.trim(),
+      kapasitas: Number(r.kapasitas) || 20,
+    }));
+
+    const { data, error } = await supabase
+      .from('ruang')
+      .upsert(payload, { onConflict: 'kode_ruang' })
+      .select('id, kode_ruang');
+
+    if (error) {
+      console.error('Error upserting ruang to Supabase:', error);
+      return { success: false, count: 0, error: error.message };
+    }
+
+    return { success: true, count: data?.length || payload.length };
+  } catch (err: any) {
+    console.error('Push ruang error:', err);
+    return { success: false, count: 0, error: err?.message || 'Gagal menyimpan ruang ke cloud' };
+  }
+}
+
+/**
+ * Menghapus ruang dari Supabase Cloud berdasarkan ID
+ */
+export async function deleteRuangFromCloud(id: number): Promise<{ success: boolean; error?: string }> {
+  if (!supabase || !isSupabaseConfigured) {
+    return { success: false, error: 'Supabase belum dikonfigurasi' };
+  }
+  try {
+    const { error } = await supabase.from('ruang').delete().eq('id', id);
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Gagal menghapus ruang' };
+  }
+}
 
 /**
  * Mengambil data siswa dari Supabase Cloud.
@@ -133,6 +251,7 @@ export function exportBackupJSON(): void {
   try {
     const siswaRaw = localStorage.getItem(SISWA_STORAGE_KEY);
     const nilaiRaw = localStorage.getItem(NILAI_STORAGE_KEY);
+    const ruangRaw = localStorage.getItem(RUANG_STORAGE_KEY);
     const settings = getStoredSchoolSettings();
 
     const backupData = {
@@ -142,6 +261,7 @@ export function exportBackupJSON(): void {
       schoolSettings: settings,
       siswa: siswaRaw ? JSON.parse(siswaRaw) : [],
       nilai: nilaiRaw ? JSON.parse(nilaiRaw) : [],
+      ruang: ruangRaw ? JSON.parse(ruangRaw) : [],
     };
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -187,6 +307,11 @@ export function restoreBackupJSON(file: File): Promise<{ success: boolean; messa
           localStorage.setItem(NILAI_STORAGE_KEY, JSON.stringify(data.nilai));
         }
 
+        if (Array.isArray(data.ruang)) {
+          localStorage.setItem(RUANG_STORAGE_KEY, JSON.stringify(data.ruang));
+          window.dispatchEvent(new Event('ruang-data-updated'));
+        }
+
         if (data.schoolSettings) {
           saveStoredSchoolSettings(data.schoolSettings);
         }
@@ -194,9 +319,12 @@ export function restoreBackupJSON(file: File): Promise<{ success: boolean; messa
         window.dispatchEvent(new Event('storage'));
         window.dispatchEvent(new Event('school-settings-updated'));
 
-        // Jika Supabase terhubung, otomatis sinkronkan data siswa ke Supabase juga
+        // Jika Supabase terhubung, otomatis sinkronkan data siswa & ruang ke Supabase juga
         if (Array.isArray(data.siswa) && data.siswa.length > 0 && isSupabaseConfigured) {
           await pushSiswaToCloud(data.siswa);
+        }
+        if (Array.isArray(data.ruang) && data.ruang.length > 0 && isSupabaseConfigured) {
+          await pushRuangToCloud(data.ruang);
         }
 
         resolve({ 

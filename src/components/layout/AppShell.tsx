@@ -12,7 +12,8 @@ import {
   Tag,
   LogOut,
   UserCheck,
-  Settings
+  Settings,
+  DoorOpen
 } from 'lucide-react';
 import { getStoredUser, clearUserSession, isAdmin, AuthUser } from '@/lib/auth';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
@@ -182,18 +183,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
 
               {isAdmin(currentUser) && (
-                <Link
-                  href="/pengaturan"
-                  className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                    pathname === '/pengaturan' 
-                      ? 'text-indigo-600 bg-indigo-50 font-bold' 
-                      : 'text-slate-700 hover:text-indigo-600 hover:bg-indigo-50'
-                  }`}
-                  title="Pengaturan Ujian & Sekolah (Khusus Role Admin)"
-                >
-                  <Settings className="w-4 h-4 text-indigo-600" />
-                  Pengaturan
-                </Link>
+                <>
+                  <Link
+                    href="/ruang"
+                    className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
+                      pathname === '/ruang' 
+                        ? 'text-teal-600 bg-teal-50 font-bold' 
+                        : 'text-slate-700 hover:text-teal-600 hover:bg-teal-50'
+                    }`}
+                    title="Kelola Ruang Ujian (Khusus Role Admin)"
+                  >
+                    <DoorOpen className="w-4 h-4 text-teal-600" />
+                    Ruang
+                  </Link>
+                  <Link
+                    href="/pengaturan"
+                    className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
+                      pathname === '/pengaturan' 
+                        ? 'text-indigo-600 bg-indigo-50 font-bold' 
+                        : 'text-slate-700 hover:text-indigo-600 hover:bg-indigo-50'
+                    }`}
+                    title="Pengaturan Ujian & Sekolah (Khusus Role Admin)"
+                  >
+                    <Settings className="w-4 h-4 text-indigo-600" />
+                    Pengaturan
+                  </Link>
+                </>
               )}
             </nav>
 

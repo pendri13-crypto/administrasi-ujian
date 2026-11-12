@@ -92,8 +92,10 @@ export const DEMO_JADWAL: JadwalUjian[] = DEMO_MAPEL.map((mapel, idx) => ({
   mapel: mapel,
 }));
 
-export function generatePesertaFromSiswa(siswaList: Siswa[]): PesertaUjian[] {
+export function generatePesertaFromSiswa(siswaList: Siswa[], customRuangList?: Ruang[]): PesertaUjian[] {
   if (!siswaList || siswaList.length === 0) return [];
+
+  const activeRuang = customRuangList && customRuangList.length > 0 ? customRuangList : DEMO_RUANG;
 
   // Urutkan siswa per kelas dan A-Z berdasarkan Nama Lengkap siswa
   const sortedSiswa = [...siswaList].sort((a, b) => {
@@ -108,7 +110,7 @@ export function generatePesertaFromSiswa(siswaList: Siswa[]): PesertaUjian[] {
     const kId = siswa.kelas_id || 1;
     deskCount[kId] = (deskCount[kId] || 0) + 1;
     const noMeja = deskCount[kId];
-    const ruang = DEMO_RUANG.find(r => r.id === kId) || DEMO_RUANG[0];
+    const ruang = activeRuang.find(r => r.id === kId) || activeRuang[0] || DEMO_RUANG[0];
     const noPeserta = '01-' + kId.toString().padStart(2, '0') + '-' + noMeja.toString().padStart(3, '0');
     return {
       id: siswa.id || (idx + 1),

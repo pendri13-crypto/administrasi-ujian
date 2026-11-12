@@ -12,16 +12,18 @@ import {
   CheckCircle2, 
   Calendar,
   Tag,
-  Settings
+  Settings,
+  DoorOpen
 } from 'lucide-react';
 import { DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, DEMO_UJIAN } from '@/lib/demo-data';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
-import { fetchSiswaFromCloud } from '@/lib/data-service';
+import { fetchSiswaFromCloud, getStoredRuang } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function Dashboard() {
   const aktifUjian = DEMO_UJIAN[0];
   const [totalSiswa, setTotalSiswa] = useState<number>(0);
+  const [totalRuang, setTotalRuang] = useState<number>(DEMO_RUANG.length);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
   useEffect(() => {
@@ -59,6 +61,13 @@ export default function Dashboard() {
     } catch (e) {
       console.error(e);
     }
+
+    const updateRuang = () => {
+      setTotalRuang(getStoredRuang().length);
+    };
+    updateRuang();
+    window.addEventListener('ruang-data-updated', updateRuang);
+    return () => window.removeEventListener('ruang-data-updated', updateRuang);
   }, []);
 
   return (
@@ -96,7 +105,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-xs text-blue-200">Ruang Ujian</p>
-            <p className="text-2xl font-bold mt-0.5">{DEMO_RUANG.length} Ruang</p>
+            <p className="text-2xl font-bold mt-0.5">{totalRuang} Ruang</p>
           </div>
           <div>
             <p className="text-xs text-blue-200">Status Database</p>
@@ -240,47 +249,75 @@ export default function Dashboard() {
       </div>
 
       {/* Data Master & Admin Quick Shortcut */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700">
-              <Users className="w-6 h-6" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Shortcut 1: Siswa */}
+        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 flex flex-col justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 flex-shrink-0">
+              <Users className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-slate-900">Kelola Siswa & Upload Foto</h4>
-              <p className="text-xs text-slate-500">
-                Impor siswa baru atau pasang foto siswa agar muncul di Kartu Peserta.
+              <h4 className="font-bold text-slate-900 text-sm">Data Siswa & Foto</h4>
+              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                Impor siswa atau pasang foto 3x4 agar otomatis tampil pada kartu peserta.
               </p>
             </div>
           </div>
           <Link 
             href="/siswa"
-            className="px-4 py-2 bg-white border border-slate-300 hover:border-slate-400 rounded-xl text-xs font-bold text-slate-700 shadow-sm transition whitespace-nowrap"
+            className="w-full py-2 bg-white border border-slate-300 hover:border-slate-400 rounded-xl text-xs font-bold text-slate-700 shadow-sm transition text-center"
           >
             Buka Data Siswa
           </Link>
         </div>
 
-        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-200/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
-              <Settings className="w-6 h-6" />
+        {/* Shortcut 2: Ruang Ujian (Role Admin) */}
+        <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-5 border border-teal-200/80 flex flex-col justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-600/20 flex-shrink-0">
+              <DoorOpen className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h4 className="font-bold text-slate-900">Pengaturan Ujian & Sekolah</h4>
-                <span className="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded border border-indigo-200">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h4 className="font-bold text-slate-900 text-sm">Kelola Ruang Ujian</h4>
+                <span className="text-[9px] bg-teal-100 text-teal-800 font-bold px-1.5 py-0.2 rounded border border-teal-300">
                   Role Admin
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
-                Ubah Tahun Ajaran, status SAS/SAT, Nama/NIP Kepsek, TTD, & titimangsa.
+              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                Atur kode ruang, kapasitas kursi, alokasi kelas, dan sinkron Supabase.
+              </p>
+            </div>
+          </div>
+          <Link 
+            href="/ruang"
+            className="w-full py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-md shadow-teal-600/20 transition text-center"
+          >
+            Kelola Ruang
+          </Link>
+        </div>
+
+        {/* Shortcut 3: Pengaturan Sekolah (Role Admin) */}
+        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-5 border border-indigo-200/70 flex flex-col justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 flex-shrink-0">
+              <Settings className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h4 className="font-bold text-slate-900 text-sm">Pengaturan Sekolah</h4>
+                <span className="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.2 rounded border border-indigo-200">
+                  Role Admin
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                Tahun Ajaran, status SAS/SAT, Nama/NIP Kepsek, TTD, & titimangsa.
               </p>
             </div>
           </div>
           <Link 
             href="/pengaturan"
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition whitespace-nowrap"
+            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/20 transition text-center"
           >
             Buka Pengaturan
           </Link>

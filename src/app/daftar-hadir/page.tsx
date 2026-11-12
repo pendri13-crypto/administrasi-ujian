@@ -11,15 +11,16 @@ import {
   DEMO_UJIAN,
   generatePesertaFromSiswa
 } from '@/lib/demo-data';
-import { PesertaUjian, Siswa } from '@/types/database';
+import { PesertaUjian, Siswa, Ruang } from '@/types/database';
 import { Printer, DoorOpen } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
-import { fetchSiswaFromCloud } from '@/lib/data-service';
+import { fetchSiswaFromCloud, getStoredRuang } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function DaftarHadirPage() {
   const [selectedRuangId, setSelectedRuangId] = useState<number>(1);
   const [selectedMapelId, setSelectedMapelId] = useState<number>(1);
+  const [ruangList, setRuangList] = useState<Ruang[]>(getStoredRuang());
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
@@ -33,8 +34,18 @@ export default function DaftarHadirPage() {
   }, []);
 
   useEffect(() => {
+    const updateRuang = () => {
+      setRuangList(getStoredRuang());
+    };
+    updateRuang();
+    window.addEventListener('ruang-data-updated', updateRuang);
+    return () => window.removeEventListener('ruang-data-updated', updateRuang);
+  }, []);
+
+  useEffect(() => {
     const syncData = () => {
       try {
+        const currentStoredRuang = getStoredRuang();
         const saved = localStorage.getItem('adm_siswa_data');
         if (saved) {
           const parsedSiswa: Siswa[] = JSON.parse(saved);
@@ -44,14 +55,14 @@ export default function DaftarHadirPage() {
               setPesertaList([]);
               return;
             }
-            setPesertaList(generatePesertaFromSiswa(parsedSiswa));
+            setPesertaList(generatePesertaFromSiswa(parsedSiswa, currentStoredRuang));
             return;
           }
         }
         if (isSupabaseConfigured) {
           fetchSiswaFromCloud().then(cloudSiswa => {
             if (cloudSiswa && cloudSiswa.length > 0) {
-              setPesertaList(generatePesertaFromSiswa(cloudSiswa));
+              setPesertaList(generatePesertaFromSiswa(cloudSiswa, currentStoredRuang));
             }
           });
         }
@@ -66,7 +77,7 @@ export default function DaftarHadirPage() {
     return () => window.removeEventListener('storage', syncData);
   }, []);
 
-  const currentRuang = DEMO_RUANG.find(r => r.id === selectedRuangId) || DEMO_RUANG[0];
+  const currentRuang = ruangList.find(r => r.id === selectedRuangId) || ruangList[0] || DEMO_RUANG[0];
   const currentMapel = DEMO_MAPEL.find(m => m.id === selectedMapelId) || DEMO_MAPEL[0];
   const jadwal = DEMO_JADWAL.find(j => j.mapel_id === currentMapel.id);
   const ujian = DEMO_UJIAN[0];
@@ -94,7 +105,7 @@ export default function DaftarHadirPage() {
               onChange={(e) => setSelectedRuangId(Number(e.target.value))}
               className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              {DEMO_RUANG.map((r) => (
+              {ruangList.map((r) => (
                 <option key={r.id} value={r.id}>{r.kode_ruang} - {r.nama_ruang}</option>
               ))}
             </select>

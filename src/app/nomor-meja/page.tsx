@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { DEMO_PESERTA, DEMO_SISWA, DEMO_RUANG, DEMO_KELAS, generatePesertaFromSiswa } from '@/lib/demo-data';
-import { PesertaUjian, Siswa } from '@/types/database';
+import { PesertaUjian, Siswa, Ruang } from '@/types/database';
 import { Printer, Filter } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
-import { fetchSiswaFromCloud } from '@/lib/data-service';
+import { fetchSiswaFromCloud, getStoredRuang } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function NomorMejaPage() {
   const [selectedRuangId, setSelectedRuangId] = useState<string>('all');
+  const [ruangList, setRuangList] = useState<Ruang[]>(getStoredRuang());
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
@@ -23,8 +24,18 @@ export default function NomorMejaPage() {
   }, []);
 
   useEffect(() => {
+    const updateRuang = () => {
+      setRuangList(getStoredRuang());
+    };
+    updateRuang();
+    window.addEventListener('ruang-data-updated', updateRuang);
+    return () => window.removeEventListener('ruang-data-updated', updateRuang);
+  }, []);
+
+  useEffect(() => {
     const syncData = () => {
       try {
+        const currentStoredRuang = getStoredRuang();
         const saved = localStorage.getItem('adm_siswa_data');
         if (saved) {
           const parsedSiswa: Siswa[] = JSON.parse(saved);
@@ -34,14 +45,14 @@ export default function NomorMejaPage() {
               setPesertaList([]);
               return;
             }
-            setPesertaList(generatePesertaFromSiswa(parsedSiswa));
+            setPesertaList(generatePesertaFromSiswa(parsedSiswa, currentStoredRuang));
             return;
           }
         }
         if (isSupabaseConfigured) {
           fetchSiswaFromCloud().then(cloudSiswa => {
             if (cloudSiswa && cloudSiswa.length > 0) {
-              setPesertaList(generatePesertaFromSiswa(cloudSiswa));
+              setPesertaList(generatePesertaFromSiswa(cloudSiswa, currentStoredRuang));
             }
           });
         }
@@ -80,7 +91,7 @@ export default function NomorMejaPage() {
               className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Semua Ruang Ujian</option>
-              {DEMO_RUANG.map((r) => (
+              {ruangList.map((r) => (
                 <option key={r.id} value={r.id}>{r.kode_ruang} - {r.nama_ruang}</option>
               ))}
             </select>

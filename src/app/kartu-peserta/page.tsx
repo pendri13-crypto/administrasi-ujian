@@ -5,13 +5,14 @@ import { DEMO_PESERTA, DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, generatePesertaFromSi
 import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, Filter, Image as ImageIcon, QrCode } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
-import { fetchSiswaFromCloud } from '@/lib/data-service';
+import { fetchSiswaFromCloud, getStoredRuang } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function KartuPesertaPage() {
   const [selectedKelas, setSelectedKelas] = useState<string>('all');
   const [selectedRuang, setSelectedRuang] = useState<string>('all');
   const [layoutMode, setLayoutMode] = useState<'4' | '2'>('4'); // 4 per halaman atau 2 per halaman
+  const [ruangList, setRuangList] = useState(getStoredRuang());
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
@@ -24,9 +25,20 @@ export default function KartuPesertaPage() {
     window.addEventListener('school-settings-updated', updateSettings);
     return () => window.removeEventListener('school-settings-updated', updateSettings);
   }, []);
+
+  useEffect(() => {
+    const updateRuang = () => {
+      setRuangList(getStoredRuang());
+    };
+    updateRuang();
+    window.addEventListener('ruang-data-updated', updateRuang);
+    return () => window.removeEventListener('ruang-data-updated', updateRuang);
+  }, []);
+
   useEffect(() => {
     const syncData = () => {
       try {
+        const storedRuang = getStoredRuang();
         const saved = localStorage.getItem('adm_siswa_data');
         if (saved) {
           const parsedSiswa: Siswa[] = JSON.parse(saved);
@@ -37,7 +49,7 @@ export default function KartuPesertaPage() {
               setPesertaList([]);
               return;
             }
-            setPesertaList(generatePesertaFromSiswa(parsedSiswa));
+            setPesertaList(generatePesertaFromSiswa(parsedSiswa, storedRuang));
             return;
           }
         }
@@ -46,7 +58,7 @@ export default function KartuPesertaPage() {
         if (isSupabaseConfigured) {
           fetchSiswaFromCloud().then(cloudSiswa => {
             if (cloudSiswa && cloudSiswa.length > 0) {
-              setPesertaList(generatePesertaFromSiswa(cloudSiswa));
+              setPesertaList(generatePesertaFromSiswa(cloudSiswa, storedRuang));
             }
           });
         }
@@ -117,7 +129,7 @@ export default function KartuPesertaPage() {
               className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Semua Ruang</option>
-              {DEMO_RUANG.map((r) => (
+              {ruangList.map((r) => (
                 <option key={r.id} value={r.id}>{r.kode_ruang} - {r.nama_ruang}</option>
               ))}
             </select>
