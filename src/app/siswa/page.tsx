@@ -16,9 +16,22 @@ import {
   CheckSquare,
   Square,
   RotateCcw,
-  AlertTriangle
+  AlertTriangle,
+  Cloud,
+  CloudUpload,
+  CloudDownload,
+  RefreshCw,
+  FileJson
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { 
+  fetchSiswaFromCloud, 
+  pushSiswaToCloud, 
+  deleteSiswaFromCloud, 
+  exportBackupJSON, 
+  restoreBackupJSON 
+} from '@/lib/data-service';
+import { isSupabaseConfigured, supabaseUrl } from '@/lib/supabase';
 
 /**
  * Normalisasi URL foto siswa.
@@ -89,9 +102,11 @@ export default function SiswaPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedKelas, setSelectedKelas] = useState<string>('all');
   const [notification, setNotification] = useState<string | null>(null);
+  const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
 
-  // Load data tersimpan di browser (jika ada) saat pertama kali buka
+  // Load data tersimpan di browser (jika ada) dan sinkronkan dengan Supabase Cloud
   useEffect(() => {
+    let hasLocal = false;
     try {
       const saved = localStorage.getItem('adm_siswa_data');
       if (saved) {
@@ -101,15 +116,30 @@ export default function SiswaPage() {
           if (parsed.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
             localStorage.removeItem('adm_siswa_data');
             setSiswaList([]);
-            return;
+          } else {
+            setSiswaList(parsed);
+            hasLocal = true;
           }
-          setSiswaList(parsed);
-          return;
         }
       }
-      setSiswaList([]);
     } catch (e) {
       console.error('Failed to load siswa from localStorage', e);
+    }
+
+    // Tarik data otomatis dari Supabase Cloud (sangat penting agar langsung muncul di PC lain!)
+    if (isSupabaseConfigured) {
+      setIsCloudSyncing(true);
+      fetchSiswaFromCloud()
+        .then((cloudData) => {
+          setIsCloudSyncing(false);
+          if (cloudData && cloudData.length > 0) {
+            // Jika lokal kosong atau cloud memiliki data
+            if (!hasLocal) {
+              setSiswaList(cloudData);
+            }
+          }
+        })
+        .catch(() => setIsCloudSyncing(false));
     }
   }, []);
 
@@ -172,9 +202,14 @@ export default function SiswaPage() {
   const handleDeleteSelected = () => {
     if (selectedIds.length === 0) return;
     if (confirm(`Yakin ingin menghapus ${selectedIds.length} data siswa yang dipilih secara sekaligus?`)) {
+      const toDelete = siswaList.filter(s => selectedIds.includes(s.id));
+      const nisnList = toDelete.map(s => s.nisn).filter(Boolean);
       const remaining = siswaList.filter(s => !selectedIds.includes(s.id));
       saveAndSetSiswaList(remaining);
       setSelectedIds([]);
+      if (isSupabaseConfigured && nisnList.length > 0) {
+        deleteSiswaFromCloud(nisnList);
+      }
       showToast(`Berhasil menghapus ${selectedIds.length} data siswa.`);
     }
   };
@@ -182,8 +217,12 @@ export default function SiswaPage() {
   // Kosongkan Seluruh Data Siswa
   const handleClearAll = () => {
     if (confirm('PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN SELURUH data siswa? Seluruh data dan pas foto akan terhapus.')) {
+      const allNisns = siswaList.map(s => s.nisn).filter(Boolean);
       saveAndSetSiswaList([]);
       setSelectedIds([]);
+      if (isSupabaseConfigured && allNisns.length > 0) {
+        deleteSiswaFromCloud(allNisns);
+      }
       showToast('Seluruh data siswa berhasil dikosongkan.');
     }
   };
@@ -191,11 +230,58 @@ export default function SiswaPage() {
   // Reset / Bersihkan Seluruh Data Siswa
   const handleResetDefault = () => {
     if (confirm('Apakah Anda yakin ingin mengosongkan seluruh data siswa?')) {
+      const allNisns = siswaList.map(s => s.nisn).filter(Boolean);
       saveAndSetSiswaList([]);
       localStorage.removeItem('adm_siswa_data');
       setSelectedIds([]);
+      if (isSupabaseConfigured && allNisns.length > 0) {
+        deleteSiswaFromCloud(allNisns);
+      }
       showToast('Data siswa berhasil dikosongkan.');
     }
+  };
+
+  const handlePushToCloud = async () => {
+    if (siswaList.length === 0) {
+      alert('Tidak ada data siswa untuk dikirim ke cloud.');
+      return;
+    }
+    setIsCloudSyncing(true);
+    const result = await pushSiswaToCloud(siswaList);
+    setIsCloudSyncing(false);
+    if (result.success) {
+      showToast(`Sukses! ${result.count} data siswa tersimpan di Cloud Supabase.`);
+    } else {
+      alert('Gagal mengirim ke cloud: ' + result.error);
+    }
+  };
+
+  const handlePullFromCloud = async () => {
+    setIsCloudSyncing(true);
+    const cloudData = await fetchSiswaFromCloud();
+    setIsCloudSyncing(false);
+    if (cloudData) {
+      setSiswaList(cloudData);
+      showToast(`Sukses! ${cloudData.length} data siswa ditarik dari Cloud Supabase.`);
+    } else {
+      alert('Gagal mengambil data dari cloud atau koneksi terputus.');
+    }
+  };
+
+  const handleRestoreBackupFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsCloudSyncing(true);
+    const res = await restoreBackupJSON(file);
+    setIsCloudSyncing(false);
+    if (res.success) {
+      showToast(res.message);
+      const saved = localStorage.getItem('adm_siswa_data');
+      if (saved) setSiswaList(JSON.parse(saved));
+    } else {
+      alert(res.message);
+    }
+    e.target.value = '';
   };
 
   // Handle Upload Foto Lokal / Base64 Preview (dengan auto kompresi agar ringan)
@@ -267,6 +353,9 @@ export default function SiswaPage() {
     };
 
     saveAndSetSiswaList([newSiswa, ...siswaList]);
+    if (isSupabaseConfigured) {
+      pushSiswaToCloud([newSiswa]);
+    }
     setNamaLengkap('');
     setNisn('');
     setNis('');
@@ -277,7 +366,11 @@ export default function SiswaPage() {
 
   const handleDelete = (id: number) => {
     if (confirm('Yakin ingin menghapus data siswa ini?')) {
+      const target = siswaList.find(s => s.id === id);
       saveAndSetSiswaList(prev => prev.filter(s => s.id !== id));
+      if (isSupabaseConfigured && target?.nisn) {
+        deleteSiswaFromCloud([target.nisn]);
+      }
       showToast('Data siswa berhasil dihapus');
     }
   };
@@ -434,6 +527,15 @@ export default function SiswaPage() {
         });
 
         saveAndSetSiswaList(updatedList);
+        if (isSupabaseConfigured) {
+          setIsCloudSyncing(true);
+          pushSiswaToCloud(updatedList).then((res) => {
+            setIsCloudSyncing(false);
+            if (res.success) {
+              showToast(`Data berhasil disimpan dan disinkronkan ke Cloud Supabase (${res.count} siswa)!`);
+            }
+          });
+        }
         showToast(
           `Sukses! ${importedData.length} baris diproses (${updateCount} diperbarui, ${newCount} baru, ${photoCount} foto terisi via link).`
         );
@@ -539,6 +641,72 @@ export default function SiswaPage() {
         <div>
           Gunakan header: <code className="bg-white px-1.5 py-0.5 rounded font-mono font-bold text-amber-950 border border-amber-300">KLS | NIS | NISN | NAMA | L/P | LINK</code>.
           Kolom <span className="font-semibold text-blue-700">LINK</span> dapat diisi tautan foto dari Google Drive, foto hosting, maupun link URL web langsung.
+        </div>
+      </div>
+
+      {/* Cloud Sync & Backup Bar */}
+      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 rounded-2xl p-4 sm:p-5 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 border border-blue-800/40">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center flex-shrink-0 text-blue-300">
+            <Cloud className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-200">Database Cloud</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Terhubung (Supabase)
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Data tersinkron otomatis antar-PC & laptop. Klik tombol untuk kirim atau tarik data manual.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Kirim ke Cloud */}
+          <button
+            onClick={handlePushToCloud}
+            disabled={isCloudSyncing || siswaList.length === 0}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition shadow-sm disabled:opacity-50"
+            title="Unggah data siswa lokal ke database cloud Supabase"
+          >
+            <CloudUpload className="w-4 h-4" />
+            <span>{isCloudSyncing ? 'Menyinkron...' : 'Kirim ke Cloud'}</span>
+          </button>
+
+          {/* Tarik dari Cloud */}
+          <button
+            onClick={handlePullFromCloud}
+            disabled={isCloudSyncing}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition shadow-sm disabled:opacity-50"
+            title="Tarik data terbaru dari database cloud Supabase"
+          >
+            <CloudDownload className="w-4 h-4" />
+            <span>Tarik dari Cloud</span>
+          </button>
+
+          {/* Cadangkan JSON */}
+          <button
+            onClick={exportBackupJSON}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-medium border border-white/20 transition"
+            title="Unduh 1 berkas cadangan JSON lengkap (Siswa + Foto + Pengaturan)"
+          >
+            <FileJson className="w-3.5 h-3.5 text-amber-300" />
+            <span>Backup JSON</span>
+          </button>
+
+          {/* Pulihkan JSON */}
+          <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-medium border border-white/20 transition">
+            <RefreshCw className="w-3.5 h-3.5 text-emerald-300" />
+            <span>Restore JSON</span>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleRestoreBackupFile}
+              className="hidden"
+            />
+          </label>
         </div>
       </div>
 

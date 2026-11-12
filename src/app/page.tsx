@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, DEMO_UJIAN } from '@/lib/demo-data';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
+import { fetchSiswaFromCloud } from '@/lib/data-service';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function Dashboard() {
   const aktifUjian = DEMO_UJIAN[0];
@@ -45,6 +47,13 @@ export default function Dashboard() {
           setTotalSiswa(parsed.length);
           return;
         }
+      }
+      if (isSupabaseConfigured) {
+        fetchSiswaFromCloud().then(cloudSiswa => {
+          if (cloudSiswa && cloudSiswa.length > 0) {
+            setTotalSiswa(cloudSiswa.length);
+          }
+        });
       }
       setTotalSiswa(0);
     } catch (e) {

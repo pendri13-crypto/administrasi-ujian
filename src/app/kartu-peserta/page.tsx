@@ -5,6 +5,8 @@ import { DEMO_PESERTA, DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, generatePesertaFromSi
 import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, Filter, Image as ImageIcon, QrCode } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
+import { fetchSiswaFromCloud } from '@/lib/data-service';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function KartuPesertaPage() {
   const [selectedKelas, setSelectedKelas] = useState<string>('all');
@@ -38,6 +40,15 @@ export default function KartuPesertaPage() {
             setPesertaList(generatePesertaFromSiswa(parsedSiswa));
             return;
           }
+        }
+        
+        // Jika di PC baru belum ada cache lokal, tarik otomatis dari Supabase Cloud
+        if (isSupabaseConfigured) {
+          fetchSiswaFromCloud().then(cloudSiswa => {
+            if (cloudSiswa && cloudSiswa.length > 0) {
+              setPesertaList(generatePesertaFromSiswa(cloudSiswa));
+            }
+          });
         }
         setPesertaList([]);
       } catch (e) {

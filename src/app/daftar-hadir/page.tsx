@@ -14,6 +14,8 @@ import {
 import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, DoorOpen } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
+import { fetchSiswaFromCloud } from '@/lib/data-service';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function DaftarHadirPage() {
   const [selectedRuangId, setSelectedRuangId] = useState<number>(1);
@@ -45,6 +47,13 @@ export default function DaftarHadirPage() {
             setPesertaList(generatePesertaFromSiswa(parsedSiswa));
             return;
           }
+        }
+        if (isSupabaseConfigured) {
+          fetchSiswaFromCloud().then(cloudSiswa => {
+            if (cloudSiswa && cloudSiswa.length > 0) {
+              setPesertaList(generatePesertaFromSiswa(cloudSiswa));
+            }
+          });
         }
         setPesertaList([]);
       } catch (e) {

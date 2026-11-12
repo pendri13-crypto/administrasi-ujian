@@ -16,7 +16,8 @@ import {
   ShieldAlert,
   Sparkles,
   Info,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Download
 } from 'lucide-react';
 import { 
   SchoolSettings, 
@@ -26,6 +27,7 @@ import {
   resetStoredSchoolSettings 
 } from '@/lib/school-settings';
 import { getStoredUser, isAdmin } from '@/lib/auth';
+import { exportBackupJSON, restoreBackupJSON } from '@/lib/data-service';
 
 export default function PengaturanAdminPage() {
   const router = useRouter();
@@ -780,6 +782,53 @@ export default function PengaturanAdminPage() {
                 <li><strong>Cetak Label Meja</strong> (Tahun Ajaran & SAS/SAT)</li>
                 <li><strong>Daftar Hadir Ruang</strong> (Kop & Tanggal Ujian)</li>
               </ul>
+            </div>
+
+            {/* Database Cloud & Backup */}
+            <div className="p-4 bg-slate-900 rounded-xl text-white space-y-3 border border-slate-800 shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-300">Status Database Cloud</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded border border-emerald-400/30">
+                  Supabase Terhubung
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Project Cloud: <code className="bg-slate-800 px-1 py-0.5 rounded text-[10px] text-blue-200">frjaihrbffdnnjdiuvxm.supabase.co</code>
+              </p>
+
+              <div className="pt-1 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={exportBackupJSON}
+                  className="w-full py-2 px-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-semibold border border-white/20 transition flex items-center justify-center gap-1.5"
+                  title="Unduh file backup JSON lengkap"
+                >
+                  <Download className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Cadangkan Seluruh Data (.JSON)</span>
+                </button>
+
+                <label className="cursor-pointer w-full py-2 px-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-semibold border border-white/20 transition flex items-center justify-center gap-1.5 text-center">
+                  <RotateCcw className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>Pulihkan dari File (.JSON)</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const res = await restoreBackupJSON(file);
+                      if (res.success) {
+                        showToast(res.message);
+                        setSettings(getStoredSchoolSettings());
+                      } else {
+                        alert(res.message);
+                      }
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
 
           </div>
