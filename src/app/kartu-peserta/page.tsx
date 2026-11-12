@@ -74,6 +74,13 @@ export default function KartuPesertaPage() {
       return namaA.localeCompare(namaB, 'id', { sensitivity: 'base' });
     });
 
+  // Kelompokkan kartu per lembar A4 (4 kartu per halaman atau 2 kartu per halaman)
+  const pageSize = layoutMode === '4' ? 4 : 2;
+  const pages: PesertaUjian[][] = [];
+  for (let i = 0; i < filteredPeserta.length; i += pageSize) {
+    pages.push(filteredPeserta.slice(i, i + pageSize));
+  }
+
   const handlePrint = () => {
     window.print();
   };
@@ -83,9 +90,9 @@ export default function KartuPesertaPage() {
       {/* Action Bar (Hidden when printing) */}
       <div className="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-900">Cetak Kartu Peserta Ujian</h2>
+          <h2 className="text-xl font-extrabold text-slate-900">Cetak Kartu Peserta Ujian (Kertas A4)</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Menampilkan {filteredPeserta.length} kartu peserta siap dicetak ke kertas A4.
+            Format Standar A4 &bull; Menampilkan {filteredPeserta.length} kartu ({pages.length} lembar A4 siap cetak).
           </p>
         </div>
 
@@ -135,7 +142,7 @@ export default function KartuPesertaPage() {
         </div>
       </div>
 
-      {/* Grid Kartu Peserta - Siap Cetak */}
+      {/* Grid Kartu Peserta - Siap Cetak Kertas A4 */}
       {filteredPeserta.length === 0 ? (
         <div className="bg-white p-16 rounded-2xl border border-slate-200 text-center shadow-sm">
           <p className="font-bold text-slate-800 text-base">Belum Ada Data Kartu Peserta</p>
@@ -144,25 +151,31 @@ export default function KartuPesertaPage() {
           </p>
         </div>
       ) : (
-        <div 
-          className={`grid gap-6 ${
-            layoutMode === '4' 
-              ? 'grid-cols-1 md:grid-cols-2 print:grid-cols-2' 
-              : 'grid-cols-1 print:grid-cols-1'
-          }`}
-        >
-          {filteredPeserta.map((peserta) => {
-          const siswa = peserta.siswa;
-          const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
-          const ruang = peserta.ruang;
-          const ujian = peserta.ujian;
-
-          return (
+        <div className="space-y-8 print:space-y-0">
+          {pages.map((pagePeserta, pageIdx) => (
             <div
-              key={peserta.id}
-              className="card-item bg-white border-2 border-slate-800 rounded-lg p-4 shadow-sm flex flex-col justify-between"
-              style={{ minHeight: layoutMode === '4' ? '125mm' : '135mm' }}
+              key={pageIdx}
+              className={`print-page grid gap-4 print:gap-3 ${
+                layoutMode === '4' 
+                  ? 'grid-cols-1 md:grid-cols-2 print:grid-cols-2' 
+                  : 'grid-cols-1 print:grid-cols-1'
+              }`}
             >
+              {pagePeserta.map((peserta) => {
+                const siswa = peserta.siswa;
+                const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
+                const ruang = peserta.ruang;
+                const ujian = peserta.ujian;
+
+                return (
+                  <div
+                    key={peserta.id}
+                    className="card-item bg-white border-2 border-slate-800 rounded-lg p-3 sm:p-3.5 shadow-sm flex flex-col justify-between"
+                    style={{
+                      height: layoutMode === '4' ? '133mm' : '136mm',
+                      maxHeight: layoutMode === '4' ? '133mm' : '136mm',
+                    }}
+                  >
               {/* Kop Kartu Peserta Resmi */}
               <div className="border-b-4 border-double border-slate-900 pb-2 mb-3">
                 <div className="flex items-center justify-between gap-2 sm:gap-4 px-1">
@@ -326,8 +339,10 @@ export default function KartuPesertaPage() {
           );
         })}
       </div>
-      )}
-    </div>
-  );
-}
+    ))}
+  </div>
+)}
+      </div>
+    );
+  }
 

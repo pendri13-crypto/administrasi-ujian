@@ -17,10 +17,20 @@ body {
    PRINT MEDIA RULES (CETAK DOKUMEN & KARTU UJIAN)
    ============================================================ */
 @media print {
-  /* Hilangkan background dan elemen UI navigasi */
-  body {
+  /* Pengaturan Kertas A4 Standar (210mm x 297mm) */
+  @page {
+    size: A4 portrait;
+    margin: 8mm 6mm;
+  }
+
+  html, body {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
     background: transparent !important;
     color: #000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .no-print {
@@ -31,25 +41,32 @@ body {
     display: block !important;
   }
 
-  /* Kertas A4 Portrait */
-  @page {
-    size: A4 portrait;
-    margin: 8mm;
-  }
-
-  /* Halaman Cetak Kartu */
-  .print-sheet {
-    box-shadow: none !important;
-    border: none !important;
+  /* Lembar Cetak A4 Presisi */
+  .print-page {
+    width: 100% !important;
+    height: 278mm !important;
+    max-height: 278mm !important;
+    box-sizing: border-box !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
     margin: 0 !important;
     padding: 0 !important;
-    page-break-after: always;
-    break-after: page;
+    display: grid !important;
+  }
+
+  /* Mencegah lembar kosong di akhir halaman cetak */
+  .print-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
   }
 
   .card-item {
-    break-inside: avoid;
-    page-break-inside: avoid;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
 }
 
