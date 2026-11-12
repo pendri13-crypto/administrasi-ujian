@@ -22,17 +22,27 @@ import {
   X, 
   Save, 
   RotateCcw,
-  ArrowRight
+  ArrowRight,
+  Sliders,
+  ArrowLeftRight,
+  LayoutGrid,
+  FileText,
+  Table,
+  Check,
+  Tag,
+  CreditCard
 } from 'lucide-react';
-import { Ruang, Siswa } from '@/types/database';
-import { DEMO_KELAS, DEMO_RUANG } from '@/lib/demo-data';
+import { Ruang, Siswa, Kelas, SplitGroupRule, PesertaUjian } from '@/types/database';
+import { DEMO_KELAS, DEMO_RUANG, generatePesertaFromSiswa } from '@/lib/demo-data';
 import { 
   getStoredRuang, 
   saveStoredRuang, 
   fetchRuangFromCloud, 
   pushRuangToCloud, 
   deleteRuangFromCloud,
-  fetchSiswaFromCloud 
+  fetchSiswaFromCloud,
+  getStoredSplitRules,
+  saveStoredSplitRules
 } from '@/lib/data-service';
 import { getStoredUser, isAdmin } from '@/lib/auth';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -45,17 +55,25 @@ export default function KelolaRuangPage() {
   const [isAuthorized, setIsAuthorized] = useState<boolean>(true);
   const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(true);
 
+  // Active Tab: 'mapping' (Fitur Split & Silang) atau 'master' (Daftar Ruang)
+  const [activeTab, setActiveTab] = useState<'mapping' | 'master'>('mapping');
+
   // Data States
   const [ruangList, setRuangList] = useState<Ruang[]>([]);
   const [siswaList, setSiswaList] = useState<Siswa[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
+  // Split Rules State
+  const [splitRules, setSplitRules] = useState<SplitGroupRule[]>([]);
+  const [selectedPreviewRuangId, setSelectedPreviewRuangId] = useState<number>(1);
+  const [filterKelasId, setFilterKelasId] = useState<string>('all');
+
   // Cloud & Sync States
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Modal Form State (Tambah / Edit)
+  // Modal Form State (Tambah / Edit Ruang Master)
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingRuang, setEditingRuang] = useState<Ruang | null>(null);
   const [formKode, setFormKode] = useState<string>('');
@@ -95,12 +113,20 @@ export default function KelolaRuangPage() {
     return () => window.removeEventListener('school-settings-updated', handleSettingsUpdate);
   }, []);
 
-  // Load Data Ruang & Siswa (Lokal & Supabase Cloud)
+  // Load Data Ruang, Siswa & Split Rules
   useEffect(() => {
     const initialRuang = getStoredRuang();
     setRuangList(initialRuang);
 
-    // Ambil data siswa untuk menghitung jumlah peserta per ruang
+    const savedRules = getStoredSplitRules();
+    if (savedRules && savedRules.length > 0) {
+      setSplitRules(savedRules);
+    } else {
+      // Inisialisasi template split rules default jika belum ada
+      setSplitRules(initDefaultSplitRules(DEMO_KELAS));
+    }
+
+    // Ambil data siswa
     try {
       const savedSiswa = localStorage.getItem('adm_siswa_data');
       if (savedSiswa) {
@@ -131,24 +157,67 @@ export default function KelolaRuangPage() {
     return () => window.removeEventListener('ruang-data-updated', handleRuangUpdate);
   }, []);
 
-  // Hitung jumlah siswa per ruang (berdasarkan kelas atau alokasi ruang)
-  const siswaCountPerRuang = useMemo(() => {
-    const map: Record<number, number> = {};
+  // Inisialisasi aturan split bawaan: Membagi setiap kelas menjadi 2 paruh (1-17 dan 18-34)
+  function initDefaultSplitRules(kelasList: Kelas[]): SplitGroupRule[] {
+    const rules: SplitGroupRule[] = [];
+    kelasList.forEach((k) => {
+      // Paruh 1: No. 1 - 17 (Default Kursi Kiri, Ruang sesuai ID kelas)
+      rules.push({
+        id: `rule-${k.id}-part1`,
+        kelas_id: k.id,
+        label: `${k.nama_kelas} (No. 1-17)`,
+        start_urut: 1,
+        end_urut: 17,
+        target_ruang_id: k.id,
+        posisi: 'kiri',
+        start_meja: 1,
+      });
+
+      // Paruh 2: No. 18 - 34 (Default Kursi Kiri, Ruang berikutnya atau sama)
+      rules.push({
+        id: `rule-${k.id}-part2`,
+        kelas_id: k.id,
+        label: `${k.nama_kelas} (No. 18-34)`,
+        start_urut: 18,
+        end_urut: 34,
+        target_ruang_id: k.id + 1 <= kelasList.length ? k.id + 1 : k.id,
+        posisi: 'kiri',
+        start_meja: 1,
+      });
+    });
+    return rules;
+  }
+
+  // Hitung Peserta Ujian berdasarkan split rules aktif
+  const pesertaListGenerated: PesertaUjian[] = useMemo(() => {
+    return generatePesertaFromSiswa(siswaList, ruangList, splitRules);
+  }, [siswaList, ruangList, splitRules]);
+
+  // Kelompokkan siswa per kelas untuk menghitung jumlah siswa per kelas
+  const siswaPerKelas = useMemo(() => {
+    const map: Record<number, Siswa[]> = {};
     siswaList.forEach(s => {
       const kId = s.kelas_id || 1;
-      map[kId] = (map[kId] || 0) + 1;
+      if (!map[kId]) map[kId] = [];
+      map[kId].push(s);
     });
     return map;
   }, [siswaList]);
 
-  // Filter Ruang berdasarkan pencarian
-  const filteredRuang = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return ruangList;
-    return ruangList.filter(
-      r => r.kode_ruang.toLowerCase().includes(q) || r.nama_ruang.toLowerCase().includes(q)
-    );
-  }, [ruangList, searchQuery]);
+  // Daftar Peserta di Ruang yang dipilih untuk Denah Pratinjau
+  const pesertaInPreviewRuang = useMemo(() => {
+    return pesertaListGenerated
+      .filter(p => p.ruang_id === selectedPreviewRuangId)
+      .sort((a, b) => (a.no_meja || 0) - (b.no_meja || 0));
+  }, [pesertaListGenerated, selectedPreviewRuangId]);
+
+  const kursiKiriPeserta = useMemo(() => {
+    return pesertaInPreviewRuang.filter(p => (p.no_meja || 0) <= 17);
+  }, [pesertaInPreviewRuang]);
+
+  const kursiKananPeserta = useMemo(() => {
+    return pesertaInPreviewRuang.filter(p => (p.no_meja || 0) >= 18);
+  }, [pesertaInPreviewRuang]);
 
   // Statistik Ringkas
   const totalKapasitas = useMemo(() => {
@@ -159,7 +228,163 @@ export default function KelolaRuangPage() {
     return siswaList.length;
   }, [siswaList]);
 
-  // Handler Buka Modal Tambah
+  // Handler: Ubah Nomor Ruang Tujuan secara manual
+  const handleUpdateTargetRuang = (ruleId: string, newTargetRuangId: number) => {
+    setSplitRules(prev => prev.map(rule => {
+      if (rule.id === ruleId) {
+        return { ...rule, target_ruang_id: Number(newTargetRuangId) || 1 };
+      }
+      return rule;
+    }));
+  };
+
+  // Handler: Ubah Posisi Kursi (Kiri / Kanan)
+  const handleUpdatePosisi = (ruleId: string, newPosisi: 'kiri' | 'kanan') => {
+    setSplitRules(prev => prev.map(rule => {
+      if (rule.id === ruleId) {
+        return { 
+          ...rule, 
+          posisi: newPosisi,
+          start_meja: newPosisi === 'kanan' ? 18 : 1
+        };
+      }
+      return rule;
+    }));
+  };
+
+  // Handler: Ubah Rentang Nomor Urut Siswa (contoh 1-17 atau 18-34)
+  const handleUpdateRentang = (ruleId: string, field: 'start_urut' | 'end_urut', val: number) => {
+    setSplitRules(prev => prev.map(rule => {
+      if (rule.id === ruleId) {
+        return { ...rule, [field]: Number(val) || 1 };
+      }
+      return rule;
+    }));
+  };
+
+  // Simpan Aturan Split ke localStorage & Sinkronkan
+  const handleSaveSplitRules = () => {
+    saveStoredSplitRules(splitRules);
+    showToast('Aturan pembagian & split ruang berhasil disimpan dan diterapkan ke seluruh modul!');
+  };
+
+  // Preset Otomatis: Atur Pola Silang Standar (Sesuai contoh kasus: Tingkat 7 silang dengan Tingkat 8)
+  // Contoh: Ruang 1 Kiri = Kelas 1 (VII-A No 1-17), Ruang 1 Kanan = Kelas 12 (VIII-A No 1-17)
+  //         Ruang 2 Kiri = Kelas 1 (VII-A No 18-34), Ruang 2 Kanan = Kelas 12 (VIII-A No 18-34)
+  const handleAutoCrossPreset = () => {
+    if (!confirm('Terapkan Pola Silang Otomatis?\n\nRuang 1:\n- Kiri: Kelas VII-A (No. 1-17)\n- Kanan: Kelas VIII-A / Ruang 12 (No. 1-17)\n\nRuang 2:\n- Kiri: Kelas VII-A (No. 18-34)\n- Kanan: Kelas VIII-A / Ruang 12 (No. 18-34)\n\ndan seterusnya untuk seluruh 11 rombel tingkat 7 & 8.')) {
+      return;
+    }
+
+    const newRules: SplitGroupRule[] = [];
+    const numPairs = 11; // 11 Kelas Tingkat 7 (ID 1-11) dan 11 Kelas Tingkat 8 (ID 12-22)
+
+    for (let i = 0; i < numPairs; i++) {
+      const kelas7Id = i + 1;  // ID 1 s/d 11
+      const kelas8Id = i + 12; // ID 12 s/d 22
+
+      const roomA = (i * 2) + 1; // Ruang 1, 3, 5, 7, ...
+      const roomB = (i * 2) + 2; // Ruang 2, 4, 6, 8, ...
+
+      const k7 = DEMO_KELAS.find(k => k.id === kelas7Id);
+      const k8 = DEMO_KELAS.find(k => k.id === kelas8Id);
+
+      // Kelas VII-A Part 1 (No. 1 - 17) -> Ruang 1 Kiri (Meja 1-17)
+      newRules.push({
+        id: `rule-${kelas7Id}-part1`,
+        kelas_id: kelas7Id,
+        label: `${k7?.nama_kelas || `VII-${i+1}`} (No. 1-17)`,
+        start_urut: 1,
+        end_urut: 17,
+        target_ruang_id: roomA,
+        posisi: 'kiri',
+        start_meja: 1,
+      });
+
+      // Kelas VII-A Part 2 (No. 18 - 34) -> Ruang 2 Kiri (Meja 1-17)
+      newRules.push({
+        id: `rule-${kelas7Id}-part2`,
+        kelas_id: kelas7Id,
+        label: `${k7?.nama_kelas || `VII-${i+1}`} (No. 18-34)`,
+        start_urut: 18,
+        end_urut: 34,
+        target_ruang_id: roomB,
+        posisi: 'kiri',
+        start_meja: 1,
+      });
+
+      // Kelas VIII-A Part 1 (No. 1 - 17) -> Ruang 1 Kanan (Meja 18-34)
+      newRules.push({
+        id: `rule-${kelas8Id}-part1`,
+        kelas_id: kelas8Id,
+        label: `${k8?.nama_kelas || `VIII-${i+1}`} (No. 1-17)`,
+        start_urut: 1,
+        end_urut: 17,
+        target_ruang_id: roomA,
+        posisi: 'kanan',
+        start_meja: 18,
+      });
+
+      // Kelas VIII-A Part 2 (No. 18 - 34) -> Ruang 2 Kanan (Meja 18-34)
+      newRules.push({
+        id: `rule-${kelas8Id}-part2`,
+        kelas_id: kelas8Id,
+        label: `${k8?.nama_kelas || `VIII-${i+1}`} (No. 18-34)`,
+        start_urut: 18,
+        end_urut: 34,
+        target_ruang_id: roomB,
+        posisi: 'kanan',
+        start_meja: 18,
+      });
+    }
+
+    // Kelas Tingkat 9 (ID 23 s/d 33) jika ada, tetap dialokasikan
+    for (let i = 22; i < DEMO_KELAS.length; i++) {
+      const k = DEMO_KELAS[i];
+      const targetRoom = 23 + (i - 22);
+      newRules.push({
+        id: `rule-${k.id}-part1`,
+        kelas_id: k.id,
+        label: `${k.nama_kelas} (No. 1-17)`,
+        start_urut: 1,
+        end_urut: 17,
+        target_ruang_id: targetRoom,
+        posisi: 'kiri',
+        start_meja: 1,
+      });
+      newRules.push({
+        id: `rule-${k.id}-part2`,
+        kelas_id: k.id,
+        label: `${k.nama_kelas} (No. 18-34)`,
+        start_urut: 18,
+        end_urut: 34,
+        target_ruang_id: targetRoom,
+        posisi: 'kanan',
+        start_meja: 18,
+      });
+    }
+
+    setSplitRules(newRules);
+    saveStoredSplitRules(newRules);
+    showToast('Pola silang otomatis berhasil diterapkan!');
+  };
+
+  // Reset Aturan Split ke Default (1 Kelas = 1 Ruang)
+  const handleResetToStandard = () => {
+    if (!confirm('Kembalikan aturan ke pembagian standar (1 kelas = 1 ruang)?')) return;
+    const defaultRules = initDefaultSplitRules(DEMO_KELAS);
+    // Atur target ruang sama dengan id kelas
+    defaultRules.forEach(r => {
+      r.target_ruang_id = r.kelas_id;
+      r.posisi = r.start_urut === 1 ? 'kiri' : 'kanan';
+      r.start_meja = r.start_urut === 1 ? 1 : 18;
+    });
+    setSplitRules(defaultRules);
+    saveStoredSplitRules(defaultRules);
+    showToast('Aturan direset ke standar (1 kelas = 1 ruang).');
+  };
+
+  // Handler Buka Modal Tambah Master Ruang
   const handleOpenAddModal = () => {
     setEditingRuang(null);
     const nextNum = ruangList.length + 1;
@@ -170,7 +395,7 @@ export default function KelolaRuangPage() {
     setIsModalOpen(true);
   };
 
-  // Handler Buka Modal Edit
+  // Handler Buka Modal Edit Master Ruang
   const handleOpenEditModal = (ruang: Ruang) => {
     setEditingRuang(ruang);
     setFormKode(ruang.kode_ruang);
@@ -180,7 +405,7 @@ export default function KelolaRuangPage() {
     setIsModalOpen(true);
   };
 
-  // Simpan Data Ruang (Tambah / Update)
+  // Simpan Data Ruang Master (Tambah / Update)
   const handleSaveRuang = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formKode.trim()) {
@@ -198,7 +423,6 @@ export default function KelolaRuangPage() {
 
     let updated: Ruang[];
     if (editingRuang) {
-      // Update data
       updated = ruangList.map(r => 
         r.id === editingRuang.id 
           ? { ...r, kode_ruang: formKode.trim(), nama_ruang: formNama.trim(), kapasitas: Number(formKapasitas) }
@@ -206,7 +430,6 @@ export default function KelolaRuangPage() {
       );
       showToast(`Ruang "${formNama}" berhasil diperbarui.`);
     } else {
-      // Cek duplikasi kode ruang
       if (ruangList.some(r => r.kode_ruang.toLowerCase() === formKode.trim().toLowerCase())) {
         setFormError(`Kode ruang "${formKode.trim()}" sudah digunakan. Gunakan kode lain.`);
         return;
@@ -226,7 +449,6 @@ export default function KelolaRuangPage() {
     saveStoredRuang(updated);
     setIsModalOpen(false);
 
-    // Otomatis push ke Supabase jika aktif
     if (isSupabaseConfigured) {
       try {
         await pushRuangToCloud(updated);
@@ -236,7 +458,7 @@ export default function KelolaRuangPage() {
     }
   };
 
-  // Hapus Ruang
+  // Hapus Ruang Master
   const handleDeleteRuang = async (ruang: Ruang) => {
     const updated = ruangList.filter(r => r.id !== ruang.id);
     setRuangList(updated);
@@ -253,75 +475,24 @@ export default function KelolaRuangPage() {
     }
   };
 
-  // Generate Otomatis 33 Ruang sesuai Kelas VII-A s.d IX-K
-  const handleGenerateStandardRuang = async () => {
-    if (!confirm('Apakah Anda ingin membuat ulang 33 Ruang Ujian standar berdasarkan rombel kelas (VII-A s.d IX-K)?')) {
-      return;
-    }
-
-    const standardRuang: Ruang[] = DEMO_KELAS.map((k, idx) => ({
-      id: k.id,
-      kode_ruang: 'R-' + (idx + 1).toString().padStart(2, '0'),
-      nama_ruang: `Ruang ${(idx + 1).toString().padStart(2, '0')} (${k.nama_kelas})`,
-      kapasitas: 36,
-    }));
-
-    setRuangList(standardRuang);
-    saveStoredRuang(standardRuang);
-    showToast(`Berhasil men-generate ${standardRuang.length} ruang ujian standar.`);
-
-    if (isSupabaseConfigured) {
-      setIsSyncing(true);
-      await pushRuangToCloud(standardRuang);
-      setIsSyncing(false);
-      showToast(`33 Ruang tersimpan ke database cloud Supabase!`);
-    }
-  };
-
-  // Sinkronisasi Manual ke Supabase Cloud
-  const handleSyncCloud = async () => {
-    if (!isSupabaseConfigured) {
-      alert('Koneksi Supabase belum terkonfigurasi di sistem.');
-      return;
-    }
-
-    setIsSyncing(true);
-    try {
-      const res = await pushRuangToCloud(ruangList);
-      if (res.success) {
-        showToast(`Berhasil mensinkronkan ${res.count} ruang ke cloud Supabase!`);
-      } else {
-        alert('Gagal sinkron: ' + res.error);
+  // Filter Rules untuk tampilan tabel
+  const filteredRules = useMemo(() => {
+    return splitRules.filter(r => {
+      if (filterKelasId !== 'all' && r.kelas_id.toString() !== filterKelasId) {
+        return false;
       }
-    } catch (err: any) {
-      alert('Terjadi kesalahan saat sinkronisasi: ' + err?.message);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  // Ambil Ulang Data dari Supabase Cloud
-  const handlePullCloud = async () => {
-    if (!isSupabaseConfigured) {
-      alert('Koneksi Supabase belum terkonfigurasi.');
-      return;
-    }
-
-    setIsSyncing(true);
-    try {
-      const cloudData = await fetchRuangFromCloud();
-      if (cloudData && cloudData.length > 0) {
-        setRuangList(cloudData);
-        showToast(`Berhasil mengambil ${cloudData.length} data ruang dari Supabase!`);
-      } else {
-        showToast('Tidak ada data ruang baru di cloud Supabase.');
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const kelas = DEMO_KELAS.find(k => k.id === r.kelas_id);
+        const targetRuang = ruangList.find(ru => ru.id === r.target_ruang_id);
+        const matchKelas = kelas?.nama_kelas.toLowerCase().includes(q);
+        const matchRuang = targetRuang?.nama_ruang.toLowerCase().includes(q) || targetRuang?.kode_ruang.toLowerCase().includes(q);
+        const matchLabel = r.label?.toLowerCase().includes(q);
+        return matchKelas || matchRuang || matchLabel;
       }
-    } catch (err: any) {
-      alert('Gagal mengambil data dari cloud: ' + err?.message);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+      return true;
+    });
+  }, [splitRules, filterKelasId, searchQuery, ruangList]);
 
   if (isLoadingAuth) {
     return (
@@ -364,256 +535,670 @@ export default function KelolaRuangPage() {
         </div>
       )}
 
-      {/* Header & Action Bar */}
+      {/* Header Utama */}
       <div className="no-print bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
-              <DoorOpen className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-extrabold text-slate-900">Kelola Ruang Ujian</h1>
-                <span className="text-[10px] font-bold bg-teal-100 text-teal-800 border border-teal-200 px-2 py-0.5 rounded-full">
-                  Role Admin
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Atur daftar ruang ujian, kapasitas tempat duduk siswa, alokasi per rombel, dan sinkronisasi database cloud.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-2 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Ruang</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleGenerateStandardRuang}
-            title="Generate 33 Ruang otomatis sesuai Kelas VII-A s.d IX-K"
-            className="inline-flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition"
-          >
-            <Sparkles className="w-4 h-4 text-amber-600" />
-            <span className="hidden sm:inline">Set Standar 33 Ruang</span>
-          </button>
-
-          {isSupabaseConfigured && (
-            <button
-              type="button"
-              onClick={handleSyncCloud}
-              disabled={isSyncing}
-              title="Simpan seluruh ruang ke Supabase Cloud"
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl transition disabled:opacity-60"
-            >
-              <Cloud className={`w-3.5 h-3.5 ${isSyncing ? 'animate-bounce' : ''}`} />
-              <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkron Cloud'}</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-bold rounded-xl transition"
-          >
-            <Printer className="w-3.5 h-3.5 text-slate-500" />
-            <span>Cetak Rekap</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Statistik Ringkas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center text-teal-700 flex-shrink-0">
-            <Building2 className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-500">Total Ruang Ujian</p>
-            <p className="text-2xl font-black text-slate-900 mt-0.5">{ruangList.length}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-teal-600 flex items-center justify-center text-white shadow-md shadow-teal-600/20 flex-shrink-0">
             <DoorOpen className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-500">Kapasitas Kursi</p>
-            <p className="text-2xl font-black text-slate-900 mt-0.5">{totalKapasitas} <span className="text-xs font-normal text-slate-500">Meja</span></p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 flex-shrink-0">
-            <Users className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-500">Total Siswa Terdaftar</p>
-            <p className="text-2xl font-black text-slate-900 mt-0.5">{totalSiswaTerisi} <span className="text-xs font-normal text-slate-500">Siswa</span></p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 flex-shrink-0">
-            <Cloud className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-500">Database Cloud</p>
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 mt-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Supabase Terhubung
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Table & Filter */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Table Toolbar */}
-        <div className="no-print p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari kode atau nama ruang..."
-              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
-            />
-          </div>
-
-          <div className="text-xs text-slate-500 font-medium self-end sm:self-center">
-            Menampilkan <b>{filteredRuang.length}</b> dari {ruangList.length} ruang
-          </div>
-        </div>
-
-        {/* Header untuk Print Rekap */}
-        <div className="hidden print:block p-6 border-b border-slate-300">
-          <div className="text-center">
-            <h2 className="text-lg font-black uppercase text-slate-900">{schoolSettings.namaSekolah}</h2>
-            <h3 className="text-sm font-bold text-slate-800">DAFTAR REKAPITULASI RUANG UJIAN & KAPASITAS</h3>
-            <p className="text-xs text-slate-600 mt-1">
-              Agenda: {schoolSettings.namaUjian} &bull; Tahun Ajaran: {schoolSettings.tahunAjaran} ({schoolSettings.semester})
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-extrabold text-slate-900">Manajemen Ruang & Penataan Meja</h1>
+              <span className="text-[10px] font-bold bg-teal-100 text-teal-800 border border-teal-200 px-2 py-0.5 rounded-full">
+                Role Admin
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Split nomor urut siswa (contoh 1-17 & 18-34), atur kursi silang (kiri & kanan), serta kelola master ruang ujian.
             </p>
           </div>
         </div>
 
-        {/* Tabel Data */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-100/75 border-b border-slate-200 text-[11px] font-extrabold uppercase text-slate-700 tracking-wider">
-                <th className="py-3 px-4 w-12 text-center">No</th>
-                <th className="py-3 px-4 w-32">Kode Ruang</th>
-                <th className="py-3 px-4">Nama Ruang Ujian</th>
-                <th className="py-3 px-4 w-36 text-center">Kapasitas Kursi</th>
-                <th className="py-3 px-4 w-40 text-center">Peserta Terisi</th>
-                <th className="py-3 px-4 w-32 text-center">Status</th>
-                <th className="no-print py-3 px-4 w-48 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-xs text-slate-800">
-              {filteredRuang.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500 font-medium">
-                    Tidak ada ruang ujian yang sesuai dengan kriteria pencarian.
-                  </td>
-                </tr>
-              ) : (
-                filteredRuang.map((ruang, index) => {
-                  const siswaCount = siswaCountPerRuang[ruang.id] || 0;
-                  const isFull = siswaCount >= (ruang.kapasitas || 36);
+        {/* Tab Switcher */}
+        <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/80">
+          <button
+            type="button"
+            onClick={() => setActiveTab('mapping')}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition ${
+              activeTab === 'mapping'
+                ? 'bg-white text-teal-700 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+            <span>Split & Mapping Siswa (Silang Ruang)</span>
+          </button>
 
-                  return (
-                    <tr key={ruang.id} className="hover:bg-teal-50/40 transition">
-                      <td className="py-3 px-4 text-center text-slate-500 font-bold">{index + 1}</td>
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 font-bold font-mono text-[11px]">
-                          {ruang.kode_ruang}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-slate-900">
-                        {ruang.nama_ruang}
-                      </td>
-                      <td className="py-3 px-4 text-center font-bold text-slate-800">
-                        <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                          {ruang.kapasitas || 36} Meja
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="font-bold text-slate-900">
-                            {siswaCount} / {ruang.kapasitas || 36}
-                          </span>
-                          <div className="w-24 bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full ${
-                                isFull ? 'bg-amber-500' : 'bg-teal-500'
-                              }`}
-                              style={{ 
-                                width: `${Math.min(100, Math.round((siswaCount / (ruang.kapasitas || 36)) * 100))}%` 
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          isFull 
-                            ? 'bg-amber-100 text-amber-800 border border-amber-200' 
-                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        }`}>
-                          <CheckCircle2 className="w-3 h-3" />
-                          {isFull ? 'Penuh' : 'Tersedia'}
-                        </span>
-                      </td>
-                      <td className="no-print py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditModal(ruang)}
-                            title="Edit Ruang"
-                            className="p-1.5 text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-
-                          <Link
-                            href={`/daftar-hadir`}
-                            title="Lihat Daftar Hadir Ruang Ini"
-                            className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Link>
-
-                          <button
-                            type="button"
-                            onClick={() => setDeleteConfirmRuang(ruang)}
-                            title="Hapus Ruang"
-                            className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+          <button
+            type="button"
+            onClick={() => setActiveTab('master')}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition ${
+              activeTab === 'master'
+                ? 'bg-white text-teal-700 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>Master Daftar Ruang ({ruangList.length})</span>
+          </button>
         </div>
       </div>
 
-      {/* Modal Tambah / Edit Ruang */}
+      {/* ============================================================ */}
+      {/* TAB 1: SPLIT & MAPPING SILANG SISWA                         */}
+      {/* ============================================================ */}
+      {activeTab === 'mapping' && (
+        <div className="space-y-6">
+          {/* Card Panduan & Kontrol Tindakan Cepat */}
+          <div className="bg-gradient-to-r from-teal-50 via-cyan-50 to-blue-50 p-5 rounded-2xl border border-teal-200/80 shadow-sm">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1 max-w-3xl">
+                <div className="flex items-center gap-2">
+                  <span className="p-1 rounded bg-teal-600 text-white">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </span>
+                  <h3 className="text-sm font-extrabold text-teal-950">
+                    Aturan Split & Mapping Siswa Manual (Sistem Duduk Silang)
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Setiap kelas otomatis dipotong per rentang nomor urut (default: <b>No. 1 - 17</b> dan <b>No. 18 - 34</b>). 
+                  Anda <b>cukup memasukkan Nomor Ruang</b> pada tabel di bawah. Siswa di kursi <b>Kiri</b> akan menempati Meja 1-17, 
+                  dan siswa di kursi <b>Kanan</b> akan menempati Meja 18-34.
+                </p>
+              </div>
+
+              {/* Tombol Aksi Cepat */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAutoCrossPreset}
+                  title="Otomatis silangkan Tingkat 7 (Ruang 1-11) dengan Tingkat 8 (Ruang 12-22)"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white text-xs font-bold rounded-xl shadow-md shadow-teal-600/20 transition"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                  <span>Pola Silang Otomatis</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveSplitRules}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition"
+                >
+                  <Save className="w-4 h-4 text-emerald-400" />
+                  <span>Simpan & Terapkan</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetToStandard}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Reset Default</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* DENAH PRATINJAU RUANG UJIAN (SIMULASI TATA LETAK MEJA) */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <LayoutGrid className="w-5 h-5 text-teal-600" />
+                  Pratinjau Denah Ruang Ujian (Simulasi Kursi Kiri & Kanan)
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Melihat susunan tempat duduk peserta yang dihasilkan di ruang yang dipilih secara langsung.
+                </p>
+              </div>
+
+              {/* Pilihan Ruang untuk Denah */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Pilih Ruang:</span>
+                <select
+                  value={selectedPreviewRuangId}
+                  onChange={(e) => setSelectedPreviewRuangId(Number(e.target.value))}
+                  className="text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  {ruangList.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.kode_ruang} - {r.nama_ruang}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Simulasi Ruangan Kelas */}
+            <div className="mt-6 bg-slate-50 rounded-2xl p-6 border border-slate-200">
+              {/* Meja Pengawas */}
+              <div className="max-w-md mx-auto mb-8 py-2.5 px-6 rounded-xl bg-slate-800 text-white text-center font-bold text-xs tracking-wider shadow-md">
+                PAPAN TULIS &bull; MEJA PENGAWAS UJIAN (DEPAN KELAS)
+              </div>
+
+              {/* 2 Kolom Meja (Kiri & Kanan) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* SISI KIRI (MEJA 1 - 17) */}
+                <div className="bg-white rounded-xl p-4 border-2 border-teal-500/40 shadow-sm">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-teal-100 text-teal-800 font-bold text-xs flex items-center justify-center">
+                        L
+                      </span>
+                      <div>
+                        <h4 className="font-extrabold text-slate-900 text-xs uppercase">
+                          Sisi Kiri (Meja 01 s/d 17)
+                        </h4>
+                        <p className="text-[11px] text-teal-700 font-semibold">
+                          {kursiKiriPeserta.length > 0 
+                            ? `Terisi: ${kursiKiriPeserta.length} Siswa (${kursiKiriPeserta[0]?.siswa?.kelas?.nama_kelas || 'Kelas'})`
+                            : 'Belum ada siswa yang dimapping ke sisi kiri'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] bg-teal-50 text-teal-700 font-bold px-2 py-0.5 rounded-full border border-teal-200">
+                      Kursi Kiri
+                    </span>
+                  </div>
+
+                  {/* Grid Meja Kiri */}
+                  <div className="mt-3 divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                    {kursiKiriPeserta.length === 0 ? (
+                      <p className="text-center py-8 text-xs text-slate-400">
+                        Tidak ada siswa di sisi kiri ruang ini.
+                      </p>
+                    ) : (
+                      kursiKiriPeserta.map((p) => (
+                        <div key={p.id} className="py-2 px-1 flex items-center justify-between text-xs hover:bg-slate-50 transition">
+                          <div className="flex items-center gap-2">
+                            <span className="w-7 h-6 rounded bg-slate-100 border border-slate-300 text-slate-800 font-bold text-[11px] flex items-center justify-center font-mono">
+                              {p.no_meja?.toString().padStart(2, '0')}
+                            </span>
+                            <div>
+                              <p className="font-bold text-slate-900 text-xs leading-tight">{p.siswa?.nama_lengkap}</p>
+                              <p className="text-[10px] text-slate-500 font-mono mt-0.5">NISN: {p.siswa?.nisn || '-'}</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                            {p.siswa?.kelas?.nama_kelas}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* SISI KANAN (MEJA 18 - 34) */}
+                <div className="bg-white rounded-xl p-4 border-2 border-indigo-500/40 shadow-sm">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-800 font-bold text-xs flex items-center justify-center">
+                        R
+                      </span>
+                      <div>
+                        <h4 className="font-extrabold text-slate-900 text-xs uppercase">
+                          Sisi Kanan (Meja 18 s/d 34)
+                        </h4>
+                        <p className="text-[11px] text-indigo-700 font-semibold">
+                          {kursiKananPeserta.length > 0 
+                            ? `Terisi: ${kursiKananPeserta.length} Siswa (${kursiKananPeserta[0]?.siswa?.kelas?.nama_kelas || 'Kelas'})`
+                            : 'Belum ada siswa yang dimapping ke sisi kanan'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                      Kursi Kanan
+                    </span>
+                  </div>
+
+                  {/* Grid Meja Kanan */}
+                  <div className="mt-3 divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                    {kursiKananPeserta.length === 0 ? (
+                      <p className="text-center py-8 text-xs text-slate-400">
+                        Tidak ada siswa di sisi kanan ruang ini.
+                      </p>
+                    ) : (
+                      kursiKananPeserta.map((p) => (
+                        <div key={p.id} className="py-2 px-1 flex items-center justify-between text-xs hover:bg-slate-50 transition">
+                          <div className="flex items-center gap-2">
+                            <span className="w-7 h-6 rounded bg-slate-100 border border-slate-300 text-slate-800 font-bold text-[11px] flex items-center justify-center font-mono">
+                              {p.no_meja?.toString().padStart(2, '0')}
+                            </span>
+                            <div>
+                              <p className="font-bold text-slate-900 text-xs leading-tight">{p.siswa?.nama_lengkap}</p>
+                              <p className="text-[10px] text-slate-500 font-mono mt-0.5">NISN: {p.siswa?.nisn || '-'}</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                            {p.siswa?.kelas?.nama_kelas}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tautan Cepat Cetak Ruang Ini */}
+              <div className="mt-6 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <span className="text-slate-600 font-medium">
+                  Total Peserta di {ruangList.find(r => r.id === selectedPreviewRuangId)?.nama_ruang || `Ruang ${selectedPreviewRuangId}`}: <b>{pesertaInPreviewRuang.length} Siswa</b>
+                </span>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/kartu-peserta"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition"
+                  >
+                    <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Cetak Kartu Peserta</span>
+                  </Link>
+
+                  <Link
+                    href="/daftar-hadir"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Cetak Daftar Hadir</span>
+                  </Link>
+
+                  <Link
+                    href="/nomor-meja"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition"
+                  >
+                    <Tag className="w-3.5 h-3.5 text-violet-600" />
+                    <span>Cetak Label Meja</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* TABEL ATURAN MAPPING MANUAL SETIAP KELAS */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            {/* Toolbar Filter & Search */}
+            <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari kelas atau ruang..."
+                    className="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                  />
+                </div>
+
+                <select
+                  value={filterKelasId}
+                  onChange={(e) => setFilterKelasId(e.target.value)}
+                  className="text-xs font-semibold border border-slate-300 rounded-xl px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="all">Semua Rombel ({DEMO_KELAS.length} Kelas)</option>
+                  {DEMO_KELAS.map(k => (
+                    <option key={k.id} value={k.id.toString()}>{k.nama_kelas}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveSplitRules}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Simpan Aturan Mapping</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Tabel Konfigurasi Rule */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-100/75 border-b border-slate-200 text-[11px] font-extrabold uppercase text-slate-700 tracking-wider">
+                    <th className="py-3 px-4 w-12 text-center">No</th>
+                    <th className="py-3 px-4 w-44">Kelas / Rombel Asal</th>
+                    <th className="py-3 px-4 w-44">Rentang No. Urut Siswa</th>
+                    <th className="py-3 px-4 w-32 text-center">Jml Siswa</th>
+                    <th className="py-3 px-4 w-52">
+                      <div className="flex items-center gap-1 text-teal-800">
+                        <span>Input Nomor Ruang Ujian</span>
+                        <span className="text-[10px] text-teal-600 font-normal">(Cukup ketik nomor)</span>
+                      </div>
+                    </th>
+                    <th className="py-3 px-4 w-44">Posisi Duduk di Ruang</th>
+                    <th className="py-3 px-4 w-36 text-center">Nomor Meja Dihasilkan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-xs text-slate-800">
+                  {filteredRules.map((rule, index) => {
+                    const kelas = DEMO_KELAS.find(k => k.id === rule.kelas_id);
+                    const countSiswaInClass = siswaPerKelas[rule.kelas_id]?.length || 0;
+                    const countInChunk = Math.max(0, rule.end_urut - rule.start_urut + 1);
+
+                    const targetRuangObj = ruangList.find(r => r.id === rule.target_ruang_id) || 
+                                           ruangList[0] || 
+                                           DEMO_RUANG[0];
+
+                    const startDesk = rule.posisi === 'kanan' ? 18 : 1;
+                    const endDesk = startDesk + countInChunk - 1;
+
+                    return (
+                      <tr key={rule.id} className="hover:bg-teal-50/30 transition">
+                        <td className="py-3 px-4 text-center text-slate-500 font-bold">{index + 1}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center font-mono">
+                              {kelas?.nama_kelas}
+                            </span>
+                            <div>
+                              <p className="font-extrabold text-slate-900">{kelas?.nama_kelas}</p>
+                              <p className="text-[10px] text-slate-500">Tingkat {kelas?.tingkat} &bull; Total {countSiswaInClass} Siswa</p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Rentang Nomor Urut Siswa */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              value={rule.start_urut}
+                              onChange={(e) => handleUpdateRentang(rule.id, 'start_urut', Number(e.target.value))}
+                              className="w-14 px-2 py-1 text-center bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-teal-500 outline-none"
+                            />
+                            <span className="text-slate-400 font-bold">s/d</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              value={rule.end_urut}
+                              onChange={(e) => handleUpdateRentang(rule.id, 'end_urut', Number(e.target.value))}
+                              className="w-14 px-2 py-1 text-center bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-teal-500 outline-none"
+                            />
+                          </div>
+                        </td>
+
+                        {/* Jumlah Siswa dalam Potongan */}
+                        <td className="py-3 px-4 text-center font-bold text-slate-700">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px]">
+                            {countInChunk} Siswa
+                          </span>
+                        </td>
+
+                        {/* INPUT NOMOR RUANG TUJUAN (CUKUP MASUKKAN NOMOR RUANG SAJA) */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                              <select
+                                value={rule.target_ruang_id}
+                                onChange={(e) => handleUpdateTargetRuang(rule.id, Number(e.target.value))}
+                                className="w-full px-3 py-1.5 bg-teal-50/60 border-2 border-teal-500/70 rounded-xl text-xs font-bold text-teal-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition shadow-sm"
+                              >
+                                {ruangList.map(r => (
+                                  <option key={r.id} value={r.id}>
+                                    {r.kode_ruang} - {r.nama_ruang}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Kotak Angka Nomor Ruang Cepat */}
+                            <input
+                              type="number"
+                              min="1"
+                              max={ruangList.length || 99}
+                              value={rule.target_ruang_id}
+                              onChange={(e) => handleUpdateTargetRuang(rule.id, Number(e.target.value))}
+                              title="Ketik nomor ruang langsung di sini (contoh: 1, 2, 12)"
+                              className="w-14 px-2 py-1.5 text-center bg-white border-2 border-slate-300 focus:border-teal-600 rounded-xl text-xs font-mono font-extrabold text-slate-900 outline-none"
+                            />
+                          </div>
+                        </td>
+
+                        {/* Posisi Duduk: Sisi Kiri vs Sisi Kanan */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg border border-slate-200">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdatePosisi(rule.id, 'kiri')}
+                              className={`flex-1 py-1 px-2 text-[10px] font-bold rounded transition ${
+                                rule.posisi === 'kiri'
+                                  ? 'bg-teal-600 text-white shadow-sm'
+                                  : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                            >
+                              Kiri (1-17)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdatePosisi(rule.id, 'kanan')}
+                              className={`flex-1 py-1 px-2 text-[10px] font-bold rounded transition ${
+                                rule.posisi === 'kanan'
+                                  ? 'bg-indigo-600 text-white shadow-sm'
+                                  : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                            >
+                              Kanan (18-34)
+                            </button>
+                          </div>
+                        </td>
+
+                        {/* Nomor Meja Dihasilkan */}
+                        <td className="py-3 px-4 text-center">
+                          <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100 text-slate-800 font-mono font-bold text-[11px] border border-slate-200">
+                            Meja {startDesk.toString().padStart(2, '0')} - {endDesk.toString().padStart(2, '0')}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* TAB 2: MASTER RUANG UJIAN (CRUD & KAPASITAS)                 */}
+      {/* ============================================================ */}
+      {activeTab === 'master' && (
+        <div className="space-y-6">
+          {/* Action Bar Master Ruang */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-extrabold text-slate-900">Daftar Fisik Ruang Ujian</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Total {ruangList.length} ruang aktif &bull; Daya tampung total {totalKapasitas} kursi ujian.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleOpenAddModal}
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tambah Ruang</span>
+              </button>
+
+              {isSupabaseConfigured && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsSyncing(true);
+                    try {
+                      const res = await pushRuangToCloud(ruangList);
+                      if (res.success) showToast(`Berhasil menyimpan ${res.count} ruang ke cloud Supabase!`);
+                    } finally {
+                      setIsSyncing(false);
+                    }
+                  }}
+                  disabled={isSyncing}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-xl transition disabled:opacity-60"
+                >
+                  <Cloud className={`w-3.5 h-3.5 ${isSyncing ? 'animate-bounce' : ''}`} />
+                  <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkron Supabase'}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-bold rounded-xl transition"
+              >
+                <Printer className="w-3.5 h-3.5 text-slate-500" />
+                <span>Cetak Rekap</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Statistik Ringkas */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center text-teal-700 flex-shrink-0">
+                <Building2 className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500">Total Ruang Ujian</p>
+                <p className="text-2xl font-black text-slate-900 mt-0.5">{ruangList.length}</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 flex-shrink-0">
+                <DoorOpen className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500">Kapasitas Kursi</p>
+                <p className="text-2xl font-black text-slate-900 mt-0.5">{totalKapasitas} <span className="text-xs font-normal text-slate-500">Meja</span></p>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 flex-shrink-0">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500">Total Siswa Terdaftar</p>
+                <p className="text-2xl font-black text-slate-900 mt-0.5">{totalSiswaTerisi} <span className="text-xs font-normal text-slate-500">Siswa</span></p>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 flex-shrink-0">
+                <Cloud className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500">Database Cloud</p>
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 mt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Supabase Terhubung
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabel Master Ruang */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-100/75 border-b border-slate-200 text-[11px] font-extrabold uppercase text-slate-700 tracking-wider">
+                    <th className="py-3 px-4 w-12 text-center">No</th>
+                    <th className="py-3 px-4 w-32">Kode Ruang</th>
+                    <th className="py-3 px-4">Nama Ruang Ujian</th>
+                    <th className="py-3 px-4 w-36 text-center">Kapasitas Kursi</th>
+                    <th className="py-3 px-4 w-40 text-center">Peserta Terisi</th>
+                    <th className="py-3 px-4 w-32 text-center">Status</th>
+                    <th className="no-print py-3 px-4 w-48 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-xs text-slate-800">
+                  {ruangList.map((ruang, index) => {
+                    const siswaInRoom = pesertaListGenerated.filter(p => p.ruang_id === ruang.id).length;
+                    const isFull = siswaInRoom >= (ruang.kapasitas || 36);
+
+                    return (
+                      <tr key={ruang.id} className="hover:bg-teal-50/40 transition">
+                        <td className="py-3 px-4 text-center text-slate-500 font-bold">{index + 1}</td>
+                        <td className="py-3 px-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 font-bold font-mono text-[11px]">
+                            {ruang.kode_ruang}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-slate-900">
+                          {ruang.nama_ruang}
+                        </td>
+                        <td className="py-3 px-4 text-center font-bold text-slate-800">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                            {ruang.kapasitas || 36} Meja
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center font-bold text-slate-900">
+                          {siswaInRoom} / {ruang.kapasitas || 36}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isFull 
+                              ? 'bg-amber-100 text-amber-800 border border-amber-200' 
+                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          }`}>
+                            <CheckCircle2 className="w-3 h-3" />
+                            {isFull ? 'Penuh' : 'Tersedia'}
+                          </span>
+                        </td>
+                        <td className="no-print py-3 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditModal(ruang)}
+                              title="Edit Ruang"
+                              className="p-1.5 text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPreviewRuangId(ruang.id);
+                                setActiveTab('mapping');
+                              }}
+                              title="Lihat Denah Ruang Ini"
+                              className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            >
+                              <LayoutGrid className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirmRuang(ruang)}
+                              title="Hapus Ruang"
+                              className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tambah / Edit Ruang Master */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-scale-up">
@@ -655,7 +1240,6 @@ export default function KelolaRuangPage() {
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
                   required
                 />
-                <p className="text-[10px] text-slate-500">Kode unik ruang ujian yang tertera pada kartu & label meja.</p>
               </div>
 
               <div className="space-y-1.5">
@@ -686,7 +1270,6 @@ export default function KelolaRuangPage() {
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
                   required
                 />
-                <p className="text-[10px] text-slate-500">Maksimum jumlah kursi peserta ujian di ruang ini.</p>
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-200">

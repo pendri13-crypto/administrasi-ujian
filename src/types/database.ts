@@ -82,3 +82,14 @@ export interface NilaiUjian {
   jadwal?: JadwalUjian;
 }
 
+export interface SplitGroupRule {
+  id: string;
+  kelas_id: number;
+  label?: string;
+  start_urut: number;
+  end_urut: number;
+  target_ruang_id: number;
+  posisi: 'kiri' | 'kanan';
+  start_meja?: number;
+}
+

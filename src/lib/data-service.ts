@@ -1,11 +1,39 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { Siswa, NilaiUjian, PesertaUjian, Ruang } from '@/types/database';
+import { Siswa, NilaiUjian, PesertaUjian, Ruang, SplitGroupRule } from '@/types/database';
 import { SchoolSettings, getStoredSchoolSettings, saveStoredSchoolSettings } from './school-settings';
 import { DEMO_KELAS, DEMO_RUANG } from './demo-data';
 
 const SISWA_STORAGE_KEY = 'adm_siswa_data';
 const NILAI_STORAGE_KEY = 'adm_nilai_data';
 const RUANG_STORAGE_KEY = 'adm_ruang_data';
+const SPLIT_RULES_STORAGE_KEY = 'adm_split_rules';
+
+/**
+ * Mengambil aturan split & mapping ruang siswa dari localStorage
+ */
+export function getStoredSplitRules(): SplitGroupRule[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(SPLIT_RULES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error('Error reading split rules from localStorage:', e);
+  }
+  return [];
+}
+
+/**
+ * Menyimpan aturan split & mapping ruang siswa ke localStorage
+ */
+export function saveStoredSplitRules(rules: SplitGroupRule[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SPLIT_RULES_STORAGE_KEY, JSON.stringify(rules));
+  window.dispatchEvent(new Event('split-rules-updated'));
+  window.dispatchEvent(new Event('storage'));
+}
 
 /**
  * Mengambil data ruang dari localStorage atau default ke DEMO_RUANG
@@ -252,6 +280,7 @@ export function exportBackupJSON(): void {
     const siswaRaw = localStorage.getItem(SISWA_STORAGE_KEY);
     const nilaiRaw = localStorage.getItem(NILAI_STORAGE_KEY);
     const ruangRaw = localStorage.getItem(RUANG_STORAGE_KEY);
+    const splitRulesRaw = localStorage.getItem(SPLIT_RULES_STORAGE_KEY);
     const settings = getStoredSchoolSettings();
 
     const backupData = {
@@ -262,6 +291,7 @@ export function exportBackupJSON(): void {
       siswa: siswaRaw ? JSON.parse(siswaRaw) : [],
       nilai: nilaiRaw ? JSON.parse(nilaiRaw) : [],
       ruang: ruangRaw ? JSON.parse(ruangRaw) : [],
+      splitRules: splitRulesRaw ? JSON.parse(splitRulesRaw) : [],
     };
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -310,6 +340,11 @@ export function restoreBackupJSON(file: File): Promise<{ success: boolean; messa
         if (Array.isArray(data.ruang)) {
           localStorage.setItem(RUANG_STORAGE_KEY, JSON.stringify(data.ruang));
           window.dispatchEvent(new Event('ruang-data-updated'));
+        }
+
+        if (Array.isArray(data.splitRules)) {
+          localStorage.setItem(SPLIT_RULES_STORAGE_KEY, JSON.stringify(data.splitRules));
+          window.dispatchEvent(new Event('split-rules-updated'));
         }
 
         if (data.schoolSettings) {

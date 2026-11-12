@@ -1,4 +1,15 @@
-import { TahunAjaran, Kelas, Siswa, Mapel, Ruang, Ujian, JadwalUjian, PesertaUjian, NilaiUjian } from '@/types/database';
+import { TahunAjaran, Kelas, Siswa, Mapel, Ruang, Ujian, JadwalUjian, PesertaUjian, NilaiUjian, SplitGroupRule } from '@/types/database';
+
+function getLocalSplitRules(): SplitGroupRule[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('adm_split_rules');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Error reading local split rules:', e);
+  }
+  return [];
+}
 
 export const DEMO_TAHUN_AJARAN: TahunAjaran[] = [
   { id: 1, nama: '2026/2027', semester: 'Ganjil', status_aktif: true }
@@ -92,10 +103,15 @@ export const DEMO_JADWAL: JadwalUjian[] = DEMO_MAPEL.map((mapel, idx) => ({
   mapel: mapel,
 }));
 
-export function generatePesertaFromSiswa(siswaList: Siswa[], customRuangList?: Ruang[]): PesertaUjian[] {
+export function generatePesertaFromSiswa(
+  siswaList: Siswa[], 
+  customRuangList?: Ruang[],
+  customRules?: SplitGroupRule[]
+): PesertaUjian[] {
   if (!siswaList || siswaList.length === 0) return [];
 
   const activeRuang = customRuangList && customRuangList.length > 0 ? customRuangList : DEMO_RUANG;
+  const activeRules = customRules !== undefined ? customRules : getLocalSplitRules();
 
   // Urutkan siswa per kelas dan A-Z berdasarkan Nama Lengkap siswa
   const sortedSiswa = [...siswaList].sort((a, b) => {
@@ -105,13 +121,42 @@ export function generatePesertaFromSiswa(siswaList: Siswa[], customRuangList?: R
     return (a.nama_lengkap || '').localeCompare(b.nama_lengkap || '', 'id', { sensitivity: 'base' });
   });
 
-  const deskCount: Record<number, number> = {};
+  const classOrderCount: Record<number, number> = {};
+
   return sortedSiswa.map((siswa, idx) => {
     const kId = siswa.kelas_id || 1;
-    deskCount[kId] = (deskCount[kId] || 0) + 1;
-    const noMeja = deskCount[kId];
-    const ruang = activeRuang.find(r => r.id === kId) || activeRuang[0] || DEMO_RUANG[0];
-    const noPeserta = '01-' + kId.toString().padStart(2, '0') + '-' + noMeja.toString().padStart(3, '0');
+    classOrderCount[kId] = (classOrderCount[kId] || 0) + 1;
+    const noUrut = classOrderCount[kId];
+
+    // Cek apakah ada aturan split & mapping ruang untuk rombel dan nomor urut siswa ini
+    let targetRuangId = kId;
+    let noMeja = noUrut;
+
+    if (activeRules && activeRules.length > 0) {
+      const match = activeRules.find(
+        (r) => r.kelas_id === kId && noUrut >= r.start_urut && noUrut <= r.end_urut
+      );
+      if (match) {
+        targetRuangId = match.target_ruang_id;
+        if (match.start_meja !== undefined && match.start_meja !== null && match.start_meja > 0) {
+          noMeja = match.start_meja + (noUrut - match.start_urut);
+        } else if (match.posisi === 'kanan') {
+          // Kursi sebelah kanan default mulai meja 18
+          noMeja = 18 + (noUrut - match.start_urut);
+        } else {
+          // Kursi sebelah kiri default mulai meja 1
+          noMeja = 1 + (noUrut - match.start_urut);
+        }
+      }
+    }
+
+    const ruang = activeRuang.find((r) => r.id === targetRuangId) || 
+                  activeRuang.find((r) => r.id === kId) || 
+                  activeRuang[0] || 
+                  DEMO_RUANG[0];
+
+    const noPeserta = '01-' + targetRuangId.toString().padStart(2, '0') + '-' + noMeja.toString().padStart(3, '0');
+
     return {
       id: siswa.id || (idx + 1),
       ujian_id: 1,
