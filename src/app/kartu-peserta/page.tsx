@@ -182,17 +182,17 @@ export default function KartuPesertaPage() {
                 return (
                   <div
                     key={peserta.id}
-                    className="card-item bg-white border-2 border-slate-800 rounded-lg p-3 sm:p-3.5 shadow-sm flex flex-col justify-between"
+                    className="card-item bg-white border-2 border-slate-800 rounded-lg p-3 shadow-sm flex flex-col justify-between"
                     style={{
-                      height: layoutMode === '4' ? '133mm' : '136mm',
-                      maxHeight: layoutMode === '4' ? '133mm' : '136mm',
+                      height: layoutMode === '4' ? '112mm' : '118mm',
+                      maxHeight: layoutMode === '4' ? '114mm' : '120mm',
                     }}
                   >
               {/* Kop Kartu Peserta Resmi */}
-              <div className="border-b-4 border-double border-slate-900 pb-2 mb-3">
+              <div className="border-b-4 border-double border-slate-900 pb-1.5 mb-2">
                 <div className="flex items-center justify-between gap-2 sm:gap-4 px-1">
                   {/* Logo Kiri: Pemda Kab. Tasikmalaya */}
-                  <div className="w-[72px] h-[82px] flex-shrink-0 flex items-center justify-center">
+                  <div className="w-[64px] h-[74px] flex-shrink-0 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl || '/images/logo-tasikmalaya.png'}
@@ -203,22 +203,22 @@ export default function KartuPesertaPage() {
 
                   {/* Teks Kop Tengah */}
                   <div className="flex-1 text-center leading-snug px-1">
-                    <h3 className="text-[14px] sm:text-[15px] font-black tracking-tight text-slate-950 uppercase">
+                    <h3 className="text-[13px] sm:text-[14px] font-black tracking-tight text-slate-950 uppercase">
                       KARTU PESERTA
                     </h3>
-                    <h4 className="text-[13px] sm:text-[14px] font-black text-slate-900 uppercase">
+                    <h4 className="text-[12px] sm:text-[13px] font-black text-slate-900 uppercase">
                       {schoolSettings.namaUjian}
                     </h4>
-                    <p className="text-[12px] sm:text-[13px] font-black text-slate-900 uppercase">
+                    <p className="text-[11px] sm:text-[12px] font-black text-slate-900 uppercase">
                       {schoolSettings.namaSekolah}
                     </p>
-                    <p className="text-[11px] sm:text-[12px] font-extrabold text-slate-800 uppercase tracking-wide">
+                    <p className="text-[10px] sm:text-[11px] font-extrabold text-slate-800 uppercase tracking-wide">
                       TAHUN PELAJARAN {schoolSettings.tahunAjaran}
                     </p>
                   </div>
 
                   {/* Logo Kanan: SMPN 1 Rajapolah */}
-                  <div className="w-[72px] h-[82px] flex-shrink-0 flex items-center justify-center">
+                  <div className="w-[64px] h-[74px] flex-shrink-0 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'}
@@ -230,7 +230,7 @@ export default function KartuPesertaPage() {
               </div>
 
               {/* Konten Utama: Foto & Biodata */}
-              <div className="flex gap-4 items-start flex-1 my-1">
+              <div className="flex gap-3.5 items-start my-1">
                 {/* Pas Foto Siswa 3x4 */}
                 <div className="w-[30mm] h-[40mm] border-2 border-slate-400 rounded bg-slate-50 flex-shrink-0 overflow-hidden flex flex-col items-center justify-center relative shadow-inner">
                   {siswa?.foto_url ? (
@@ -310,7 +310,7 @@ export default function KartuPesertaPage() {
               </div>
 
               {/* Footer Kartu & Tanda Tangan */}
-              <div className="border-t-2 border-slate-800 pt-2 mt-2 flex items-end justify-between text-[9px]">
+              <div className="border-t-2 border-slate-800 pt-1.5 mt-1.5 flex items-end justify-between text-[9px]">
                 <div className="text-slate-600 space-y-0.5">
                   <div className="flex items-center gap-1.5">
                     <QrCode className="w-8 h-8 text-slate-800" />

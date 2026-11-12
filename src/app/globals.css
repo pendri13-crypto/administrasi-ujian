@@ -54,6 +54,9 @@ body {
     margin: 0 !important;
     padding: 0 !important;
     display: grid !important;
+    align-content: start !important;
+    row-gap: 6mm !important;
+    column-gap: 5mm !important;
   }
 
   /* Mencegah lembar kosong di akhir halaman cetak */
