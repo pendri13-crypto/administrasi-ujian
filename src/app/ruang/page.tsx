@@ -134,7 +134,16 @@ export default function KelolaRuangPage() {
       const savedSiswa = localStorage.getItem('adm_siswa_data');
       if (savedSiswa) {
         const parsed: Siswa[] = JSON.parse(savedSiswa);
-        if (Array.isArray(parsed)) setSiswaList(parsed);
+        if (Array.isArray(parsed)) {
+          const enriched = parsed.map(s => {
+            if (!s.kelas && s.kelas_id) {
+              const k = DEMO_KELAS.find(c => c.id === Number(s.kelas_id));
+              if (k) return { ...s, kelas: k };
+            }
+            return s;
+          });
+          setSiswaList(enriched);
+        }
       } else if (isSupabaseConfigured) {
         fetchSiswaFromCloud().then(data => {
           if (data) setSiswaList(data);
@@ -387,6 +396,21 @@ export default function KelolaRuangPage() {
     showToast('Aturan direset ke standar (1 kelas = 1 ruang).');
   };
 
+  // Helper: Mendapatkan Nama Kelas Siswa secara aman (fallback dari kelas_id / DEMO_KELAS)
+  const getNamaKelas = (p?: PesertaUjian | null): string => {
+    if (!p || !p.siswa) return '-';
+    if (p.siswa.kelas?.nama_kelas) return p.siswa.kelas.nama_kelas;
+    if ((p.siswa as any).nama_kelas) return (p.siswa as any).nama_kelas;
+    if ((p.siswa as any).kelas_nama) return (p.siswa as any).kelas_nama;
+    const kId = Number(p.siswa.kelas_id);
+    if (kId) {
+      const k = DEMO_KELAS.find(c => c.id === kId);
+      if (k) return k.nama_kelas;
+      return `Kelas ${kId}`;
+    }
+    return '-';
+  };
+
   // Helper: Membuat Worksheet Denah Meja Siswa (Sisi Kiri & Sisi Kanan Bersebelahan sesuai Posisi Duduk di Kelas)
   const buildDenahWorksheet = (ruang: Ruang, participants: PesertaUjian[]) => {
     const kiri = participants
@@ -397,8 +421,8 @@ export default function KelolaRuangPage() {
       .filter(p => (p.no_meja || 0) >= 18)
       .sort((a, b) => (a.no_meja || 0) - (b.no_meja || 0));
 
-    const kelasKiri = Array.from(new Set(kiri.map(p => p.siswa?.kelas?.nama_kelas).filter(Boolean))).join(', ') || '-';
-    const kelasKanan = Array.from(new Set(kanan.map(p => p.siswa?.kelas?.nama_kelas).filter(Boolean))).join(', ') || '-';
+    const kelasKiri = Array.from(new Set(kiri.map(p => getNamaKelas(p)).filter(k => k && k !== '-'))).join(', ') || '-';
+    const kelasKanan = Array.from(new Set(kanan.map(p => getNamaKelas(p)).filter(k => k && k !== '-'))).join(', ') || '-';
 
     const cleanNamaSekolah = (schoolSettings.namaSekolah || 'SMP NEGERI 1 RAJAPOLAH').toUpperCase();
     const cleanUjian = (schoolSettings.namaUjian || 'SUMATIF AKHIR SEMESTER (SAS)').toUpperCase();
@@ -430,13 +454,13 @@ export default function KelolaRuangPage() {
         pKiri?.no_peserta || (pKiri ? '-' : '(Kosong)'),
         pKiri?.siswa?.nisn || '',
         pKiri?.siswa?.nama_lengkap || (pKiri ? '-' : '-'),
-        pKiri?.siswa?.kelas?.nama_kelas || '',
+        pKiri ? getNamaKelas(pKiri) : '',
         '',
         pKanan ? String(pKanan.no_meja || defMejaKanan).padStart(2, '0') : String(defMejaKanan).padStart(2, '0'),
         pKanan?.no_peserta || (pKanan ? '-' : '(Kosong)'),
         pKanan?.siswa?.nisn || '',
         pKanan?.siswa?.nama_lengkap || (pKanan ? '-' : '-'),
-        pKanan?.siswa?.kelas?.nama_kelas || ''
+        pKanan ? getNamaKelas(pKanan) : ''
       ]);
     }
 
@@ -539,8 +563,8 @@ export default function KelolaRuangPage() {
       const kiri = siswaInRoom.filter(p => (p.no_meja || 0) <= 17);
       const kanan = siswaInRoom.filter(p => (p.no_meja || 0) >= 18);
       
-      const kelasKiri = Array.from(new Set(kiri.map(p => p.siswa?.kelas?.nama_kelas).filter(Boolean))).join(', ') || '-';
-      const kelasKanan = Array.from(new Set(kanan.map(p => p.siswa?.kelas?.nama_kelas).filter(Boolean))).join(', ') || '-';
+      const kelasKiri = Array.from(new Set(kiri.map(p => getNamaKelas(p)).filter(k => k && k !== '-'))).join(', ') || '-';
+      const kelasKanan = Array.from(new Set(kanan.map(p => getNamaKelas(p)).filter(k => k && k !== '-'))).join(', ') || '-';
 
       return {
         'No': rIdx + 1,
@@ -927,7 +951,7 @@ export default function KelolaRuangPage() {
                         </h4>
                         <p className="text-[11px] text-teal-700 font-semibold">
                           {kursiKiriPeserta.length > 0 
-                            ? `Terisi: ${kursiKiriPeserta.length} Siswa (${kursiKiriPeserta[0]?.siswa?.kelas?.nama_kelas || 'Kelas'})`
+                            ? `Terisi: ${kursiKiriPeserta.length} Siswa (${getNamaKelas(kursiKiriPeserta[0])})`
                             : 'Belum ada siswa yang dimapping ke sisi kiri'}
                         </p>
                       </div>
@@ -956,7 +980,7 @@ export default function KelolaRuangPage() {
                             </div>
                           </div>
                           <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
-                            {p.siswa?.kelas?.nama_kelas}
+                            {getNamaKelas(p)}
                           </span>
                         </div>
                       ))
@@ -977,7 +1001,7 @@ export default function KelolaRuangPage() {
                         </h4>
                         <p className="text-[11px] text-indigo-700 font-semibold">
                           {kursiKananPeserta.length > 0 
-                            ? `Terisi: ${kursiKananPeserta.length} Siswa (${kursiKananPeserta[0]?.siswa?.kelas?.nama_kelas || 'Kelas'})`
+                            ? `Terisi: ${kursiKananPeserta.length} Siswa (${getNamaKelas(kursiKananPeserta[0])})`
                             : 'Belum ada siswa yang dimapping ke sisi kanan'}
                         </p>
                       </div>
@@ -1006,7 +1030,7 @@ export default function KelolaRuangPage() {
                             </div>
                           </div>
                           <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
-                            {p.siswa?.kelas?.nama_kelas}
+                            {getNamaKelas(p)}
                           </span>
                         </div>
                       ))

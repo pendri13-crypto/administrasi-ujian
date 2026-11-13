@@ -157,6 +157,12 @@ export function generatePesertaFromSiswa(
 
     const noPeserta = '01-' + targetRuangId.toString().padStart(2, '0') + '-' + noMeja.toString().padStart(3, '0');
 
+    const kelasObj = siswa.kelas || DEMO_KELAS.find(k => k.id === kId) || { id: kId, nama_kelas: `Kelas ${kId}`, tingkat: '7' };
+    const enrichedSiswa: Siswa = {
+      ...siswa,
+      kelas: kelasObj
+    };
+
     return {
       id: siswa.id || (idx + 1),
       ujian_id: 1,
@@ -165,7 +171,7 @@ export function generatePesertaFromSiswa(
       ruang_id: ruang.id,
       no_meja: noMeja,
       sesi: 1,
-      siswa: siswa,
+      siswa: enrichedSiswa,
       ruang: ruang,
       ujian: DEMO_UJIAN[0]
     };
