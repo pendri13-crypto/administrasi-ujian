@@ -387,7 +387,117 @@ export default function KelolaRuangPage() {
     showToast('Aturan direset ke standar (1 kelas = 1 ruang).');
   };
 
-  // Unduh Berkas Excel Hasil Mapping Siswa Khusus Ruang Ini
+  // Helper: Membuat Worksheet Denah Meja Siswa (Sisi Kiri & Sisi Kanan Bersebelahan sesuai Posisi Duduk di Kelas)
+  const buildDenahWorksheet = (ruang: Ruang, participants: PesertaUjian[]) => {
+    const kiri = participants
+      .filter(p => (p.no_meja || 0) <= 17)
+      .sort((a, b) => (a.no_meja || 0) - (b.no_meja || 0));
+
+    const kanan = participants
+      .filter(p => (p.no_meja || 0) >= 18)
+      .sort((a, b) => (a.no_meja || 0) - (b.no_meja || 0));
+
+    const kelasKiri = Array.from(new Set(kiri.map(p => p.siswa?.kelas?.nama_kelas).filter(Boolean))).join(', ') || '-';
+    const kelasKanan = Array.from(new Set(kanan.map(p => p.siswa?.kelas?.nama_kelas).filter(Boolean))).join(', ') || '-';
+
+    const cleanNamaSekolah = (schoolSettings.namaSekolah || 'SMP NEGERI 1 RAJAPOLAH').toUpperCase();
+    const cleanUjian = (schoolSettings.namaUjian || 'SUMATIF AKHIR SEMESTER (SAS)').toUpperCase();
+    const cleanTahun = schoolSettings.tahunAjaran || '2025/2026';
+    const cleanSemester = (schoolSettings.semester || 'GANJIL').toUpperCase();
+
+    const aoa: any[][] = [
+      ['DENAH TEMPAT DUDUK & DAFTAR PESERTA RUANG UJIAN'],
+      [`${cleanNamaSekolah} • ${cleanUjian}`],
+      [`TAHUN PELAJARAN ${cleanTahun} • SEMESTER ${cleanSemester}`],
+      [],
+      [`RUANG UJIAN: ${ruang.nama_ruang || 'Ruang 01'} (${ruang.kode_ruang || 'R-01'})`, '', '', '', '', '', `KAPASITAS: ${ruang.kapasitas || 34} KURSI • TERISI: ${participants.length} SISWA`],
+      [],
+      ['[ PAPAN TULIS & MEJA PENGAWAS UJIAN (DEPAN KELAS) ]'],
+      [],
+      [`SISI KIRI (MEJA 01 S/D 17) - Terisi: ${kiri.length} Siswa (${kelasKiri})`, '', '', '', '', '', `SISI KANAN (MEJA 18 S/D 34) - Terisi: ${kanan.length} Siswa (${kelasKanan})`],
+      ['No. Meja', 'No. Peserta', 'NISN', 'Nama Lengkap Siswa', 'Kelas', '', 'No. Meja', 'No. Peserta', 'NISN', 'Nama Lengkap Siswa', 'Kelas']
+    ];
+
+    const maxRows = Math.max(kiri.length, kanan.length, 17);
+    for (let i = 0; i < maxRows; i++) {
+      const pKiri = kiri[i];
+      const pKanan = kanan[i];
+      const defMejaKiri = i + 1;
+      const defMejaKanan = 18 + i;
+
+      aoa.push([
+        pKiri ? String(pKiri.no_meja || defMejaKiri).padStart(2, '0') : String(defMejaKiri).padStart(2, '0'),
+        pKiri?.no_peserta || (pKiri ? '-' : '(Kosong)'),
+        pKiri?.siswa?.nisn || '',
+        pKiri?.siswa?.nama_lengkap || (pKiri ? '-' : '-'),
+        pKiri?.siswa?.kelas?.nama_kelas || '',
+        '',
+        pKanan ? String(pKanan.no_meja || defMejaKanan).padStart(2, '0') : String(defMejaKanan).padStart(2, '0'),
+        pKanan?.no_peserta || (pKanan ? '-' : '(Kosong)'),
+        pKanan?.siswa?.nisn || '',
+        pKanan?.siswa?.nama_lengkap || (pKanan ? '-' : '-'),
+        pKanan?.siswa?.kelas?.nama_kelas || ''
+      ]);
+    }
+
+    aoa.push([]);
+    aoa.push([
+      `Total Sisi Kiri: ${kiri.length} Siswa`, '', '', '', '', '',
+      `Total Sisi Kanan: ${kanan.length} Siswa`, '', '', '', ''
+    ]);
+    aoa.push([]);
+
+    const ttdKota = schoolSettings.kotaTtd || 'Rajapolah';
+    const ttdTgl = schoolSettings.tanggalTtd || '30 November 2026';
+    const ttdJabatan = schoolSettings.jabatanKepsek || 'Kepala SMPN 1 Rajapolah,';
+    const ttdNama = schoolSettings.namaKepsek || 'H. UCU KARNI, M.Pd.';
+    const ttdNip = schoolSettings.nipKepsek || '19671116 199203 1 005';
+
+    aoa.push(['', '', '', '', '', '', `${ttdKota}, ${ttdTgl}`]);
+    aoa.push(['', '', '', '', '', '', ttdJabatan]);
+    aoa.push([]);
+    aoa.push([]);
+    aoa.push([]);
+    aoa.push(['', '', '', '', '', '', ttdNama]);
+    aoa.push(['', '', '', '', '', '', `NIP. ${ttdNip}`]);
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }, // Judul Denah
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } }, // Sekolah & Ujian
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 10 } }, // TP & Semester
+      { s: { r: 4, c: 0 }, e: { r: 4, c: 4 } },  // Ruang Ujian
+      { s: { r: 4, c: 6 }, e: { r: 4, c: 10 } }, // Kapasitas
+      { s: { r: 6, c: 0 }, e: { r: 6, c: 10 } }, // Papan Tulis
+      { s: { r: 8, c: 0 }, e: { r: 8, c: 4 } },  // Header Sisi Kiri
+      { s: { r: 8, c: 6 }, e: { r: 8, c: 10 } }, // Header Sisi Kanan
+      { s: { r: aoa.length - 8, c: 0 }, e: { r: aoa.length - 8, c: 4 } }, // Total Kiri
+      { s: { r: aoa.length - 8, c: 6 }, e: { r: aoa.length - 8, c: 10 } }, // Total Kanan
+      { s: { r: aoa.length - 6, c: 6 }, e: { r: aoa.length - 6, c: 10 } }, // Titimangsa
+      { s: { r: aoa.length - 5, c: 6 }, e: { r: aoa.length - 5, c: 10 } }, // Jabatan Kepsek
+      { s: { r: aoa.length - 2, c: 6 }, e: { r: aoa.length - 2, c: 10 } }, // Nama Kepsek
+      { s: { r: aoa.length - 1, c: 6 }, e: { r: aoa.length - 1, c: 10 } }, // NIP
+    ];
+
+    ws['!cols'] = [
+      { wch: 10 }, // No. Meja (Kiri)
+      { wch: 14 }, // No. Peserta
+      { wch: 14 }, // NISN
+      { wch: 32 }, // Nama Lengkap Siswa
+      { wch: 10 }, // Kelas Asal
+      { wch: 4 },  // Spacer
+      { wch: 10 }, // No. Meja (Kanan)
+      { wch: 14 }, // No. Peserta
+      { wch: 14 }, // NISN
+      { wch: 32 }, // Nama Lengkap Siswa
+      { wch: 10 }  // Kelas Asal
+    ];
+
+    return ws;
+  };
+
+  // Unduh Berkas Excel Hasil Denah & Posisi Siswa (Sisi Kiri & Kanan) Khusus Ruang Ini
   const handleExportExcelPreviewRuang = () => {
     if (pesertaInPreviewRuang.length === 0) {
       alert('Tidak ada data peserta di ruang yang dipilih untuk diekspor ke Excel.');
@@ -395,58 +505,28 @@ export default function KelolaRuangPage() {
     }
 
     const currentRuang = ruangList.find(r => r.id === selectedPreviewRuangId) || DEMO_RUANG[0];
-
-    const excelData = pesertaInPreviewRuang.map((p, idx) => {
-      const isKiri = (p.no_meja || 0) <= 17;
-      return {
-        'No': idx + 1,
-        'Ruang Ujian': currentRuang.nama_ruang || `Ruang ${currentRuang.id}`,
-        'Kode Ruang': currentRuang.kode_ruang,
-        'Posisi Lajur': isKiri ? 'Kursi Kiri (Meja 1-17)' : 'Kursi Kanan (Meja 18-34)',
-        'No. Meja': p.no_meja || '-',
-        'No. Peserta': p.no_peserta || '-',
-        'NISN': String(p.siswa?.nisn || ''),
-        'NIS': String(p.siswa?.nis || '-'),
-        'Nama Lengkap Siswa': p.siswa?.nama_lengkap || '',
-        'L/P': p.siswa?.jenis_kelamin || 'L',
-        'Kelas Asal': p.siswa?.kelas?.nama_kelas || '-',
-        'Sesi': `Sesi ${p.sesi || 1}`
-      };
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
-    worksheet['!cols'] = [
-      { wch: 6 },
-      { wch: 28 },
-      { wch: 14 },
-      { wch: 26 },
-      { wch: 10 },
-      { wch: 16 },
-      { wch: 16 },
-      { wch: 14 },
-      { wch: 34 },
-      { wch: 6 },
-      { wch: 14 },
-      { wch: 10 }
-    ];
+    const ws = buildDenahWorksheet(currentRuang, pesertaInPreviewRuang);
 
     const workbook = XLSX.utils.book_new();
-    const sheetName = (currentRuang.kode_ruang || 'Ruang').replace(/[^a-zA-Z0-9]/g, '_');
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    const sheetName = (currentRuang.kode_ruang || 'Denah_Ruang').replace(/[^a-zA-Z0-9]/g, '_');
+    XLSX.utils.book_append_sheet(workbook, ws, sheetName);
 
-    const filename = `Mapping_Siswa_${currentRuang.kode_ruang}_${schoolSettings.namaSekolah.replace(/\s+/g, '_')}.xlsx`;
+    const cleanSekolah = schoolSettings.namaSekolah ? schoolSettings.namaSekolah.replace(/[^a-zA-Z0-9]/g, '_') : 'SMPN1_Rajapolah';
+    const filename = `Denah_Meja_${currentRuang.kode_ruang}_${cleanSekolah}.xlsx`;
     XLSX.writeFile(workbook, filename);
-    showToast(`Sukses! Berkas Excel mapping untuk ${currentRuang.nama_ruang} berhasil diunduh.`);
+    showToast(`Sukses! Berkas Excel format denah siswa (Kiri & Kanan) untuk ${currentRuang.nama_ruang} berhasil diunduh.`);
   };
 
-  // Unduh Berkas Excel Hasil Mapping Siswa Seluruh Ruang (Ruang 1 s.d 33)
+  // Unduh Berkas Excel Denah Siswa Seluruh Ruang Ujian (Multi-sheet Denah Sisi Kiri & Kanan)
   const handleExportExcelAllRuang = () => {
     if (pesertaListGenerated.length === 0) {
       alert('Belum ada data peserta untuk diekspor. Pastikan data siswa sudah tersedia.');
       return;
     }
 
-    // Urutkan siswa berdasarkan Ruang ID ascending, kemudian No Meja ascending
+    const workbook = XLSX.utils.book_new();
+
+    // Sheet 1: Ringkasan Rekapitulasi Seluruh Ruang Ujian
     const sortedAll = [...pesertaListGenerated].sort((a, b) => {
       if ((a.ruang_id || 0) !== (b.ruang_id || 0)) {
         return (a.ruang_id || 0) - (b.ruang_id || 0);
@@ -454,27 +534,6 @@ export default function KelolaRuangPage() {
       return (a.no_meja || 0) - (b.no_meja || 0);
     });
 
-    // Sheet 1: Data Lengkap Semua Siswa
-    const excelRowsAll = sortedAll.map((p, idx) => {
-      const rObj = ruangList.find(r => r.id === p.ruang_id) || DEMO_RUANG.find(r => r.id === p.ruang_id);
-      const isKiri = (p.no_meja || 0) <= 17;
-      return {
-        'No': idx + 1,
-        'Kode Ruang': rObj?.kode_ruang || `R-${p.ruang_id}`,
-        'Nama Ruang Ujian': rObj?.nama_ruang || `Ruang ${p.ruang_id}`,
-        'Posisi Lajur': isKiri ? 'Kursi Kiri (Meja 1-17)' : 'Kursi Kanan (Meja 18-34)',
-        'No. Meja': p.no_meja || '-',
-        'No. Peserta': p.no_peserta || '-',
-        'NISN': String(p.siswa?.nisn || ''),
-        'NIS': String(p.siswa?.nis || '-'),
-        'Nama Lengkap Siswa': p.siswa?.nama_lengkap || '',
-        'L/P': p.siswa?.jenis_kelamin || 'L',
-        'Kelas Asal': p.siswa?.kelas?.nama_kelas || '-',
-        'Sesi': `Sesi ${p.sesi || 1}`
-      };
-    });
-
-    // Sheet 2: Ringkasan Rekapitulasi Per Ruang Ujian
     const rekapRuang = ruangList.map((r, rIdx) => {
       const siswaInRoom = sortedAll.filter(p => p.ruang_id === r.id);
       const kiri = siswaInRoom.filter(p => (p.no_meja || 0) <= 17);
@@ -487,47 +546,26 @@ export default function KelolaRuangPage() {
         'No': rIdx + 1,
         'Kode Ruang': r.kode_ruang,
         'Nama Ruang': r.nama_ruang,
-        'Kapasitas': r.kapasitas || 36,
-        'Kelas Lajur Kiri': kelasKiri,
+        'Kapasitas': r.kapasitas || 34,
+        'Kelas Sisi Kiri (Meja 1-17)': kelasKiri,
         'Jml Siswa Kiri': kiri.length,
-        'Kelas Lajur Kanan': kelasKanan,
+        'Kelas Sisi Kanan (Meja 18-34)': kelasKanan,
         'Jml Siswa Kanan': kanan.length,
         'Total Siswa Terisi': siswaInRoom.length,
-        'Sisa Meja Kosong': Math.max(0, (r.kapasitas || 36) - siswaInRoom.length),
-        'Status': siswaInRoom.length >= (r.kapasitas || 36) ? 'Penuh' : siswaInRoom.length > 0 ? 'Terisi' : 'Kosong'
+        'Sisa Meja Kosong': Math.max(0, (r.kapasitas || 34) - siswaInRoom.length),
+        'Status': siswaInRoom.length >= (r.kapasitas || 34) ? 'Penuh' : siswaInRoom.length > 0 ? 'Terisi' : 'Kosong'
       };
     });
 
-    const workbook = XLSX.utils.book_new();
-
-    // Append Sheet 1
-    const wsAll = XLSX.utils.json_to_sheet(excelRowsAll);
-    wsAll['!cols'] = [
-      { wch: 6 },
-      { wch: 14 },
-      { wch: 28 },
-      { wch: 26 },
-      { wch: 10 },
-      { wch: 16 },
-      { wch: 16 },
-      { wch: 14 },
-      { wch: 34 },
-      { wch: 6 },
-      { wch: 14 },
-      { wch: 10 }
-    ];
-    XLSX.utils.book_append_sheet(workbook, wsAll, 'Mapping Siswa Semua Ruang');
-
-    // Append Sheet 2
     const wsRekap = XLSX.utils.json_to_sheet(rekapRuang);
     wsRekap['!cols'] = [
       { wch: 6 },
       { wch: 14 },
       { wch: 28 },
       { wch: 12 },
-      { wch: 22 },
+      { wch: 26 },
       { wch: 16 },
-      { wch: 22 },
+      { wch: 26 },
       { wch: 16 },
       { wch: 18 },
       { wch: 18 },
@@ -535,10 +573,20 @@ export default function KelolaRuangPage() {
     ];
     XLSX.utils.book_append_sheet(workbook, wsRekap, 'Rekapitulasi Ruang');
 
+    // Sheet 2 dst: Denah Meja Format Siswa Kiri & Kanan untuk Setiap Ruang
+    ruangList.forEach(ruang => {
+      const siswaInRoom = sortedAll.filter(p => p.ruang_id === ruang.id);
+      if (siswaInRoom.length > 0) {
+        const wsRoom = buildDenahWorksheet(ruang, siswaInRoom);
+        const sheetName = (ruang.kode_ruang || `R-${ruang.id}`).slice(0, 31).replace(/[^a-zA-Z0-9]/g, '_');
+        XLSX.utils.book_append_sheet(workbook, wsRoom, sheetName);
+      }
+    });
+
     const cleanSekolah = schoolSettings.namaSekolah ? schoolSettings.namaSekolah.replace(/[^a-zA-Z0-9]/g, '_') : 'SMPN1_Rajapolah';
-    const filename = `Rekap_Hasil_Mapping_Ruang_${cleanSekolah}.xlsx`;
+    const filename = `Denah_Meja_Lengkap_Semua_Ruang_${cleanSekolah}.xlsx`;
     XLSX.writeFile(workbook, filename);
-    showToast(`Sukses! Berkas Excel Rekap Mapping seluruh ruang berhasil diunduh.`);
+    showToast(`Sukses! Berkas Excel format denah posisi duduk seluruh ruang berhasil diunduh.`);
   };
 
   // Handler Buka Modal Tambah Master Ruang
