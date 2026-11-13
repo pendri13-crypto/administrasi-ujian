@@ -30,8 +30,11 @@ import {
   Table,
   Check,
   Tag,
-  CreditCard
+  CreditCard,
+  FileSpreadsheet,
+  Download
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { Ruang, Siswa, Kelas, SplitGroupRule, PesertaUjian } from '@/types/database';
 import { DEMO_KELAS, DEMO_RUANG, generatePesertaFromSiswa } from '@/lib/demo-data';
 import { 
@@ -384,6 +387,160 @@ export default function KelolaRuangPage() {
     showToast('Aturan direset ke standar (1 kelas = 1 ruang).');
   };
 
+  // Unduh Berkas Excel Hasil Mapping Siswa Khusus Ruang Ini
+  const handleExportExcelPreviewRuang = () => {
+    if (pesertaInPreviewRuang.length === 0) {
+      alert('Tidak ada data peserta di ruang yang dipilih untuk diekspor ke Excel.');
+      return;
+    }
+
+    const currentRuang = ruangList.find(r => r.id === selectedPreviewRuangId) || DEMO_RUANG[0];
+
+    const excelData = pesertaInPreviewRuang.map((p, idx) => {
+      const isKiri = (p.no_meja || 0) <= 17;
+      return {
+        'No': idx + 1,
+        'Ruang Ujian': currentRuang.nama_ruang || `Ruang ${currentRuang.id}`,
+        'Kode Ruang': currentRuang.kode_ruang,
+        'Posisi Lajur': isKiri ? 'Kursi Kiri (Meja 1-17)' : 'Kursi Kanan (Meja 18-34)',
+        'No. Meja': p.no_meja || '-',
+        'No. Peserta': p.no_peserta || '-',
+        'NISN': String(p.siswa?.nisn || ''),
+        'NIS': String(p.siswa?.nis || '-'),
+        'Nama Lengkap Siswa': p.siswa?.nama_lengkap || '',
+        'L/P': p.siswa?.jenis_kelamin || 'L',
+        'Kelas Asal': p.siswa?.kelas?.nama_kelas || '-',
+        'Sesi': `Sesi ${p.sesi || 1}`
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    worksheet['!cols'] = [
+      { wch: 6 },
+      { wch: 28 },
+      { wch: 14 },
+      { wch: 26 },
+      { wch: 10 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 34 },
+      { wch: 6 },
+      { wch: 14 },
+      { wch: 10 }
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    const sheetName = (currentRuang.kode_ruang || 'Ruang').replace(/[^a-zA-Z0-9]/g, '_');
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+    const filename = `Mapping_Siswa_${currentRuang.kode_ruang}_${schoolSettings.namaSekolah.replace(/\s+/g, '_')}.xlsx`;
+    XLSX.writeFile(workbook, filename);
+    showToast(`Sukses! Berkas Excel mapping untuk ${currentRuang.nama_ruang} berhasil diunduh.`);
+  };
+
+  // Unduh Berkas Excel Hasil Mapping Siswa Seluruh Ruang (Ruang 1 s.d 33)
+  const handleExportExcelAllRuang = () => {
+    if (pesertaListGenerated.length === 0) {
+      alert('Belum ada data peserta untuk diekspor. Pastikan data siswa sudah tersedia.');
+      return;
+    }
+
+    // Urutkan siswa berdasarkan Ruang ID ascending, kemudian No Meja ascending
+    const sortedAll = [...pesertaListGenerated].sort((a, b) => {
+      if ((a.ruang_id || 0) !== (b.ruang_id || 0)) {
+        return (a.ruang_id || 0) - (b.ruang_id || 0);
+      }
+      return (a.no_meja || 0) - (b.no_meja || 0);
+    });
+
+    // Sheet 1: Data Lengkap Semua Siswa
+    const excelRowsAll = sortedAll.map((p, idx) => {
+      const rObj = ruangList.find(r => r.id === p.ruang_id) || DEMO_RUANG.find(r => r.id === p.ruang_id);
+      const isKiri = (p.no_meja || 0) <= 17;
+      return {
+        'No': idx + 1,
+        'Kode Ruang': rObj?.kode_ruang || `R-${p.ruang_id}`,
+        'Nama Ruang Ujian': rObj?.nama_ruang || `Ruang ${p.ruang_id}`,
+        'Posisi Lajur': isKiri ? 'Kursi Kiri (Meja 1-17)' : 'Kursi Kanan (Meja 18-34)',
+        'No. Meja': p.no_meja || '-',
+        'No. Peserta': p.no_peserta || '-',
+        'NISN': String(p.siswa?.nisn || ''),
+        'NIS': String(p.siswa?.nis || '-'),
+        'Nama Lengkap Siswa': p.siswa?.nama_lengkap || '',
+        'L/P': p.siswa?.jenis_kelamin || 'L',
+        'Kelas Asal': p.siswa?.kelas?.nama_kelas || '-',
+        'Sesi': `Sesi ${p.sesi || 1}`
+      };
+    });
+
+    // Sheet 2: Ringkasan Rekapitulasi Per Ruang Ujian
+    const rekapRuang = ruangList.map((r, rIdx) => {
+      const siswaInRoom = sortedAll.filter(p => p.ruang_id === r.id);
+      const kiri = siswaInRoom.filter(p => (p.no_meja || 0) <= 17);
+      const kanan = siswaInRoom.filter(p => (p.no_meja || 0) >= 18);
+      
+      const kelasKiri = Array.from(new Set(kiri.map(p => p.siswa?.kelas?.nama_kelas).filter(Boolean))).join(', ') || '-';
+      const kelasKanan = Array.from(new Set(kanan.map(p => p.siswa?.kelas?.nama_kelas).filter(Boolean))).join(', ') || '-';
+
+      return {
+        'No': rIdx + 1,
+        'Kode Ruang': r.kode_ruang,
+        'Nama Ruang': r.nama_ruang,
+        'Kapasitas': r.kapasitas || 36,
+        'Kelas Lajur Kiri': kelasKiri,
+        'Jml Siswa Kiri': kiri.length,
+        'Kelas Lajur Kanan': kelasKanan,
+        'Jml Siswa Kanan': kanan.length,
+        'Total Siswa Terisi': siswaInRoom.length,
+        'Sisa Meja Kosong': Math.max(0, (r.kapasitas || 36) - siswaInRoom.length),
+        'Status': siswaInRoom.length >= (r.kapasitas || 36) ? 'Penuh' : siswaInRoom.length > 0 ? 'Terisi' : 'Kosong'
+      };
+    });
+
+    const workbook = XLSX.utils.book_new();
+
+    // Append Sheet 1
+    const wsAll = XLSX.utils.json_to_sheet(excelRowsAll);
+    wsAll['!cols'] = [
+      { wch: 6 },
+      { wch: 14 },
+      { wch: 28 },
+      { wch: 26 },
+      { wch: 10 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 34 },
+      { wch: 6 },
+      { wch: 14 },
+      { wch: 10 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, wsAll, 'Mapping Siswa Semua Ruang');
+
+    // Append Sheet 2
+    const wsRekap = XLSX.utils.json_to_sheet(rekapRuang);
+    wsRekap['!cols'] = [
+      { wch: 6 },
+      { wch: 14 },
+      { wch: 28 },
+      { wch: 12 },
+      { wch: 22 },
+      { wch: 16 },
+      { wch: 22 },
+      { wch: 16 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 12 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, wsRekap, 'Rekapitulasi Ruang');
+
+    const cleanSekolah = schoolSettings.namaSekolah ? schoolSettings.namaSekolah.replace(/[^a-zA-Z0-9]/g, '_') : 'SMPN1_Rajapolah';
+    const filename = `Rekap_Hasil_Mapping_Ruang_${cleanSekolah}.xlsx`;
+    XLSX.writeFile(workbook, filename);
+    showToast(`Sukses! Berkas Excel Rekap Mapping seluruh ruang berhasil diunduh.`);
+  };
+
   // Handler Buka Modal Tambah Master Ruang
   const handleOpenAddModal = () => {
     setEditingRuang(null);
@@ -622,6 +779,16 @@ export default function KelolaRuangPage() {
 
                 <button
                   type="button"
+                  onClick={handleExportExcelAllRuang}
+                  title="Unduh Berkas Excel Hasil Mapping Siswa Seluruh Ruang Ujian (Ruang 1 s.d 33)"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
+                  <span>Cetak Excel Semua Ruang</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleSaveSplitRules}
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition"
                 >
@@ -677,6 +844,25 @@ export default function KelolaRuangPage() {
               <div className="max-w-md mx-auto mb-8 py-2.5 px-6 rounded-xl bg-slate-800 text-white text-center font-bold text-xs tracking-wider shadow-md">
                 PAPAN TULIS &bull; MEJA PENGAWAS UJIAN (DEPAN KELAS)
               </div>
+
+              {/* Peringatan jika Ruang Kelebihan Kapasitas */}
+              {pesertaInPreviewRuang.length > 34 && (
+                <div className="mb-5 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <span>
+                      <b>Perhatian:</b> Ruang ini terisi <b>{pesertaInPreviewRuang.length} siswa</b> (kapasitas standar 34 kursi). Jika terjadi penumpukan karena banyak kelas diarahkan ke ruang yang sama, klik <b>Pola Silang Otomatis</b> atau sesuaikan target ruang pada tabel bawah.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAutoCrossPreset}
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs whitespace-nowrap self-end sm:self-center transition shadow-sm"
+                  >
+                    Terapkan Pola Silang
+                  </button>
+                </div>
+              )}
 
               {/* 2 Kolom Meja (Kiri & Kanan) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -810,6 +996,16 @@ export default function KelolaRuangPage() {
                     <Tag className="w-3.5 h-3.5 text-violet-600" />
                     <span>Cetak Label Meja</span>
                   </Link>
+
+                  <button
+                    type="button"
+                    onClick={handleExportExcelPreviewRuang}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 border border-emerald-700 text-white font-bold hover:bg-emerald-700 shadow-sm transition"
+                    title="Unduh Berkas Excel Hasil Mapping Siswa Khusus Ruang Ini"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-white" />
+                    <span>Cetak Excel Ruang Ini</span>
+                  </button>
                 </div>
               </div>
             </div>
