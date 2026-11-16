@@ -115,6 +115,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       href: '/nilai-kelas',
+      shortLabel: 'Nilai Kelas',
       label: 'Nilai Per Kelas',
       icon: FileSpreadsheet,
       activeColor: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/25 ring-2 ring-emerald-400/30',
@@ -123,6 +124,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       href: '/nilai-mapel',
+      shortLabel: 'Nilai Mapel',
       label: 'Nilai Per Mapel',
       icon: Award,
       activeColor: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/25 ring-2 ring-amber-400/30',
@@ -131,6 +133,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       href: '/daftar-hadir',
+      shortLabel: 'Daftar Hadir',
       label: 'Daftar Hadir Ruang',
       icon: ClipboardList,
       activeColor: 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-2 ring-cyan-400/30',
@@ -139,6 +142,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       href: '/siswa',
+      shortLabel: 'Data Siswa',
       label: 'Data Siswa',
       icon: Users,
       activeColor: 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md shadow-rose-500/25 ring-2 ring-rose-400/30',
@@ -175,14 +179,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50">
-      {/* Top Navbar Lebih Lebar & Responsif (Hidden on print) */}
+      {/* Top Navbar Full Width, Tanpa Scrollbar, Semua 9 Menu Selalu Muncul (Hidden on print) */}
       <header className="no-print bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 shadow-xs">
-        <div className="max-w-[1720px] w-full mx-auto px-3 sm:px-6 xl:px-8">
-          <div className="flex justify-between h-16 items-center gap-2">
+        <div className="w-full px-2 sm:px-4 xl:px-6">
+          <div className="flex justify-between h-14 sm:h-16 items-center gap-1.5">
             
             {/* Brand Logo & Title */}
-            <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group flex-shrink-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center flex-shrink-0">
+            <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={schoolSettings.logoSekolahUrl || '/images/logo-sekolah-3d.png'} 
@@ -190,18 +194,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   className="w-full h-full object-contain filter drop-shadow group-hover:scale-105 transition-transform" 
                 />
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-sm sm:text-base font-extrabold text-slate-900 leading-tight tracking-tight">
+              <div className="hidden sm:block leading-tight">
+                <h1 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight whitespace-nowrap">
                   Sistem Assesmen
                 </h1>
-                <p className="text-[11px] font-semibold text-slate-500 block">
+                <p className="text-[10px] font-semibold text-slate-500 whitespace-nowrap">
                   SMPN 1 Rajapolah
                 </p>
               </div>
             </Link>
 
-            {/* Menu Navigasi Desktop: Lebar, Rapi, Tanpa Patah Baris, Efek Aktif Berwarna */}
-            <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 flex-1 justify-center px-1 overflow-x-auto no-scrollbar py-1">
+            {/* Menu Navigasi Desktop: Semua 9 Menu Muncul Utuh Tanpa Scrollbar & Tanpa Terpotong */}
+            <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 flex-shrink-0">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
@@ -209,24 +213,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-2 px-2.5 xl:px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-200 ease-out transform active:scale-95 ${
+                    className={`flex items-center gap-1.5 px-2 xl:px-2.5 2xl:px-3 py-1.5 text-[11px] xl:text-[11.5px] 2xl:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-200 ease-out transform active:scale-95 ${
                       isActive 
                         ? `${item.activeColor} scale-[1.02]` 
                         : `${item.inactiveColor} hover:-translate-y-0.5 hover:shadow-xs`
                     }`}
                   >
-                    <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : item.iconColor}`} />
-                    <span>{item.label}</span>
+                    <Icon className={`w-3.5 h-3.5 xl:w-4 xl:h-4 transition-colors ${isActive ? 'text-white' : item.iconColor}`} />
+                    <span>
+                      {item.shortLabel ? (
+                        <>
+                          <span className="2xl:hidden">{item.shortLabel}</span>
+                          <span className="hidden 2xl:inline">{item.label}</span>
+                        </>
+                      ) : (
+                        item.label
+                      )}
+                    </span>
                   </Link>
                 );
               })}
             </nav>
 
             {/* User Session & Logout Action */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              <div className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-100/80 border border-slate-200 text-xs">
-                <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-                <span className="font-bold text-slate-800">{currentUser.name}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              <div className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100/80 border border-slate-200 text-xs">
+                <UserCheck className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                <span className="font-bold text-slate-800 text-[11px] hidden xl:inline max-w-[120px] truncate">{currentUser.name}</span>
                 <span className="text-[10px] bg-blue-100 text-blue-700 font-extrabold px-1.5 py-0.5 rounded-md">
                   {currentUser.role}
                 </span>
@@ -235,7 +248,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 rounded-xl transition-all shadow-xs"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 rounded-xl transition-all shadow-xs whitespace-nowrap"
                 title="Keluar dari sistem"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -246,7 +259,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="lg:hidden p-1.5 rounded-xl text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Toggle Menu"
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
