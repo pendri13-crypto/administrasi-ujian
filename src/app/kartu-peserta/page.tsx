@@ -5,7 +5,7 @@ import { DEMO_PESERTA, DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, generatePesertaFromSi
 import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, Filter, Image as ImageIcon, QrCode } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
-import { fetchSiswaFromCloud, getStoredRuang } from '@/lib/data-service';
+import { fetchSiswaFromCloud, getStoredRuang, fetchSplitRulesFromCloud } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function KartuPesertaPage() {
@@ -53,12 +53,14 @@ export default function KartuPesertaPage() {
           }
         }
         
-        // Tarik otomatis data siswa lengkap dari Supabase Cloud
+        // Tarik otomatis data mapping split rules & data siswa lengkap dari Supabase Cloud
         if (isSupabaseConfigured) {
-          fetchSiswaFromCloud().then(cloudSiswa => {
-            if (cloudSiswa && cloudSiswa.length > 0) {
-              setPesertaList(generatePesertaFromSiswa(cloudSiswa, storedRuang));
-            }
+          fetchSplitRulesFromCloud().then(rules => {
+            fetchSiswaFromCloud().then(cloudSiswa => {
+              if (cloudSiswa && cloudSiswa.length > 0) {
+                setPesertaList(generatePesertaFromSiswa(cloudSiswa, storedRuang, rules || undefined));
+              }
+            });
           });
         }
         setPesertaList([]);

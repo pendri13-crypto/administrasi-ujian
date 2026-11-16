@@ -17,7 +17,8 @@ import {
   getStoredRuang, 
   getStoredJadwal, 
   getStoredMapel, 
-  fetchJadwalFromCloud 
+  fetchJadwalFromCloud,
+  fetchSplitRulesFromCloud
 } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
@@ -94,10 +95,12 @@ export default function DaftarHadirPage() {
           }
         }
         if (isSupabaseConfigured) {
-          fetchSiswaFromCloud().then(cloudSiswa => {
-            if (cloudSiswa && cloudSiswa.length > 0) {
-              setPesertaList(generatePesertaFromSiswa(cloudSiswa, currentStoredRuang));
-            }
+          fetchSplitRulesFromCloud().then(rules => {
+            fetchSiswaFromCloud().then(cloudSiswa => {
+              if (cloudSiswa && cloudSiswa.length > 0) {
+                setPesertaList(generatePesertaFromSiswa(cloudSiswa, currentStoredRuang, rules || undefined));
+              }
+            });
           });
         }
         setPesertaList([]);

@@ -47,7 +47,9 @@ import {
   getStoredSiswa,
   saveStoredSiswa,
   getStoredSplitRules,
-  saveStoredSplitRules
+  saveStoredSplitRules,
+  pushSplitRulesToCloud,
+  fetchSplitRulesFromCloud
 } from '@/lib/data-service';
 import { getStoredUser, isAdmin } from '@/lib/auth';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -137,8 +139,13 @@ export default function KelolaRuangPage() {
       setSiswaList(localSiswa);
     }
 
-    // Selalu sinkronkan dengan Supabase Cloud agar seluruh siswa (seluruh rombel) terambil utuh
+    // Selalu sinkronkan dengan Supabase Cloud agar seluruh siswa dan aturan mapping terambil utuh
     if (isSupabaseConfigured) {
+      fetchSplitRulesFromCloud().then(cloudRules => {
+        if (cloudRules && cloudRules.length > 0) {
+          setSplitRules(cloudRules);
+        }
+      });
       fetchSiswaFromCloud().then(cloudSiswa => {
         if (cloudSiswa && cloudSiswa.length > 0) {
           setSiswaList(cloudSiswa);
@@ -275,10 +282,26 @@ export default function KelolaRuangPage() {
     }));
   };
 
-  // Simpan Aturan Split ke localStorage & Sinkronkan
-  const handleSaveSplitRules = () => {
+  // Simpan Aturan Split ke localStorage & Sinkronkan ke Supabase Cloud
+  const handleSaveSplitRules = async () => {
     saveStoredSplitRules(splitRules);
-    showToast('Aturan pembagian & split ruang berhasil disimpan dan diterapkan ke seluruh modul!');
+    if (isSupabaseConfigured) {
+      setIsSyncing(true);
+      try {
+        const res = await pushSplitRulesToCloud(splitRules);
+        if (res.success) {
+          showToast('Aturan mapping berhasil disimpan ke Cloud Supabase & aktif di semua PC/Laptop!');
+        } else {
+          showToast('Tersimpan di browser lokal. ' + (res.error || ''));
+        }
+      } catch (err: any) {
+        showToast('Tersimpan lokal: ' + (err?.message || ''));
+      } finally {
+        setIsSyncing(false);
+      }
+    } else {
+      showToast('Aturan pembagian & split ruang berhasil disimpan dan diterapkan ke seluruh modul!');
+    }
   };
 
   // Preset Otomatis: Atur Pola Silang Standar (Sesuai contoh kasus: Tingkat 7 silang dengan Tingkat 8)

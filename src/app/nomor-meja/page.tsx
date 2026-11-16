@@ -5,7 +5,7 @@ import { DEMO_PESERTA, DEMO_SISWA, DEMO_RUANG, DEMO_KELAS, generatePesertaFromSi
 import { PesertaUjian, Siswa, Ruang } from '@/types/database';
 import { Printer, Filter } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
-import { fetchSiswaFromCloud, getStoredRuang } from '@/lib/data-service';
+import { fetchSiswaFromCloud, getStoredRuang, fetchSplitRulesFromCloud } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function NomorMejaPage() {
@@ -49,10 +49,12 @@ export default function NomorMejaPage() {
           }
         }
         if (isSupabaseConfigured) {
-          fetchSiswaFromCloud().then(cloudSiswa => {
-            if (cloudSiswa && cloudSiswa.length > 0) {
-              setPesertaList(generatePesertaFromSiswa(cloudSiswa, currentStoredRuang));
-            }
+          fetchSplitRulesFromCloud().then(rules => {
+            fetchSiswaFromCloud().then(cloudSiswa => {
+              if (cloudSiswa && cloudSiswa.length > 0) {
+                setPesertaList(generatePesertaFromSiswa(cloudSiswa, currentStoredRuang, rules || undefined));
+              }
+            });
           });
         }
         setPesertaList([]);

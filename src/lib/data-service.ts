@@ -38,6 +38,102 @@ export function saveStoredSplitRules(rules: SplitGroupRule[]): void {
 }
 
 /**
+ * Menyimpan aturan split & mapping ruang ke Supabase Cloud (melalui kolom jurusan tabel kelas dengan format compact)
+ */
+export async function pushSplitRulesToCloud(rules: SplitGroupRule[]): Promise<{ success: boolean; error?: string }> {
+  const client = supabase;
+  if (!client || !isSupabaseConfigured || rules.length === 0) {
+    return { success: false, error: 'Supabase belum dikonfigurasi' };
+  }
+
+  try {
+    const mapByKelas: Record<number, SplitGroupRule[]> = {};
+    rules.forEach(r => {
+      const kId = Number(r.kelas_id);
+      if (!mapByKelas[kId]) mapByKelas[kId] = [];
+      mapByKelas[kId].push(r);
+    });
+
+    const updates = Object.entries(mapByKelas).map(async ([kIdStr, rList]) => {
+      const kId = Number(kIdStr);
+      // Format ringkas: "ruangId:pos:start:end:startMeja|..."
+      const compactStr = rList.map(r => {
+        const posCode = r.posisi === 'kanan' ? 'r' : 'k';
+        const startMeja = r.start_meja !== undefined ? r.start_meja : (posCode === 'r' ? 18 : 1);
+        return `${r.target_ruang_id}:${posCode}:${r.start_urut}:${r.end_urut}:${startMeja}`;
+      }).join('|');
+
+      return client.from('kelas').update({ jurusan: compactStr }).eq('id', kId);
+    });
+
+    await Promise.all(updates);
+    return { success: true };
+  } catch (err: any) {
+    console.error('Push split rules error:', err);
+    return { success: false, error: err?.message || 'Gagal menyimpan aturan ke cloud' };
+  }
+}
+
+/**
+ * Mengambil aturan split & mapping ruang dari Supabase Cloud
+ */
+export async function fetchSplitRulesFromCloud(): Promise<SplitGroupRule[] | null> {
+  if (!supabase || !isSupabaseConfigured) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('kelas')
+      .select('id, nama_kelas, jurusan')
+      .order('id', { ascending: true });
+
+    if (error || !data) return null;
+
+    const reconstructedRules: SplitGroupRule[] = [];
+    let hasCustom = false;
+
+    data.forEach(k => {
+      if (k.jurusan && typeof k.jurusan === 'string' && k.jurusan.includes(':')) {
+        hasCustom = true;
+        const parts = k.jurusan.split('|');
+        parts.forEach((part, idx) => {
+          const [ruangStr, posCode, startStr, endStr, mejaStr] = part.split(':');
+          const targetRuangId = Number(ruangStr) || k.id;
+          const pos = posCode === 'r' ? 'kanan' : 'kiri';
+          const startUrut = Number(startStr) || (idx === 0 ? 1 : 18);
+          const endUrut = Number(endStr) || (idx === 0 ? 17 : 34);
+          const startMeja = mejaStr ? Number(mejaStr) : (pos === 'kanan' ? 18 : 1);
+
+          reconstructedRules.push({
+            id: `rule-${k.id}-part${idx + 1}`,
+            kelas_id: k.id,
+            label: `${k.nama_kelas} (No. ${startUrut}-${endUrut})`,
+            start_urut: startUrut,
+            end_urut: endUrut,
+            target_ruang_id: targetRuangId,
+            posisi: pos,
+            start_meja: startMeja
+          });
+        });
+      }
+    });
+
+    if (hasCustom && reconstructedRules.length > 0) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(SPLIT_RULES_STORAGE_KEY, JSON.stringify(reconstructedRules));
+        window.dispatchEvent(new Event('split-rules-updated'));
+        window.dispatchEvent(new Event('storage'));
+      }
+      return reconstructedRules;
+    }
+
+    return null;
+  } catch (err) {
+    console.error('Fetch split rules exception:', err);
+    return null;
+  }
+}
+
+/**
  * Mengambil data ruang dari localStorage atau default ke DEMO_RUANG
  */
 export function getStoredRuang(): Ruang[] {
