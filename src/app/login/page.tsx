@@ -93,7 +93,7 @@ export default function LoginPage() {
               {schoolSettings.namaSekolah || 'SMP NEGERI 1 RAJAPOLAH'}
             </h1>
             <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider mt-1">
-              Sistem Administrasi & Asesmen Ujian
+              Sistem Asesmen SMPN 1 Rajapolah
             </p>
             <p className="text-[11px] text-slate-500 mt-1">
               Silakan login untuk mengelola peserta, cetak kartu, dan rekap nilai ujian.

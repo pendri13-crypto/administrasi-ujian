@@ -3,8 +3,8 @@ import './globals.css';
 import AppShell from '@/components/layout/AppShell';
 
 export const metadata: Metadata = {
-  title: 'ADM UJIAN - SMPN 1 Rajapolah',
-  description: 'Sistem Administrasi & Asesmen SMPN 1 Rajapolah: cetak kartu peserta, label meja, daftar hadir, dan rekapitulasi nilai ujian.',
+  title: 'Sistem Asesmen - SMPN 1 Rajapolah',
+  description: 'Sistem Asesmen SMPN 1 Rajapolah: cetak kartu peserta, label meja, daftar hadir, dan rekapitulasi nilai ujian.',
   icons: {
     icon: '/images/logo-sekolah-3d.png',
   },
