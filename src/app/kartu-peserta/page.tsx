@@ -50,11 +50,10 @@ export default function KartuPesertaPage() {
               return;
             }
             setPesertaList(generatePesertaFromSiswa(parsedSiswa, storedRuang));
-            return;
           }
         }
         
-        // Jika di PC baru belum ada cache lokal, tarik otomatis dari Supabase Cloud
+        // Tarik otomatis data siswa lengkap dari Supabase Cloud
         if (isSupabaseConfigured) {
           fetchSiswaFromCloud().then(cloudSiswa => {
             if (cloudSiswa && cloudSiswa.length > 0) {

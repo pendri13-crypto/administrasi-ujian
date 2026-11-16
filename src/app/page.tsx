@@ -47,7 +47,6 @@ export default function Dashboard() {
             return;
           }
           setTotalSiswa(parsed.length);
-          return;
         }
       }
       if (isSupabaseConfigured) {

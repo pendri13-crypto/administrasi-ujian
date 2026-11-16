@@ -424,29 +424,85 @@ export async function deleteJadwalFromCloud(id: number): Promise<{ success: bool
 }
 
 /**
- * Mengambil data siswa dari Supabase Cloud.
+ * Mengambil data siswa tersimpan dari localStorage atau fallback
+ */
+export function getStoredSiswa(): Siswa[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(SISWA_STORAGE_KEY);
+    if (raw) {
+      const parsed: Siswa[] = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        if (parsed.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
+          localStorage.removeItem(SISWA_STORAGE_KEY);
+          return [];
+        }
+        return parsed.map(s => {
+          const kId = Number(s.kelas_id) || 1;
+          if (!s.kelas && s.kelas_id) {
+            const k = DEMO_KELAS.find(c => c.id === kId);
+            if (k) return { ...s, kelas_id: kId, kelas: k };
+          }
+          return { ...s, kelas_id: kId };
+        });
+      }
+    }
+  } catch (e) {
+    console.error('Error reading siswa from localStorage:', e);
+  }
+  return [];
+}
+
+/**
+ * Menyimpan data siswa ke localStorage dan memancarkan event pembaruan
+ */
+export function saveStoredSiswa(siswaList: Siswa[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SISWA_STORAGE_KEY, JSON.stringify(siswaList));
+  window.dispatchEvent(new Event('storage'));
+  window.dispatchEvent(new Event('siswa-data-updated'));
+}
+
+/**
+ * Mengambil data siswa dari Supabase Cloud dengan paginasi otomatis
+ * (Menembus limit 1000 baris PostgREST agar seluruh siswa terbawa lengkap).
  * Jika berhasil, data juga disimpan ke localStorage agar cepat dibuka berikutnya.
  */
 export async function fetchSiswaFromCloud(): Promise<Siswa[] | null> {
   if (!supabase || !isSupabaseConfigured) return null;
 
   try {
-    const { data, error } = await supabase
-      .from('siswa')
-      .select('id, nisn, nis, nama_lengkap, jenis_kelamin, kelas_id, foto_url, kelas(id, nama_kelas, tingkat, jurusan)')
-      .order('id', { ascending: true });
+    let allData: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
 
-    if (error) {
-      console.error('Error fetching siswa from Supabase:', error);
-      return null;
+    // Lakukan paginasi berulang hingga seluruh data siswa dari Cloud terambil
+    while (true) {
+      const { data, error } = await supabase
+        .from('siswa')
+        .select('id, nisn, nis, nama_lengkap, jenis_kelamin, kelas_id, foto_url, kelas(id, nama_kelas, tingkat, jurusan)')
+        .order('id', { ascending: true })
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        console.error('Error fetching siswa from Supabase:', error);
+        break;
+      }
+
+      if (!data || data.length === 0) break;
+      allData = allData.concat(data);
+
+      if (data.length < pageSize) break;
+      from += pageSize;
     }
 
-    if (Array.isArray(data)) {
+    if (allData.length > 0) {
       // Map format data dari Supabase ke interface Siswa
-      const formatted: Siswa[] = data.map((item: any) => {
+      const formatted: Siswa[] = allData.map((item: any) => {
+        const kId = Number(item.kelas_id) || 1;
         let kelasObj = item.kelas;
         if (!kelasObj && item.kelas_id) {
-          kelasObj = DEMO_KELAS.find(k => k.id === item.kelas_id);
+          kelasObj = DEMO_KELAS.find(k => k.id === kId);
         }
         return {
           id: item.id,
@@ -454,16 +510,17 @@ export async function fetchSiswaFromCloud(): Promise<Siswa[] | null> {
           nis: item.nis ? String(item.nis) : undefined,
           nama_lengkap: item.nama_lengkap || '',
           jenis_kelamin: (item.jenis_kelamin === 'P' ? 'P' : 'L') as 'L' | 'P',
-          kelas_id: item.kelas_id || 1,
+          kelas_id: kId,
           foto_url: item.foto_url || null,
           kelas: kelasObj,
         };
       });
 
-      // Update cache di localStorage jika ada data
+      // Update cache di localStorage dengan data lengkap
       if (typeof window !== 'undefined' && formatted.length > 0) {
         localStorage.setItem(SISWA_STORAGE_KEY, JSON.stringify(formatted));
         window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new Event('siswa-data-updated'));
       }
 
       return formatted;

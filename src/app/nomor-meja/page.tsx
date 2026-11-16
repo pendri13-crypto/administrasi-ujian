@@ -46,7 +46,6 @@ export default function NomorMejaPage() {
               return;
             }
             setPesertaList(generatePesertaFromSiswa(parsedSiswa, currentStoredRuang));
-            return;
           }
         }
         if (isSupabaseConfigured) {

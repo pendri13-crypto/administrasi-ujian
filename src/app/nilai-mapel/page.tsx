@@ -14,6 +14,8 @@ import {
 import { NilaiUjian, Siswa } from '@/types/database';
 import { Printer, Download, Award, TrendingUp, CheckCircle, AlertCircle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { fetchSiswaFromCloud } from '@/lib/data-service';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function NilaiMapelPage() {
   const [selectedMapelId, setSelectedMapelId] = useState<number>(1); // Default Mapel 1 (PAIBP)
@@ -35,6 +37,14 @@ export default function NilaiMapelPage() {
             setAllSiswa(parsed);
           }
         }
+      }
+
+      if (isSupabaseConfigured) {
+        fetchSiswaFromCloud().then(cloudSiswa => {
+          if (cloudSiswa && cloudSiswa.length > 0) {
+            setAllSiswa(cloudSiswa);
+          }
+        });
       }
 
       const savedNilai = localStorage.getItem('adm_nilai_data');

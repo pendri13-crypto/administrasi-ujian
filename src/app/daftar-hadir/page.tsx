@@ -91,7 +91,6 @@ export default function DaftarHadirPage() {
               return;
             }
             setPesertaList(generatePesertaFromSiswa(parsedSiswa, currentStoredRuang));
-            return;
           }
         }
         if (isSupabaseConfigured) {

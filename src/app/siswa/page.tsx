@@ -133,10 +133,7 @@ export default function SiswaPage() {
         .then((cloudData) => {
           setIsCloudSyncing(false);
           if (cloudData && cloudData.length > 0) {
-            // Jika lokal kosong atau cloud memiliki data
-            if (!hasLocal) {
-              setSiswaList(cloudData);
-            }
+            setSiswaList(cloudData);
           }
         })
         .catch(() => setIsCloudSyncing(false));

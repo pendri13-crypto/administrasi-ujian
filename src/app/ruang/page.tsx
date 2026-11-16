@@ -44,6 +44,8 @@ import {
   pushRuangToCloud, 
   deleteRuangFromCloud,
   fetchSiswaFromCloud,
+  getStoredSiswa,
+  saveStoredSiswa,
   getStoredSplitRules,
   saveStoredSplitRules
 } from '@/lib/data-service';
@@ -62,8 +64,8 @@ export default function KelolaRuangPage() {
   const [activeTab, setActiveTab] = useState<'mapping' | 'master'>('mapping');
 
   // Data States
-  const [ruangList, setRuangList] = useState<Ruang[]>([]);
-  const [siswaList, setSiswaList] = useState<Siswa[]>([]);
+  const [ruangList, setRuangList] = useState<Ruang[]>(getStoredRuang());
+  const [siswaList, setSiswaList] = useState<Siswa[]>(getStoredSiswa());
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
@@ -129,32 +131,19 @@ export default function KelolaRuangPage() {
       setSplitRules(initDefaultSplitRules(DEMO_KELAS));
     }
 
-    // Ambil data siswa
-    try {
-      const savedSiswa = localStorage.getItem('adm_siswa_data');
-      if (savedSiswa) {
-        const parsed: Siswa[] = JSON.parse(savedSiswa);
-        if (Array.isArray(parsed)) {
-          const enriched = parsed.map(s => {
-            if (!s.kelas && s.kelas_id) {
-              const k = DEMO_KELAS.find(c => c.id === Number(s.kelas_id));
-              if (k) return { ...s, kelas: k };
-            }
-            return s;
-          });
-          setSiswaList(enriched);
-        }
-      } else if (isSupabaseConfigured) {
-        fetchSiswaFromCloud().then(data => {
-          if (data) setSiswaList(data);
-        });
-      }
-    } catch (e) {
-      console.error(e);
+    // Ambil data siswa dari cache lokal terlebih dahulu
+    const localSiswa = getStoredSiswa();
+    if (localSiswa.length > 0) {
+      setSiswaList(localSiswa);
     }
 
-    // Jika Supabase aktif, coba sinkron data ruang dari Supabase
+    // Selalu sinkronkan dengan Supabase Cloud agar seluruh siswa (seluruh rombel) terambil utuh
     if (isSupabaseConfigured) {
+      fetchSiswaFromCloud().then(cloudSiswa => {
+        if (cloudSiswa && cloudSiswa.length > 0) {
+          setSiswaList(cloudSiswa);
+        }
+      });
       fetchRuangFromCloud().then(cloudRuang => {
         if (cloudRuang && cloudRuang.length > 0) {
           setRuangList(cloudRuang);
@@ -165,8 +154,20 @@ export default function KelolaRuangPage() {
     const handleRuangUpdate = () => {
       setRuangList(getStoredRuang());
     };
+    const handleSiswaUpdate = () => {
+      const updated = getStoredSiswa();
+      if (updated.length > 0) setSiswaList(updated);
+    };
+
     window.addEventListener('ruang-data-updated', handleRuangUpdate);
-    return () => window.removeEventListener('ruang-data-updated', handleRuangUpdate);
+    window.addEventListener('storage', handleSiswaUpdate);
+    window.addEventListener('siswa-data-updated', handleSiswaUpdate);
+
+    return () => {
+      window.removeEventListener('ruang-data-updated', handleRuangUpdate);
+      window.removeEventListener('storage', handleSiswaUpdate);
+      window.removeEventListener('siswa-data-updated', handleSiswaUpdate);
+    };
   }, []);
 
   // Inisialisasi aturan split bawaan: Membagi setiap kelas menjadi 2 paruh (1-17 dan 18-34)
@@ -209,7 +210,7 @@ export default function KelolaRuangPage() {
   const siswaPerKelas = useMemo(() => {
     const map: Record<number, Siswa[]> = {};
     siswaList.forEach(s => {
-      const kId = s.kelas_id || 1;
+      const kId = Number(s.kelas_id) || 1;
       if (!map[kId]) map[kId] = [];
       map[kId].push(s);
     });
@@ -839,6 +840,32 @@ export default function KelolaRuangPage() {
 
               {/* Tombol Aksi Cepat */}
               <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsSyncing(true);
+                    try {
+                      const cloud = await fetchSiswaFromCloud();
+                      if (cloud && cloud.length > 0) {
+                        setSiswaList(cloud);
+                        showToast(`Berhasil memuat ${cloud.length} siswa lengkap dari Supabase Cloud!`);
+                      } else {
+                        showToast(`Data siswa saat ini: ${siswaList.length} siswa.`);
+                      }
+                    } catch (e: any) {
+                      showToast(`Gagal memuat: ${e.message}`);
+                    } finally {
+                      setIsSyncing(false);
+                    }
+                  }}
+                  disabled={isSyncing}
+                  title="Tarik seluruh data siswa terbaru dari Supabase Cloud (memuat lengkap semua rombel)"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20 transition disabled:opacity-60"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing ? 'Memuat...' : `Tarik Data Siswa (${siswaList.length})`}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={handleAutoCrossPreset}

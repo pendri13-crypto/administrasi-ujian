@@ -14,6 +14,8 @@ import {
 import { NilaiUjian, Siswa } from '@/types/database';
 import { Printer, Download, CheckCircle, AlertTriangle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { fetchSiswaFromCloud } from '@/lib/data-service';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function NilaiKelasPage() {
   const [selectedKelasId, setSelectedKelasId] = useState<number>(1);
@@ -34,6 +36,14 @@ export default function NilaiKelasPage() {
             setAllSiswa(parsed);
           }
         }
+      }
+
+      if (isSupabaseConfigured) {
+        fetchSiswaFromCloud().then(cloudSiswa => {
+          if (cloudSiswa && cloudSiswa.length > 0) {
+            setAllSiswa(cloudSiswa);
+          }
+        });
       }
 
       const savedNilai = localStorage.getItem('adm_nilai_data');

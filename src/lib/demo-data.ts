@@ -115,8 +115,10 @@ export function generatePesertaFromSiswa(
 
   // Urutkan siswa per kelas dan A-Z berdasarkan Nama Lengkap siswa
   const sortedSiswa = [...siswaList].sort((a, b) => {
-    if (a.kelas_id !== b.kelas_id) {
-      return (a.kelas_id || 0) - (b.kelas_id || 0);
+    const aKId = Number(a.kelas_id) || 0;
+    const bKId = Number(b.kelas_id) || 0;
+    if (aKId !== bKId) {
+      return aKId - bKId;
     }
     return (a.nama_lengkap || '').localeCompare(b.nama_lengkap || '', 'id', { sensitivity: 'base' });
   });
@@ -124,7 +126,7 @@ export function generatePesertaFromSiswa(
   const classOrderCount: Record<number, number> = {};
 
   return sortedSiswa.map((siswa, idx) => {
-    const kId = siswa.kelas_id || 1;
+    const kId = Number(siswa.kelas_id) || 1;
     classOrderCount[kId] = (classOrderCount[kId] || 0) + 1;
     const noUrut = classOrderCount[kId];
 
@@ -134,7 +136,7 @@ export function generatePesertaFromSiswa(
 
     if (activeRules && activeRules.length > 0) {
       const match = activeRules.find(
-        (r) => r.kelas_id === kId && noUrut >= r.start_urut && noUrut <= r.end_urut
+        (r) => Number(r.kelas_id) === kId && noUrut >= r.start_urut && noUrut <= r.end_urut
       );
       if (match) {
         targetRuangId = match.target_ruang_id;
