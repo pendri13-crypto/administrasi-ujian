@@ -153,7 +153,9 @@ export function generatePesertaFromSiswa(
     }
 
     const ruang = activeRuang.find((r) => r.id === targetRuangId) || 
+                  activeRuang.find((r) => Number(r.kode_ruang.replace(/\D/g, '')) === targetRuangId) ||
                   activeRuang.find((r) => r.id === kId) || 
+                  activeRuang.find((r) => Number(r.kode_ruang.replace(/\D/g, '')) === kId) ||
                   activeRuang[0] || 
                   DEMO_RUANG[0];
 

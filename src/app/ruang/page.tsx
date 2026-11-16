@@ -193,16 +193,16 @@ export default function KelolaRuangPage() {
         start_meja: 1,
       });
 
-      // Paruh 2: No. 18 - 34 (Default Kursi Kiri, Ruang berikutnya atau sama)
+      // Paruh 2: No. 18 - 34 (Default Kursi Kanan Meja 18-34, Ruang sesuai ID kelas)
       rules.push({
         id: `rule-${k.id}-part2`,
         kelas_id: k.id,
         label: `${k.nama_kelas} (No. 18-34)`,
         start_urut: 18,
         end_urut: 34,
-        target_ruang_id: k.id + 1 <= kelasList.length ? k.id + 1 : k.id,
-        posisi: 'kiri',
-        start_meja: 1,
+        target_ruang_id: k.id,
+        posisi: 'kanan',
+        start_meja: 18,
       });
     });
     return rules;
@@ -402,7 +402,10 @@ export default function KelolaRuangPage() {
 
     setSplitRules(newRules);
     saveStoredSplitRules(newRules);
-    showToast('Pola silang otomatis berhasil diterapkan!');
+    if (isSupabaseConfigured) {
+      pushSplitRulesToCloud(newRules);
+    }
+    showToast('Pola silang otomatis berhasil diterapkan & disinkronkan ke Cloud!');
   };
 
   // Reset Aturan Split ke Default (1 Kelas = 1 Ruang)
