@@ -20,7 +20,7 @@ body {
   /* Pengaturan Kertas A4 Standar (210mm x 297mm) */
   @page {
     size: A4 portrait;
-    margin: 8mm 6mm;
+    margin: 6mm 6mm;
   }
 
   html, body {
@@ -44,8 +44,8 @@ body {
   /* Lembar Cetak A4 Presisi */
   .print-page {
     width: 100% !important;
-    height: 278mm !important;
-    max-height: 278mm !important;
+    height: 282mm !important;
+    max-height: 282mm !important;
     box-sizing: border-box !important;
     page-break-after: always !important;
     break-after: page !important;
@@ -55,8 +55,16 @@ body {
     padding: 0 !important;
     display: grid !important;
     align-content: start !important;
-    row-gap: 6mm !important;
-    column-gap: 5mm !important;
+    row-gap: 5mm !important;
+    column-gap: 4mm !important;
+  }
+
+  /* Khusus Grid 6 Kartu (2 Kolom x 3 Baris) pada Kertas A4 */
+  .print-page.grid-6 {
+    height: 282mm !important;
+    max-height: 282mm !important;
+    row-gap: 3.5mm !important;
+    column-gap: 4mm !important;
   }
 
   /* Mencegah lembar kosong di akhir halaman cetak */
@@ -72,4 +80,3 @@ body {
     overflow: hidden !important;
   }
 }
-
