@@ -14,13 +14,13 @@ body {
 }
 
 /* ============================================================
-   PRINT MEDIA RULES (CETAK DOKUMEN & KARTU UJIAN)
+   PRINT MEDIA RULES (CETAK DOKUMEN & KARTU UJIAN KERTAS F4/FOLIO)
    ============================================================ */
 @media print {
-  /* Pengaturan Kertas A4 Standar (210mm x 297mm) */
+  /* Pengaturan Kertas F4 / Folio Standar Indonesia (215mm x 330mm) */
   @page {
-    size: A4 portrait;
-    margin: 6mm 6mm;
+    size: 215mm 330mm;
+    margin: 5mm 5mm;
   }
 
   html, body {
@@ -41,11 +41,11 @@ body {
     display: block !important;
   }
 
-  /* Lembar Cetak A4 Presisi */
+  /* Lembar Cetak F4 Presisi (215mm x 330mm) */
   .print-page {
     width: 100% !important;
-    height: 282mm !important;
-    max-height: 282mm !important;
+    height: 318mm !important;
+    max-height: 318mm !important;
     box-sizing: border-box !important;
     page-break-after: always !important;
     break-after: page !important;
@@ -55,14 +55,14 @@ body {
     padding: 0 !important;
     display: grid !important;
     align-content: start !important;
-    row-gap: 5mm !important;
+    row-gap: 4mm !important;
     column-gap: 4mm !important;
   }
 
-  /* Khusus Grid 6 Kartu (2 Kolom x 3 Baris) pada Kertas A4 */
+  /* Khusus Grid 6 Kartu (2 Kolom x 3 Baris) pada Kertas F4 */
   .print-page.grid-6 {
-    height: 282mm !important;
-    max-height: 282mm !important;
+    height: 318mm !important;
+    max-height: 318mm !important;
     row-gap: 3.5mm !important;
     column-gap: 4mm !important;
   }

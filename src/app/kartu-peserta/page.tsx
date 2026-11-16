@@ -86,14 +86,47 @@ export default function KartuPesertaPage() {
     };
   }, []);
 
+  const handleSelectKelas = (val: string) => {
+    setSelectedKelas(val);
+    if (val !== 'all') {
+      setSelectedRuang('all');
+    }
+  };
+
+  const handleSelectRuang = (val: string) => {
+    setSelectedRuang(val);
+    if (val !== 'all') {
+      setSelectedKelas('all');
+    }
+  };
+
+  const handleResetFilter = () => {
+    setSelectedKelas('all');
+    setSelectedRuang('all');
+  };
+
   const filteredPeserta = pesertaList
     .filter((p) => {
-      const matchKelas = selectedKelas === 'all' || p.siswa?.kelas_id.toString() === selectedKelas;
+      let matchKelas = selectedKelas === 'all';
+      if (!matchKelas) {
+        const targetK = DEMO_KELAS.find(k => k.id.toString() === selectedKelas);
+        matchKelas = p.siswa?.kelas_id?.toString() === selectedKelas ||
+          (targetK ? p.siswa?.kelas?.nama_kelas?.toLowerCase() === targetK.nama_kelas.toLowerCase() : false) ||
+          (targetK ? (p.siswa as any)?.nama_kelas?.toLowerCase() === targetK.nama_kelas.toLowerCase() : false);
+      }
+
       let matchRuang = selectedRuang === 'all';
       if (!matchRuang) {
-        const targetR = ruangList.find(r => r.id.toString() === selectedRuang);
+        const targetR = ruangList.find(r => r.id.toString() === selectedRuang || r.kode_ruang === selectedRuang);
+        const selNum = Number(selectedRuang.replace(/\D/g, ''));
+        const pNum = Number(p.ruang?.kode_ruang?.replace(/\D/g, ''));
+        const rNum = targetR ? Number(targetR.kode_ruang?.replace(/\D/g, '')) : 0;
+
         matchRuang = p.ruang_id?.toString() === selectedRuang ||
-          (targetR ? (p.ruang?.id === targetR.id || p.ruang?.kode_ruang === targetR.kode_ruang) : false);
+          (targetR ? p.ruang?.id === targetR.id : false) ||
+          (targetR && p.ruang?.kode_ruang && targetR.kode_ruang ? p.ruang.kode_ruang.trim().toLowerCase() === targetR.kode_ruang.trim().toLowerCase() : false) ||
+          (selNum > 0 && pNum > 0 && selNum === pNum) ||
+          (rNum > 0 && pNum > 0 && rNum === pNum);
       }
       return matchKelas && matchRuang;
     })
@@ -104,7 +137,7 @@ export default function KartuPesertaPage() {
       return namaA.localeCompare(namaB, 'id', { sensitivity: 'base' });
     });
 
-  // Kelompokkan kartu per lembar A4 (6 kartu, 4 kartu, atau 2 kartu per halaman)
+  // Kelompokkan kartu per lembar F4 (6 kartu, 4 kartu, atau 2 kartu per halaman)
   const pageSize = layoutMode === '6' ? 6 : layoutMode === '4' ? 4 : 2;
   const pages: PesertaUjian[][] = [];
   for (let i = 0; i < filteredPeserta.length; i += pageSize) {
@@ -122,9 +155,9 @@ export default function KartuPesertaPage() {
       {/* Action Bar (Hidden when printing) */}
       <div className="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-900">Cetak Kartu Peserta Ujian (Kertas A4)</h2>
+          <h2 className="text-xl font-extrabold text-slate-900">Cetak Kartu Peserta Ujian (Kertas F4 / Folio)</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Format Standar A4 &bull; Menampilkan {filteredPeserta.length} kartu ({pages.length} lembar A4 siap cetak &bull; {layoutMode} kartu per lembar).
+            Format Standar F4 / Folio (215 x 330 mm) &bull; Menampilkan {filteredPeserta.length} kartu ({pages.length} lembar F4 siap cetak &bull; {layoutMode} kartu per lembar).
           </p>
         </div>
 
@@ -134,7 +167,7 @@ export default function KartuPesertaPage() {
             <Filter className="w-4 h-4 text-slate-400" />
             <select
               value={selectedKelas}
-              onChange={(e) => setSelectedKelas(e.target.value)}
+              onChange={(e) => handleSelectKelas(e.target.value)}
               className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Semua Kelas</option>
@@ -145,7 +178,7 @@ export default function KartuPesertaPage() {
 
             <select
               value={selectedRuang}
-              onChange={(e) => setSelectedRuang(e.target.value)}
+              onChange={(e) => handleSelectRuang(e.target.value)}
               className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Semua Ruang</option>
@@ -154,14 +187,24 @@ export default function KartuPesertaPage() {
               ))}
             </select>
 
+            {(selectedKelas !== 'all' || selectedRuang !== 'all') && (
+              <button
+                type="button"
+                onClick={handleResetFilter}
+                className="text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-50 transition"
+              >
+                Reset Filter
+              </button>
+            )}
+
             <select
               value={layoutMode}
               onChange={(e) => setLayoutMode(e.target.value as '6' | '4' | '2')}
               className="text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
             >
-              <option value="6">6 Kartu / Lembar A4 (Grid 2x3 - Penuh & Pas)</option>
-              <option value="4">4 Kartu / Lembar A4 (Grid 2x2)</option>
-              <option value="2">2 Kartu / Lembar A4 (Besar)</option>
+              <option value="6">6 Kartu / Lembar F4 (Grid 2x3 - Pas & Rapi)</option>
+              <option value="4">4 Kartu / Lembar F4 (Grid 2x2)</option>
+              <option value="2">2 Kartu / Lembar F4 (Besar)</option>
             </select>
           </div>
 
@@ -175,7 +218,7 @@ export default function KartuPesertaPage() {
         </div>
       </div>
 
-      {/* Grid Kartu Peserta - Siap Cetak Kertas A4 */}
+      {/* Grid Kartu Peserta - Siap Cetak Kertas F4 */}
       {filteredPeserta.length === 0 ? (
         <div className="bg-white p-16 rounded-2xl border border-slate-200 text-center shadow-sm">
           <p className="font-bold text-slate-800 text-base">Belum Ada Data Kartu Peserta</p>
@@ -205,15 +248,15 @@ export default function KartuPesertaPage() {
                     key={peserta.id}
                     className={`card-item bg-white border-2 border-slate-800 rounded-lg ${isMode6 ? 'p-2' : 'p-3'} shadow-sm flex flex-col justify-between`}
                     style={{
-                      height: isMode6 ? '88mm' : layoutMode === '4' ? '112mm' : '118mm',
-                      maxHeight: isMode6 ? '89mm' : layoutMode === '4' ? '114mm' : '120mm',
+                      height: isMode6 ? '100mm' : layoutMode === '4' ? '150mm' : '150mm',
+                      maxHeight: isMode6 ? '101mm' : layoutMode === '4' ? '152mm' : '152mm',
                     }}
                   >
                     {/* Kop Kartu Peserta Resmi */}
                     <div className={`border-b-2 sm:border-b-4 border-double border-slate-900 ${isMode6 ? 'pb-1 mb-1' : 'pb-1.5 mb-2'}`}>
                       <div className="flex items-center justify-between gap-2 sm:gap-3 px-1">
                         {/* Logo Kiri: Pemda Kab. Tasikmalaya */}
-                        <div className={`${isMode6 ? 'w-[44px] h-[52px]' : 'w-[64px] h-[74px]'} flex-shrink-0 flex items-center justify-center`}>
+                        <div className={`${isMode6 ? 'w-[48px] h-[58px]' : 'w-[64px] h-[74px]'} flex-shrink-0 flex items-center justify-center`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl || '/images/logo-tasikmalaya.png'}
@@ -224,22 +267,22 @@ export default function KartuPesertaPage() {
 
                         {/* Teks Kop Tengah */}
                         <div className="flex-1 text-center leading-snug px-1">
-                          <h3 className={`${isMode6 ? 'text-[11px]' : 'text-[13px] sm:text-[14px]'} font-black tracking-tight text-slate-950 uppercase`}>
+                          <h3 className={`${isMode6 ? 'text-[11.5px]' : 'text-[13px] sm:text-[14px]'} font-black tracking-tight text-slate-950 uppercase`}>
                             KARTU PESERTA
                           </h3>
-                          <h4 className={`${isMode6 ? 'text-[10px]' : 'text-[12px] sm:text-[13px]'} font-black text-slate-900 uppercase`}>
+                          <h4 className={`${isMode6 ? 'text-[10.5px]' : 'text-[12px] sm:text-[13px]'} font-black text-slate-900 uppercase`}>
                             {schoolSettings.namaUjian}
                           </h4>
-                          <p className={`${isMode6 ? 'text-[9.5px]' : 'text-[11px] sm:text-[12px]'} font-black text-slate-900 uppercase`}>
+                          <p className={`${isMode6 ? 'text-[10px]' : 'text-[11px] sm:text-[12px]'} font-black text-slate-900 uppercase`}>
                             {schoolSettings.namaSekolah}
                           </p>
-                          <p className={`${isMode6 ? 'text-[8.5px]' : 'text-[10px] sm:text-[11px]'} font-extrabold text-slate-800 uppercase tracking-wide`}>
+                          <p className={`${isMode6 ? 'text-[9px]' : 'text-[10px] sm:text-[11px]'} font-extrabold text-slate-800 uppercase tracking-wide`}>
                             TAHUN PELAJARAN {schoolSettings.tahunAjaran}
                           </p>
                         </div>
 
                         {/* Logo Kanan: SMPN 1 Rajapolah */}
-                        <div className={`${isMode6 ? 'w-[44px] h-[52px]' : 'w-[64px] h-[74px]'} flex-shrink-0 flex items-center justify-center`}>
+                        <div className={`${isMode6 ? 'w-[48px] h-[58px]' : 'w-[64px] h-[74px]'} flex-shrink-0 flex items-center justify-center`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'}
@@ -253,7 +296,7 @@ export default function KartuPesertaPage() {
                     {/* Konten Utama: Foto & Biodata */}
                     <div className="flex gap-3 items-start my-0.5">
                       {/* Pas Foto Siswa 3x4 */}
-                      <div className={`${isMode6 ? 'w-[25mm] h-[33mm]' : 'w-[30mm] h-[40mm]'} border-2 border-slate-400 rounded bg-slate-50 flex-shrink-0 overflow-hidden flex flex-col items-center justify-center relative shadow-inner`}>
+                      <div className={`${isMode6 ? 'w-[26mm] h-[35mm]' : 'w-[32mm] h-[43mm]'} border-2 border-slate-400 rounded bg-slate-50 flex-shrink-0 overflow-hidden flex flex-col items-center justify-center relative shadow-inner`}>
                         {siswa?.foto_url ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
                           <img
@@ -271,19 +314,19 @@ export default function KartuPesertaPage() {
                         ) : null}
                         <div className={`fallback-foto text-center p-1 text-slate-400 flex flex-col items-center justify-center ${siswa?.foto_url ? 'hidden' : 'flex'}`}>
                           <ImageIcon className={`${isMode6 ? 'w-6 h-6' : 'w-8 h-8'} mx-auto stroke-1 text-slate-400`} />
-                          <span className={`${isMode6 ? 'text-[8px]' : 'text-[9px]'} font-medium block mt-0.5 text-slate-500`}>Foto 3x4</span>
+                          <span className={`${isMode6 ? 'text-[8.5px]' : 'text-[9px]'} font-medium block mt-0.5 text-slate-500`}>Foto 3x4</span>
                         </div>
-                        <span className={`absolute bottom-0.5 ${isMode6 ? 'text-[7.5px] px-1 py-0.2' : 'text-[8px] px-1.5 py-0.5'} bg-black/70 text-white rounded font-medium`}>
+                        <span className={`absolute bottom-0.5 ${isMode6 ? 'text-[8px] px-1.5 py-0.5' : 'text-[8.5px] px-2 py-0.5'} bg-black/70 text-white rounded font-medium`}>
                           {peserta.no_meja ? `Meja ${peserta.no_meja}` : 'Meja -'}
                         </span>
                       </div>
 
                       {/* Data Peserta */}
-                      <div className={`flex-1 ${isMode6 ? 'text-[9.5px] space-y-0.5' : 'text-[11px] space-y-1.5'} leading-tight`}>
+                      <div className={`flex-1 ${isMode6 ? 'text-[10px] space-y-0.5' : 'text-[11px] space-y-1.5'} leading-tight`}>
                         <div className="grid grid-cols-12 gap-1 pb-0.5 border-b border-dashed border-slate-300">
                           <span className="col-span-4 text-slate-600 font-medium">No. Peserta</span>
                           <span className="col-span-1">:</span>
-                          <span className={`col-span-7 font-black text-slate-950 font-mono tracking-wider ${isMode6 ? 'text-[11px]' : 'text-xs'}`}>
+                          <span className={`col-span-7 font-black text-slate-950 font-mono tracking-wider ${isMode6 ? 'text-[11.5px]' : 'text-xs'}`}>
                             {peserta.no_peserta}
                           </span>
                         </div>
@@ -331,7 +374,7 @@ export default function KartuPesertaPage() {
                     </div>
 
                     {/* Footer Kartu & Tanda Tangan */}
-                    <div className={`border-t-2 border-slate-800 ${isMode6 ? 'pt-1 mt-1 text-[8px]' : 'pt-1.5 mt-1.5 text-[9px]'} flex items-end justify-between`}>
+                    <div className={`border-t-2 border-slate-800 ${isMode6 ? 'pt-1 mt-1 text-[8.5px]' : 'pt-1.5 mt-1.5 text-[9px]'} flex items-end justify-between`}>
                       <div className="text-slate-600 space-y-0.5">
                         <div className="flex items-center gap-1.5">
                           <QrCode className={`${isMode6 ? 'w-6 h-6' : 'w-8 h-8'} text-slate-800`} />
@@ -343,27 +386,27 @@ export default function KartuPesertaPage() {
                       </div>
 
                       <div className={`text-center ${isMode6 ? 'min-w-[150px]' : 'min-w-[170px]'}`}>
-                        <p className={`${isMode6 ? 'text-[8px]' : 'text-[9px]'} text-slate-700 leading-tight`}>
+                        <p className={`${isMode6 ? 'text-[8.5px]' : 'text-[9px]'} text-slate-700 leading-tight`}>
                           {schoolSettings.kotaTtd}, {schoolSettings.tanggalTtd}
                         </p>
-                        <p className={`${isMode6 ? 'text-[8px]' : 'text-[9px]'} font-medium text-slate-800 leading-tight`}>
+                        <p className={`${isMode6 ? 'text-[8.5px]' : 'text-[9px]'} font-medium text-slate-800 leading-tight`}>
                           {schoolSettings.jabatanKepsek}
                         </p>
                         
                         {/* Tanda Tangan Asli */}
-                        <div className={`relative ${isMode6 ? 'h-7 my-0.5' : 'h-10 my-0.5'} flex items-center justify-center`}>
+                        <div className={`relative ${isMode6 ? 'h-8 my-0.5' : 'h-10 my-0.5'} flex items-center justify-center`}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={schoolSettings.ttdKepsekUrl || '/images/ttd-kepsek.png'}
                             alt="Tanda Tangan Kepala Sekolah"
-                            className={`${isMode6 ? 'max-h-7' : 'max-h-11'} w-auto object-contain select-none`}
+                            className={`${isMode6 ? 'max-h-8' : 'max-h-11'} w-auto object-contain select-none`}
                           />
                         </div>
 
-                        <p className={`font-bold text-slate-950 ${isMode6 ? 'text-[8.5px]' : 'text-[10px]'} leading-tight underline decoration-slate-900 underline-offset-2`}>
+                        <p className={`font-bold text-slate-950 ${isMode6 ? 'text-[9px]' : 'text-[10px]'} leading-tight underline decoration-slate-900 underline-offset-2`}>
                           {schoolSettings.namaKepsek}
                         </p>
-                        <p className={`${isMode6 ? 'text-[7.5px]' : 'text-[8.5px]'} font-bold text-slate-800 leading-tight mt-0.5`}>
+                        <p className={`${isMode6 ? 'text-[8px]' : 'text-[8.5px]'} font-bold text-slate-800 leading-tight mt-0.5`}>
                           NIP. {schoolSettings.nipKepsek}
                         </p>
                       </div>
