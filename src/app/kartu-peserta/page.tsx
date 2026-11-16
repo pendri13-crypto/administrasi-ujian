@@ -324,8 +324,6 @@ export default function KartuPesertaPage() {
                           <img
                             src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl || '/images/logo-tasikmalaya.png'}
                             alt="Logo Pemda"
-                            loading="lazy"
-                            decoding="async"
                             className="w-full h-full object-contain filter drop-shadow-sm select-none"
                           />
                         </div>
@@ -352,8 +350,6 @@ export default function KartuPesertaPage() {
                           <img
                             src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'}
                             alt="Logo Sekolah"
-                            loading="lazy"
-                            decoding="async"
                             className="w-full h-full object-contain filter drop-shadow-sm select-none"
                           />
                         </div>
@@ -369,23 +365,15 @@ export default function KartuPesertaPage() {
                           <img
                             src={siswa.foto_url}
                             alt={siswa.nama_lengkap}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover"
-                            referrerPolicy="no-referrer"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const parent = e.currentTarget.parentElement;
-                              const fb = parent?.querySelector('.fallback-foto');
-                              if (fb) (fb as HTMLElement).style.display = 'flex';
-                            }}
+                            className="w-full h-full object-cover block"
                           />
-                        ) : null}
-                        <div className={`fallback-foto text-center p-1 text-slate-400 flex flex-col items-center justify-center ${siswa?.foto_url ? 'hidden' : 'flex'}`}>
-                          <ImageIcon className={`${isMode6 ? 'w-6 h-6' : 'w-8 h-8'} mx-auto stroke-1 text-slate-400`} />
-                          <span className={`${isMode6 ? 'text-[8.5px]' : 'text-[9px]'} font-medium block mt-0.5 text-slate-500`}>Foto 3x4</span>
-                        </div>
-                        <span className={`absolute bottom-0.5 ${isMode6 ? 'text-[8px] px-1.5 py-0.5' : 'text-[8.5px] px-2 py-0.5'} bg-black/70 text-white rounded font-medium`}>
+                        ) : (
+                          <div className="fallback-foto text-center p-1 text-slate-400 flex flex-col items-center justify-center">
+                            <ImageIcon className={`${isMode6 ? 'w-6 h-6' : 'w-8 h-8'} mx-auto stroke-1 text-slate-400`} />
+                            <span className={`${isMode6 ? 'text-[8.5px]' : 'text-[9px]'} font-medium block mt-0.5 text-slate-500`}>Foto 3x4</span>
+                          </div>
+                        )}
+                        <span className={`absolute bottom-0.5 ${isMode6 ? 'text-[8px] px-1.5 py-0.5' : 'text-[8.5px] px-2 py-0.5'} bg-black/70 text-white rounded font-medium z-10`}>
                           {peserta.no_meja ? `Meja ${peserta.no_meja}` : 'Meja -'}
                         </span>
                       </div>
@@ -468,8 +456,6 @@ export default function KartuPesertaPage() {
                           <img
                             src={schoolSettings.ttdKepsekUrl || '/images/ttd-kepsek.png'}
                             alt="Tanda Tangan Kepala Sekolah"
-                            loading="lazy"
-                            decoding="async"
                             className={`${isMode6 ? 'max-h-8' : 'max-h-11'} w-auto object-contain select-none`}
                           />
                         </div>
