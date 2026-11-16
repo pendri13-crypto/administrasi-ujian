@@ -2,15 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { DEMO_PESERTA, DEMO_SISWA, DEMO_RUANG, DEMO_KELAS, generatePesertaFromSiswa } from '@/lib/demo-data';
-import { PesertaUjian, Siswa, Ruang } from '@/types/database';
-import { Printer, Filter } from 'lucide-react';
+import { PesertaUjian, Siswa, Ruang, Kelas } from '@/types/database';
+import { Printer, Filter, DoorOpen, GraduationCap } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 import { fetchSiswaFromCloud, fetchRuangFromCloud, getStoredRuang, fetchSplitRulesFromCloud } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function NomorMejaPage() {
+  const [filterMode, setFilterMode] = useState<'ruang' | 'kelas'>('ruang');
   const [selectedRuangId, setSelectedRuangId] = useState<string>('all');
+  const [selectedKelasId, setSelectedKelasId] = useState<string>('all');
   const [ruangList, setRuangList] = useState<Ruang[]>(getStoredRuang());
+  const [kelasList, setKelasList] = useState<Kelas[]>(DEMO_KELAS);
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
@@ -97,49 +100,123 @@ export default function NomorMejaPage() {
     };
   }, []);
 
-  const filteredPeserta = pesertaList.filter((p) => {
-    if (selectedRuangId === 'all') return true;
-    const rId = Number(selectedRuangId);
-    if (p.ruang_id === rId) return true;
-    if (p.ruang?.id === rId) return true;
-    const curR = ruangList.find(r => r.id === rId);
-    if (curR && p.ruang?.kode_ruang && curR.kode_ruang && p.ruang.kode_ruang.trim().toLowerCase() === curR.kode_ruang.trim().toLowerCase()) return true;
-    return false;
-  }).sort((a, b) => (a.no_meja || 0) - (b.no_meja || 0));
+  const filteredPeserta = pesertaList
+    .filter((p) => {
+      if (filterMode === 'ruang') {
+        if (selectedRuangId === 'all') return true;
+        const rId = Number(selectedRuangId);
+        if (p.ruang_id === rId) return true;
+        if (p.ruang?.id === rId) return true;
+        const curR = ruangList.find(r => r.id === rId);
+        if (curR && p.ruang?.kode_ruang && curR.kode_ruang && p.ruang.kode_ruang.trim().toLowerCase() === curR.kode_ruang.trim().toLowerCase()) return true;
+        return false;
+      } else {
+        if (selectedKelasId === 'all') return true;
+        const kId = Number(selectedKelasId);
+        const targetK = kelasList.find(k => k.id === kId);
+        return p.siswa?.kelas_id === kId ||
+          (targetK && p.siswa?.kelas?.nama_kelas?.toLowerCase() === targetK.nama_kelas.toLowerCase()) ||
+          (targetK && (p.siswa as any)?.nama_kelas?.toLowerCase() === targetK.nama_kelas.toLowerCase());
+      }
+    })
+    .sort((a, b) => {
+      if (filterMode === 'ruang') {
+        return (a.no_meja || 0) - (b.no_meja || 0);
+      } else {
+        return (a.no_meja || 0) - (b.no_meja || 0);
+      }
+    });
+
+  const activeLabelTitle = filterMode === 'ruang'
+    ? (selectedRuangId === 'all' ? 'Semua Ruangan' : (ruangList.find(r => r.id.toString() === selectedRuangId)?.kode_ruang || 'Ruang Terpilih'))
+    : (selectedKelasId === 'all' ? 'Semua Kelas' : (kelasList.find(k => k.id.toString() === selectedKelasId)?.nama_kelas || 'Kelas Terpilih'));
 
   return (
     <div className="space-y-6">
       {/* Control Bar (Hidden on print) */}
-      <div className="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900">Cetak Nomor Meja / Label Bangku</h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Label meja peserta ujian siap tempel (layout 8 label per lembar A4).
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-slate-400" />
-            <select
-              value={selectedRuangId}
-              onChange={(e) => setSelectedRuangId(e.target.value)}
-              className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Semua Ruang Ujian</option>
-              {ruangList.map((r) => (
-                <option key={r.id} value={r.id}>{r.kode_ruang} - {r.nama_ruang}</option>
-              ))}
-            </select>
+      <div className="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900">Cetak Nomor Meja / Label Bangku</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Label meja peserta ujian siap tempel (Kertas F4 / A4) &bull; Filter: <b>{activeLabelTitle}</b> &bull; Menampilkan {filteredPeserta.length} label meja.
+            </p>
           </div>
 
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
-          >
-            <Printer className="w-4 h-4" />
-            Cetak Label Meja
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Mode Switch: Per Ruangan vs Per Kelas */}
+            <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterMode('ruang');
+                  setSelectedKelasId('all');
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  filterMode === 'ruang'
+                    ? 'bg-white text-blue-600 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <DoorOpen className="w-3.5 h-3.5" />
+                Per Ruangan
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterMode('kelas');
+                  setSelectedRuangId('all');
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  filterMode === 'kelas'
+                    ? 'bg-white text-purple-600 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <GraduationCap className="w-3.5 h-3.5" />
+                Per Kelas
+              </button>
+            </div>
+
+            {/* Filter Dropdown sesuai mode */}
+            {filterMode === 'ruang' ? (
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-slate-400" />
+                <select
+                  value={selectedRuangId}
+                  onChange={(e) => setSelectedRuangId(e.target.value)}
+                  className="text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
+                >
+                  <option value="all">Semua Ruang Ujian ({ruangList.length} Ruangan)</option>
+                  {ruangList.map((r) => (
+                    <option key={r.id} value={r.id}>{r.kode_ruang} - {r.nama_ruang}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-purple-400" />
+                <select
+                  value={selectedKelasId}
+                  onChange={(e) => setSelectedKelasId(e.target.value)}
+                  className="text-xs font-semibold border border-purple-300 rounded-lg px-3 py-2 bg-white text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-xs"
+                >
+                  <option value="all">Semua Kelas ({kelasList.length} Kelas)</option>
+                  {kelasList.map((k) => (
+                    <option key={k.id} value={k.id}>{k.nama_kelas}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
+            >
+              <Printer className="w-4 h-4" />
+              Cetak Label Meja
+            </button>
+          </div>
         </div>
       </div>
 

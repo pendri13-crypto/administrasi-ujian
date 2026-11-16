@@ -9,8 +9,8 @@ import {
   DEMO_JADWAL, 
   generatePesertaFromSiswa
 } from '@/lib/demo-data';
-import { PesertaUjian, Siswa, Ruang, JadwalUjian, Mapel } from '@/types/database';
-import { Printer, DoorOpen, Calendar, Clock, Layers } from 'lucide-react';
+import { PesertaUjian, Siswa, Ruang, JadwalUjian, Mapel, Kelas } from '@/types/database';
+import { Printer, DoorOpen, Calendar, Clock, Layers, GraduationCap } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 import { 
   fetchSiswaFromCloud, 
@@ -24,7 +24,10 @@ import {
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function DaftarHadirPage() {
+  const [filterMode, setFilterMode] = useState<'ruang' | 'kelas'>('ruang');
   const [selectedRuangId, setSelectedRuangId] = useState<number>(1);
+  const [selectedKelasId, setSelectedKelasId] = useState<number>(1);
+  const [kelasList, setKelasList] = useState<Kelas[]>(DEMO_KELAS);
   const [selectedJadwalId, setSelectedJadwalId] = useState<number | null>(null);
   const [selectedSesiMode, setSelectedSesiMode] = useState<string>('auto'); // 'auto', '1', '2'
   const [ruangList, setRuangList] = useState<Ruang[]>(getStoredRuang());
@@ -216,87 +219,150 @@ export default function DaftarHadirPage() {
   // Ruangan yang sedang dipilih
   const currentRuang = ruangList.find(r => r.id === selectedRuangId) || ruangList[0] || DEMO_RUANG[0];
 
-  // Peserta yang ditempatkan di ruang ini
+  // Kelas yang sedang dipilih
+  const currentKelas = kelasList.find(k => k.id === selectedKelasId) || kelasList[0] || DEMO_KELAS[0];
+
+  // Peserta yang ditampilkan (Per Ruang atau Per Kelas)
   const pesertaRuang = pesertaList
     .filter(p => {
-      if (p.ruang_id === selectedRuangId) return true;
-      if (currentRuang && p.ruang?.id === currentRuang.id) return true;
-      if (currentRuang && p.ruang?.kode_ruang && currentRuang.kode_ruang && p.ruang.kode_ruang.trim().toLowerCase() === currentRuang.kode_ruang.trim().toLowerCase()) return true;
-      const rNumP = Number(p.ruang?.kode_ruang?.replace(/\D/g, ''));
-      const rNumC = Number(currentRuang?.kode_ruang?.replace(/\D/g, ''));
-      if (rNumP && rNumC && rNumP === rNumC) return true;
-      return false;
+      if (filterMode === 'ruang') {
+        if (p.ruang_id === selectedRuangId) return true;
+        if (currentRuang && p.ruang?.id === currentRuang.id) return true;
+        if (currentRuang && p.ruang?.kode_ruang && currentRuang.kode_ruang && p.ruang.kode_ruang.trim().toLowerCase() === currentRuang.kode_ruang.trim().toLowerCase()) return true;
+        const rNumP = Number(p.ruang?.kode_ruang?.replace(/\D/g, ''));
+        const rNumC = Number(currentRuang?.kode_ruang?.replace(/\D/g, ''));
+        if (rNumP && rNumC && rNumP === rNumC) return true;
+        return false;
+      } else {
+        const targetK = currentKelas;
+        return p.siswa?.kelas_id === selectedKelasId ||
+          (targetK && p.siswa?.kelas?.nama_kelas?.toLowerCase() === targetK.nama_kelas.toLowerCase()) ||
+          (targetK && (p.siswa as any)?.nama_kelas?.toLowerCase() === targetK.nama_kelas.toLowerCase());
+      }
     })
-    .sort((a, b) => (a.no_meja || 0) - (b.no_meja || 0));
+    .sort((a, b) => {
+      if (filterMode === 'ruang') {
+        return (a.no_meja || 0) - (b.no_meja || 0);
+      } else {
+        return (a.no_meja || 0) - (b.no_meja || 0);
+      }
+    });
 
   return (
     <div className="space-y-6">
       {/* Control Bar (Hidden on print) */}
-      <div className="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900">Daftar Hadir Per Ruang Ujian</h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Waktu, sesi, dan mata pelajaran otomatis sinkron dengan Manajemen Jadwal Ujian.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Pilih Ruangan */}
-          <div className="flex items-center gap-2">
-            <DoorOpen className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-            <select
-              value={selectedRuangId}
-              onChange={(e) => setSelectedRuangId(Number(e.target.value))}
-              className="text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              {ruangList.map((r) => (
-                <option key={r.id} value={r.id}>{r.kode_ruang} - {r.nama_ruang}</option>
-              ))}
-            </select>
+      <div className="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900">
+              {filterMode === 'ruang' ? 'Daftar Hadir Per Ruang Ujian' : `Daftar Hadir Per Rombel Kelas (${currentKelas.nama_kelas})`}
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Mode: <b>{filterMode === 'ruang' ? `Ruang ${currentRuang.kode_ruang}` : `Kelas ${currentKelas.nama_kelas}`}</b> &bull; Waktu, sesi, dan mata pelajaran otomatis sinkron dengan Jadwal Ujian.
+            </p>
           </div>
 
-          {/* Pilih Jadwal Ujian (Sinkron Waktu, Tanggal, & Mapel) */}
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-amber-500 flex-shrink-0" />
-            <select
-              value={currentJadwal?.id || ''}
-              onChange={(e) => setSelectedJadwalId(Number(e.target.value))}
-              className="text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 max-w-[280px] sm:max-w-xs truncate"
-            >
-              {sortedJadwalList.map((j) => {
-                const mapelObj = mapelList.find(m => m.id === j.mapel_id) || j.mapel || DEMO_MAPEL.find(m => m.id === j.mapel_id);
-                const s = (j.sesi === 2 || (j.jam_mulai && j.jam_mulai.slice(0, 5) >= '09:45')) ? 2 : 1;
-                return (
-                  <option key={j.id} value={j.id}>
-                    {j.tanggal} • Sesi {s} • {mapelObj?.nama_mapel || 'Mapel'} ({j.jam_mulai.slice(0, 5)}-{j.jam_selesai.slice(0, 5)})
-                  </option>
-                );
-              })}
-            </select>
-          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Mode Switch: Per Ruangan vs Per Kelas */}
+            <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setFilterMode('ruang')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  filterMode === 'ruang'
+                    ? 'bg-white text-indigo-600 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <DoorOpen className="w-3.5 h-3.5" />
+                Per Ruangan
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode('kelas')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  filterMode === 'kelas'
+                    ? 'bg-white text-purple-600 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <GraduationCap className="w-3.5 h-3.5" />
+                Per Kelas
+              </button>
+            </div>
 
-          {/* Opsi Sesi (Auto dari Jadwal atau Pilihan Manual) */}
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
-            <select
-              value={selectedSesiMode}
-              onChange={(e) => setSelectedSesiMode(e.target.value)}
-              className="text-xs font-semibold border border-slate-300 rounded-lg px-2.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="auto">Sesi {autoSesi} (Otomatis)</option>
-              <option value="1">Sesi 1</option>
-              <option value="2">Sesi 2</option>
-            </select>
-          </div>
+            {/* Dropdown sesuai mode */}
+            {filterMode === 'ruang' ? (
+              <div className="flex items-center gap-2">
+                <DoorOpen className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                <select
+                  value={selectedRuangId}
+                  onChange={(e) => setSelectedRuangId(Number(e.target.value))}
+                  className="text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {ruangList.map((r) => (
+                    <option key={r.id} value={r.id}>{r.kode_ruang} - {r.nama_ruang}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                <select
+                  value={selectedKelasId}
+                  onChange={(e) => setSelectedKelasId(Number(e.target.value))}
+                  className="text-xs font-semibold border border-purple-300 rounded-lg px-3 py-2 bg-white text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-xs"
+                >
+                  {kelasList.map((k) => (
+                    <option key={k.id} value={k.id}>{k.nama_kelas}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-          {/* Tombol Cetak Dokumen */}
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
-          >
-            <Printer className="w-4 h-4" />
-            Cetak Daftar Hadir
-          </button>
+            {/* Pilih Jadwal Ujian (Sinkron Waktu, Tanggal, & Mapel) */}
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-amber-500 flex-shrink-0" />
+              <select
+                value={currentJadwal?.id || ''}
+                onChange={(e) => setSelectedJadwalId(Number(e.target.value))}
+                className="text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 max-w-[280px] sm:max-w-xs truncate"
+              >
+                {sortedJadwalList.map((j) => {
+                  const mapelObj = mapelList.find(m => m.id === j.mapel_id) || j.mapel || DEMO_MAPEL.find(m => m.id === j.mapel_id);
+                  const s = (j.sesi === 2 || (j.jam_mulai && j.jam_mulai.slice(0, 5) >= '09:45')) ? 2 : 1;
+                  return (
+                    <option key={j.id} value={j.id}>
+                      {j.tanggal} • Sesi {s} • {mapelObj?.nama_mapel || 'Mapel'} ({j.jam_mulai.slice(0, 5)}-{j.jam_selesai.slice(0, 5)})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Opsi Sesi (Auto dari Jadwal atau Pilihan Manual) */}
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <select
+                value={selectedSesiMode}
+                onChange={(e) => setSelectedSesiMode(e.target.value)}
+                className="text-xs font-semibold border border-slate-300 rounded-lg px-2.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="auto">Sesi {autoSesi} (Otomatis)</option>
+                <option value="1">Sesi 1</option>
+                <option value="2">Sesi 2</option>
+              </select>
+            </div>
+
+            {/* Tombol Cetak Dokumen */}
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
+            >
+              <Printer className="w-4 h-4" />
+              Cetak Daftar Hadir
+            </button>
+          </div>
         </div>
       </div>
 
@@ -309,7 +375,7 @@ export default function DaftarHadirPage() {
             PANITIA PELAKSANA ASESMEN DAN UJIAN • {schoolSettings.namaSekolah}
           </p>
           <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 uppercase">
-            DAFTAR HADIR PESERTA UJIAN
+            DAFTAR HADIR PESERTA UJIAN {filterMode === 'kelas' ? `(KELAS ${currentKelas.nama_kelas})` : ''}
           </h2>
           <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">
             {schoolSettings.namaUjian} • TAHUN PELAJARAN {schoolSettings.tahunAjaran}
@@ -320,9 +386,14 @@ export default function DaftarHadirPage() {
         <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-900 mb-4 pb-3 border-b border-dashed border-slate-400">
           <div className="space-y-1">
             <div className="grid grid-cols-12">
-              <span className="col-span-4 font-semibold text-slate-600">Ruangan</span>
+              <span className="col-span-4 font-semibold text-slate-600">{filterMode === 'ruang' ? 'Ruangan' : 'Rombel Kelas'}</span>
               <span className="col-span-1">:</span>
-              <span className="col-span-7 font-bold">{currentRuang.kode_ruang} ({currentRuang.nama_ruang})</span>
+              <span className="col-span-7 font-bold">
+                {filterMode === 'ruang' 
+                  ? `${currentRuang.kode_ruang} (${currentRuang.nama_ruang})`
+                  : `Kelas ${currentKelas.nama_kelas}`
+                }
+              </span>
             </div>
             <div className="grid grid-cols-12">
               <span className="col-span-4 font-semibold text-slate-600">Mata Pelajaran</span>
@@ -348,9 +419,9 @@ export default function DaftarHadirPage() {
               <span className="col-span-7 font-medium">{displayWaktu}</span>
             </div>
             <div className="grid grid-cols-12">
-              <span className="col-span-4 font-semibold text-slate-600">Kapasitas Ruang</span>
+              <span className="col-span-4 font-semibold text-slate-600">Jumlah Peserta</span>
               <span className="col-span-1">:</span>
-              <span className="col-span-7 font-medium">{pesertaRuang.length} / {currentRuang.kapasitas} Peserta</span>
+              <span className="col-span-7 font-medium">{pesertaRuang.length} {filterMode === 'ruang' ? `/ ${currentRuang.kapasitas}` : ''} Peserta</span>
             </div>
           </div>
         </div>
