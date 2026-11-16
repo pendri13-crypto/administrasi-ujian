@@ -14,6 +14,7 @@ import { Printer, DoorOpen, Calendar, Clock, Layers } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 import { 
   fetchSiswaFromCloud, 
+  fetchRuangFromCloud,
   getStoredRuang, 
   getStoredJadwal, 
   getStoredMapel, 
@@ -30,6 +31,7 @@ export default function DaftarHadirPage() {
   const [jadwalList, setJadwalList] = useState<JadwalUjian[]>(getStoredJadwal());
   const [mapelList, setMapelList] = useState<Mapel[]>(getStoredMapel());
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
   // 1. Sinkronisasi Pengaturan Sekolah (Kop Dokumen)
@@ -49,6 +51,15 @@ export default function DaftarHadirPage() {
     };
     updateRuang();
     window.addEventListener('ruang-data-updated', updateRuang);
+
+    if (isSupabaseConfigured) {
+      fetchRuangFromCloud().then(cloudRuang => {
+        if (cloudRuang && cloudRuang.length > 0) {
+          setRuangList(cloudRuang);
+        }
+      });
+    }
+
     return () => window.removeEventListener('ruang-data-updated', updateRuang);
   }, []);
 
@@ -86,24 +97,30 @@ export default function DaftarHadirPage() {
         if (saved) {
           const parsedSiswa: Siswa[] = JSON.parse(saved);
           if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
-            if (parsedSiswa.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
-              localStorage.removeItem('adm_siswa_data');
-              setPesertaList([]);
-              return;
-            }
             setPesertaList(generatePesertaFromSiswa(parsedSiswa, currentStoredRuang));
+            setIsLoading(false);
           }
         }
         if (isSupabaseConfigured) {
-          fetchSplitRulesFromCloud().then(rules => {
-            fetchSiswaFromCloud().then(cloudSiswa => {
-              if (cloudSiswa && cloudSiswa.length > 0) {
-                setPesertaList(generatePesertaFromSiswa(cloudSiswa, currentStoredRuang, rules || undefined));
-              }
-            });
+          Promise.all([
+            fetchRuangFromCloud(),
+            fetchSplitRulesFromCloud(),
+            fetchSiswaFromCloud()
+          ]).then(([cloudRuang, rules, cloudSiswa]) => {
+            const activeRuang = (cloudRuang && cloudRuang.length > 0) ? cloudRuang : (currentStoredRuang.length > 0 ? currentStoredRuang : getStoredRuang());
+            if (cloudRuang && cloudRuang.length > 0) {
+              setRuangList(cloudRuang);
+            }
+            if (cloudSiswa && cloudSiswa.length > 0) {
+              setPesertaList(generatePesertaFromSiswa(cloudSiswa, activeRuang, rules || undefined));
+            }
+            setIsLoading(false);
+          }).catch(() => {
+            setIsLoading(false);
           });
+        } else {
+          setIsLoading(false);
         }
-        setPesertaList([]);
       } catch (e) {
         console.error(e);
       }
@@ -111,7 +128,11 @@ export default function DaftarHadirPage() {
 
     syncData();
     window.addEventListener('storage', syncData);
-    return () => window.removeEventListener('storage', syncData);
+    window.addEventListener('siswa-data-updated', syncData);
+    return () => {
+      window.removeEventListener('storage', syncData);
+      window.removeEventListener('siswa-data-updated', syncData);
+    };
   }, []);
 
   // Format Hari dan Tanggal Indonesia resmi
@@ -183,7 +204,15 @@ export default function DaftarHadirPage() {
 
   // Peserta yang ditempatkan di ruang ini
   const pesertaRuang = pesertaList
-    .filter(p => p.ruang_id === selectedRuangId)
+    .filter(p => {
+      if (p.ruang_id === selectedRuangId) return true;
+      if (currentRuang && p.ruang?.id === currentRuang.id) return true;
+      if (currentRuang && p.ruang?.kode_ruang && currentRuang.kode_ruang && p.ruang.kode_ruang.trim().toLowerCase() === currentRuang.kode_ruang.trim().toLowerCase()) return true;
+      const rNumP = Number(p.ruang?.kode_ruang?.replace(/\D/g, ''));
+      const rNumC = Number(currentRuang?.kode_ruang?.replace(/\D/g, ''));
+      if (rNumP && rNumC && rNumP === rNumC) return true;
+      return false;
+    })
     .sort((a, b) => (a.no_meja || 0) - (b.no_meja || 0));
 
   return (
@@ -332,8 +361,15 @@ export default function DaftarHadirPage() {
             <tbody>
               {pesertaRuang.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="border border-slate-400 py-10 text-center text-slate-400 italic">
-                    Belum ada peserta ujian di ruangan ini. Silakan masukkan atau impor data siswa pada menu <b>Data Siswa</b>.
+                  <td colSpan={9} className="border border-slate-400 py-10 text-center text-slate-500 italic">
+                    {isLoading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="inline-block w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+                        Sedang memuat data peserta ujian...
+                      </span>
+                    ) : (
+                      'Belum ada peserta ujian di ruangan ini. Silakan masukkan atau impor data siswa pada menu Data Siswa.'
+                    )}
                   </td>
                 </tr>
               )}

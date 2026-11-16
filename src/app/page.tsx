@@ -41,11 +41,6 @@ export default function Dashboard() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          if (parsed.some((s: { nama_lengkap?: string; id?: number }) => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
-            localStorage.removeItem('adm_siswa_data');
-            setTotalSiswa(0);
-            return;
-          }
           setTotalSiswa(parsed.length);
         }
       }
@@ -56,7 +51,6 @@ export default function Dashboard() {
           }
         });
       }
-      setTotalSiswa(0);
     } catch (e) {
       console.error(e);
     }

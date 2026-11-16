@@ -112,14 +112,8 @@ export default function SiswaPage() {
       if (saved) {
         const parsed: Siswa[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Bersihkan data dummy bawaan lama jika masih tersimpan di cache
-          if (parsed.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
-            localStorage.removeItem('adm_siswa_data');
-            setSiswaList([]);
-          } else {
-            setSiswaList(parsed);
-            hasLocal = true;
-          }
+          setSiswaList(parsed);
+          hasLocal = true;
         }
       }
     } catch (e) {

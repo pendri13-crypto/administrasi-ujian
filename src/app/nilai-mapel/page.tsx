@@ -30,12 +30,7 @@ export default function NilaiMapelPage() {
       if (saved) {
         const parsed: Siswa[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          if (parsed.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
-            localStorage.removeItem('adm_siswa_data');
-            setAllSiswa([]);
-          } else {
-            setAllSiswa(parsed);
-          }
+          setAllSiswa(parsed);
         }
       }
 

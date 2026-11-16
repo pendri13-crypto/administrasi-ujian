@@ -529,10 +529,6 @@ export function getStoredSiswa(): Siswa[] {
     if (raw) {
       const parsed: Siswa[] = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        if (parsed.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
-          localStorage.removeItem(SISWA_STORAGE_KEY);
-          return [];
-        }
         return parsed.map(s => {
           const kId = Number(s.kelas_id) || 1;
           if (!s.kelas && s.kelas_id) {

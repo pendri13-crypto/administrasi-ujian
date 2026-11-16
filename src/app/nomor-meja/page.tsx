@@ -5,7 +5,7 @@ import { DEMO_PESERTA, DEMO_SISWA, DEMO_RUANG, DEMO_KELAS, generatePesertaFromSi
 import { PesertaUjian, Siswa, Ruang } from '@/types/database';
 import { Printer, Filter } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
-import { fetchSiswaFromCloud, getStoredRuang, fetchSplitRulesFromCloud } from '@/lib/data-service';
+import { fetchSiswaFromCloud, fetchRuangFromCloud, getStoredRuang, fetchSplitRulesFromCloud } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function NomorMejaPage() {
@@ -29,6 +29,15 @@ export default function NomorMejaPage() {
     };
     updateRuang();
     window.addEventListener('ruang-data-updated', updateRuang);
+
+    if (isSupabaseConfigured) {
+      fetchRuangFromCloud().then(cloudRuang => {
+        if (cloudRuang && cloudRuang.length > 0) {
+          setRuangList(cloudRuang);
+        }
+      });
+    }
+
     return () => window.removeEventListener('ruang-data-updated', updateRuang);
   }, []);
 
@@ -40,24 +49,24 @@ export default function NomorMejaPage() {
         if (saved) {
           const parsedSiswa: Siswa[] = JSON.parse(saved);
           if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
-            if (parsedSiswa.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
-              localStorage.removeItem('adm_siswa_data');
-              setPesertaList([]);
-              return;
-            }
             setPesertaList(generatePesertaFromSiswa(parsedSiswa, currentStoredRuang));
           }
         }
         if (isSupabaseConfigured) {
-          fetchSplitRulesFromCloud().then(rules => {
-            fetchSiswaFromCloud().then(cloudSiswa => {
-              if (cloudSiswa && cloudSiswa.length > 0) {
-                setPesertaList(generatePesertaFromSiswa(cloudSiswa, currentStoredRuang, rules || undefined));
-              }
-            });
+          Promise.all([
+            fetchRuangFromCloud(),
+            fetchSplitRulesFromCloud(),
+            fetchSiswaFromCloud()
+          ]).then(([cloudRuang, rules, cloudSiswa]) => {
+            const activeRuang = (cloudRuang && cloudRuang.length > 0) ? cloudRuang : (currentStoredRuang.length > 0 ? currentStoredRuang : getStoredRuang());
+            if (cloudRuang && cloudRuang.length > 0) {
+              setRuangList(cloudRuang);
+            }
+            if (cloudSiswa && cloudSiswa.length > 0) {
+              setPesertaList(generatePesertaFromSiswa(cloudSiswa, activeRuang, rules || undefined));
+            }
           });
         }
-        setPesertaList([]);
       } catch (e) {
         console.error(e);
       }
@@ -65,11 +74,21 @@ export default function NomorMejaPage() {
 
     syncData();
     window.addEventListener('storage', syncData);
-    return () => window.removeEventListener('storage', syncData);
+    window.addEventListener('siswa-data-updated', syncData);
+    return () => {
+      window.removeEventListener('storage', syncData);
+      window.removeEventListener('siswa-data-updated', syncData);
+    };
   }, []);
 
   const filteredPeserta = pesertaList.filter((p) => {
-    return selectedRuangId === 'all' || p.ruang_id?.toString() === selectedRuangId;
+    if (selectedRuangId === 'all') return true;
+    const rId = Number(selectedRuangId);
+    if (p.ruang_id === rId) return true;
+    if (p.ruang?.id === rId) return true;
+    const curR = ruangList.find(r => r.id === rId);
+    if (curR && p.ruang?.kode_ruang && curR.kode_ruang && p.ruang.kode_ruang.trim().toLowerCase() === curR.kode_ruang.trim().toLowerCase()) return true;
+    return false;
   }).sort((a, b) => (a.no_meja || 0) - (b.no_meja || 0));
 
   return (

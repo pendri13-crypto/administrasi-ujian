@@ -5,7 +5,7 @@ import { DEMO_PESERTA, DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, generatePesertaFromSi
 import { PesertaUjian, Siswa } from '@/types/database';
 import { Printer, Filter, Image as ImageIcon, QrCode } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
-import { fetchSiswaFromCloud, getStoredRuang, fetchSplitRulesFromCloud } from '@/lib/data-service';
+import { fetchSiswaFromCloud, fetchRuangFromCloud, getStoredRuang, fetchSplitRulesFromCloud } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function KartuPesertaPage() {
@@ -32,6 +32,15 @@ export default function KartuPesertaPage() {
     };
     updateRuang();
     window.addEventListener('ruang-data-updated', updateRuang);
+
+    if (isSupabaseConfigured) {
+      fetchRuangFromCloud().then(cloudRuang => {
+        if (cloudRuang && cloudRuang.length > 0) {
+          setRuangList(cloudRuang);
+        }
+      });
+    }
+
     return () => window.removeEventListener('ruang-data-updated', updateRuang);
   }, []);
 
@@ -43,27 +52,26 @@ export default function KartuPesertaPage() {
         if (saved) {
           const parsedSiswa: Siswa[] = JSON.parse(saved);
           if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
-            // Bersihkan data dummy bawaan lama jika masih tersimpan di cache
-            if (parsedSiswa.some(s => s.nama_lengkap === 'ADELFIO PRADITYA PUTRA' && s.id === 1)) {
-              localStorage.removeItem('adm_siswa_data');
-              setPesertaList([]);
-              return;
-            }
             setPesertaList(generatePesertaFromSiswa(parsedSiswa, storedRuang));
           }
         }
         
         // Tarik otomatis data mapping split rules & data siswa lengkap dari Supabase Cloud
         if (isSupabaseConfigured) {
-          fetchSplitRulesFromCloud().then(rules => {
-            fetchSiswaFromCloud().then(cloudSiswa => {
-              if (cloudSiswa && cloudSiswa.length > 0) {
-                setPesertaList(generatePesertaFromSiswa(cloudSiswa, storedRuang, rules || undefined));
-              }
-            });
+          Promise.all([
+            fetchRuangFromCloud(),
+            fetchSplitRulesFromCloud(),
+            fetchSiswaFromCloud()
+          ]).then(([cloudRuang, rules, cloudSiswa]) => {
+            const activeRuang = (cloudRuang && cloudRuang.length > 0) ? cloudRuang : (storedRuang.length > 0 ? storedRuang : getStoredRuang());
+            if (cloudRuang && cloudRuang.length > 0) {
+              setRuangList(cloudRuang);
+            }
+            if (cloudSiswa && cloudSiswa.length > 0) {
+              setPesertaList(generatePesertaFromSiswa(cloudSiswa, activeRuang, rules || undefined));
+            }
           });
         }
-        setPesertaList([]);
       } catch (e) {
         console.error('Gagal memuat foto & data siswa tersimpan:', e);
       }
@@ -71,13 +79,22 @@ export default function KartuPesertaPage() {
 
     syncData();
     window.addEventListener('storage', syncData);
-    return () => window.removeEventListener('storage', syncData);
+    window.addEventListener('siswa-data-updated', syncData);
+    return () => {
+      window.removeEventListener('storage', syncData);
+      window.removeEventListener('siswa-data-updated', syncData);
+    };
   }, []);
 
   const filteredPeserta = pesertaList
     .filter((p) => {
       const matchKelas = selectedKelas === 'all' || p.siswa?.kelas_id.toString() === selectedKelas;
-      const matchRuang = selectedRuang === 'all' || p.ruang_id?.toString() === selectedRuang;
+      let matchRuang = selectedRuang === 'all';
+      if (!matchRuang) {
+        const targetR = ruangList.find(r => r.id.toString() === selectedRuang);
+        matchRuang = p.ruang_id?.toString() === selectedRuang ||
+          (targetR ? (p.ruang?.id === targetR.id || p.ruang?.kode_ruang === targetR.kode_ruang) : false);
+      }
       return matchKelas && matchRuang;
     })
     .sort((a, b) => {
