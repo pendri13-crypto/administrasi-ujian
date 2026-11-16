@@ -13,7 +13,8 @@ import {
   LogOut,
   UserCheck,
   Settings,
-  DoorOpen
+  DoorOpen,
+  Calendar
 } from 'lucide-react';
 import { getStoredUser, clearUserSession, isAdmin, AuthUser } from '@/lib/auth';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
@@ -195,6 +196,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <DoorOpen className="w-4 h-4 text-teal-600" />
                     Ruang
+                  </Link>
+                  <Link
+                    href="/jadwal"
+                    className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
+                      pathname === '/jadwal' 
+                        ? 'text-amber-600 bg-amber-50 font-bold' 
+                        : 'text-slate-700 hover:text-amber-600 hover:bg-amber-50'
+                    }`}
+                    title="Kelola Jadwal Ujian (Khusus Role Admin)"
+                  >
+                    <Calendar className="w-4 h-4 text-amber-600" />
+                    Jadwal
                   </Link>
                   <Link
                     href="/pengaturan"

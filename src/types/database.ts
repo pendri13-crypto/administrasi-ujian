@@ -54,6 +54,7 @@ export interface JadwalUjian {
   tanggal: string;
   jam_mulai: string;
   jam_selesai: string;
+  sesi?: number;
   mapel?: Mapel;
 }
 

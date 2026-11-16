@@ -1,12 +1,14 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { Siswa, NilaiUjian, PesertaUjian, Ruang, SplitGroupRule } from '@/types/database';
+import { Siswa, NilaiUjian, PesertaUjian, Ruang, SplitGroupRule, JadwalUjian, Mapel } from '@/types/database';
 import { SchoolSettings, getStoredSchoolSettings, saveStoredSchoolSettings } from './school-settings';
-import { DEMO_KELAS, DEMO_RUANG } from './demo-data';
+import { DEMO_KELAS, DEMO_RUANG, DEMO_MAPEL, DEMO_JADWAL } from './demo-data';
 
 const SISWA_STORAGE_KEY = 'adm_siswa_data';
 const NILAI_STORAGE_KEY = 'adm_nilai_data';
 const RUANG_STORAGE_KEY = 'adm_ruang_data';
 const SPLIT_RULES_STORAGE_KEY = 'adm_split_rules';
+const JADWAL_STORAGE_KEY = 'adm_jadwal_data';
+const MAPEL_STORAGE_KEY = 'adm_mapel_data';
 
 /**
  * Mengambil aturan split & mapping ruang siswa dari localStorage
@@ -160,6 +162,161 @@ export async function deleteRuangFromCloud(id: number): Promise<{ success: boole
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Gagal menghapus ruang' };
+  }
+}
+
+/**
+ * Mengambil data master mapel dari localStorage atau default
+ */
+export function getStoredMapel(): Mapel[] {
+  if (typeof window === 'undefined') return DEMO_MAPEL;
+  try {
+    const raw = localStorage.getItem(MAPEL_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Error reading mapel from localStorage:', e);
+  }
+  return DEMO_MAPEL;
+}
+
+/**
+ * Menyimpan data master mapel ke localStorage
+ */
+export function saveStoredMapel(mapelList: Mapel[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(MAPEL_STORAGE_KEY, JSON.stringify(mapelList));
+  window.dispatchEvent(new Event('mapel-data-updated'));
+}
+
+/**
+ * Mengambil data jadwal ujian dari localStorage atau default
+ */
+export function getStoredJadwal(): JadwalUjian[] {
+  if (typeof window === 'undefined') return DEMO_JADWAL;
+  try {
+    const raw = localStorage.getItem(JADWAL_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Error reading jadwal from localStorage:', e);
+  }
+  return DEMO_JADWAL;
+}
+
+/**
+ * Menyimpan data jadwal ujian ke localStorage dan trigger event
+ */
+export function saveStoredJadwal(jadwalList: JadwalUjian[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(JADWAL_STORAGE_KEY, JSON.stringify(jadwalList));
+  window.dispatchEvent(new Event('jadwal-data-updated'));
+  window.dispatchEvent(new Event('storage'));
+}
+
+/**
+ * Mengambil data jadwal ujian dari Supabase Cloud
+ */
+export async function fetchJadwalFromCloud(): Promise<JadwalUjian[] | null> {
+  if (!supabase || !isSupabaseConfigured) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('jadwal_ujian')
+      .select('id, ujian_id, mapel_id, tanggal, jam_mulai, jam_selesai, mapel(id, kode_mapel, nama_mapel, kkm)')
+      .order('tanggal', { ascending: true })
+      .order('jam_mulai', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching jadwal from Supabase:', error);
+      return null;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      const formatted: JadwalUjian[] = data.map((item: any) => {
+        let mapelObj = item.mapel;
+        if (!mapelObj && item.mapel_id) {
+          mapelObj = DEMO_MAPEL.find(m => m.id === item.mapel_id);
+        }
+        return {
+          id: item.id,
+          ujian_id: item.ujian_id || 1,
+          mapel_id: item.mapel_id,
+          tanggal: String(item.tanggal || ''),
+          jam_mulai: String(item.jam_mulai || '').slice(0, 5),
+          jam_selesai: String(item.jam_selesai || '').slice(0, 5),
+          sesi: item.sesi || 1,
+          mapel: mapelObj
+        };
+      });
+
+      if (typeof window !== 'undefined' && formatted.length > 0) {
+        localStorage.setItem(JADWAL_STORAGE_KEY, JSON.stringify(formatted));
+        window.dispatchEvent(new Event('jadwal-data-updated'));
+      }
+      return formatted;
+    }
+    return null;
+  } catch (err) {
+    console.error('Fetch jadwal exception:', err);
+    return null;
+  }
+}
+
+/**
+ * Menyimpan daftar jadwal ujian ke Supabase Cloud
+ */
+export async function pushJadwalToCloud(jadwalList: JadwalUjian[]): Promise<{ success: boolean; count: number; error?: string }> {
+  if (!supabase || !isSupabaseConfigured) {
+    return { success: false, count: 0, error: 'Koneksi Supabase belum terkonfigurasi' };
+  }
+  if (jadwalList.length === 0) return { success: true, count: 0 };
+
+  try {
+    const payload = jadwalList.map(j => ({
+      id: j.id,
+      ujian_id: j.ujian_id || 1,
+      mapel_id: j.mapel_id,
+      tanggal: j.tanggal,
+      jam_mulai: j.jam_mulai.length === 5 ? `${j.jam_mulai}:00` : j.jam_mulai,
+      jam_selesai: j.jam_selesai.length === 5 ? `${j.jam_selesai}:00` : j.jam_selesai
+    }));
+
+    const { error } = await supabase
+      .from('jadwal_ujian')
+      .upsert(payload, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Error upserting jadwal to Supabase:', error);
+      return { success: false, count: 0, error: error.message };
+    }
+
+    return { success: true, count: payload.length };
+  } catch (err: any) {
+    console.error('Push jadwal error:', err);
+    return { success: false, count: 0, error: err?.message || 'Gagal menyimpan jadwal ke cloud' };
+  }
+}
+
+/**
+ * Menghapus jadwal ujian dari Supabase Cloud berdasarkan ID
+ */
+export async function deleteJadwalFromCloud(id: number): Promise<{ success: boolean; error?: string }> {
+  if (!supabase || !isSupabaseConfigured) {
+    return { success: false, error: 'Koneksi Supabase belum terkonfigurasi' };
+  }
+  try {
+    const { error } = await supabase.from('jadwal_ujian').delete().eq('id', id);
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Gagal menghapus jadwal' };
   }
 }
 
@@ -336,6 +493,8 @@ export function exportBackupJSON(): void {
     const nilaiRaw = localStorage.getItem(NILAI_STORAGE_KEY);
     const ruangRaw = localStorage.getItem(RUANG_STORAGE_KEY);
     const splitRulesRaw = localStorage.getItem(SPLIT_RULES_STORAGE_KEY);
+    const jadwalRaw = localStorage.getItem(JADWAL_STORAGE_KEY);
+    const mapelRaw = localStorage.getItem(MAPEL_STORAGE_KEY);
     const settings = getStoredSchoolSettings();
 
     const backupData = {
@@ -347,6 +506,8 @@ export function exportBackupJSON(): void {
       nilai: nilaiRaw ? JSON.parse(nilaiRaw) : [],
       ruang: ruangRaw ? JSON.parse(ruangRaw) : [],
       splitRules: splitRulesRaw ? JSON.parse(splitRulesRaw) : [],
+      jadwal: jadwalRaw ? JSON.parse(jadwalRaw) : [],
+      mapel: mapelRaw ? JSON.parse(mapelRaw) : [],
     };
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -400,6 +561,16 @@ export function restoreBackupJSON(file: File): Promise<{ success: boolean; messa
         if (Array.isArray(data.splitRules)) {
           localStorage.setItem(SPLIT_RULES_STORAGE_KEY, JSON.stringify(data.splitRules));
           window.dispatchEvent(new Event('split-rules-updated'));
+        }
+
+        if (Array.isArray(data.jadwal)) {
+          localStorage.setItem(JADWAL_STORAGE_KEY, JSON.stringify(data.jadwal));
+          window.dispatchEvent(new Event('jadwal-data-updated'));
+        }
+
+        if (Array.isArray(data.mapel)) {
+          localStorage.setItem(MAPEL_STORAGE_KEY, JSON.stringify(data.mapel));
+          window.dispatchEvent(new Event('mapel-data-updated'));
         }
 
         if (data.schoolSettings) {

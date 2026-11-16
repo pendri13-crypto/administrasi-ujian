@@ -249,7 +249,7 @@ export default function Dashboard() {
       </div>
 
       {/* Data Master & Admin Quick Shortcut */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Shortcut 1: Siswa */}
         <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 flex flex-col justify-between gap-4">
           <div className="flex items-start gap-3">
@@ -297,7 +297,33 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {/* Shortcut 3: Pengaturan Sekolah (Role Admin) */}
+        {/* Shortcut 3: Jadwal Ujian (Role Admin) */}
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-200/80 flex flex-col justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-600 flex items-center justify-center text-white shadow-md shadow-amber-600/20 flex-shrink-0">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h4 className="font-bold text-slate-900 text-sm">Jadwal Ujian</h4>
+                <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded border border-amber-300">
+                  Role Admin
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                Atur mata pelajaran, tanggal, alokasi waktu, serta cetak jadwal resmi.
+              </p>
+            </div>
+          </div>
+          <Link 
+            href="/jadwal"
+            className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-600/20 transition text-center"
+          >
+            Kelola Jadwal
+          </Link>
+        </div>
+
+        {/* Shortcut 4: Pengaturan Sekolah (Role Admin) */}
         <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-5 border border-indigo-200/70 flex flex-col justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 flex-shrink-0">
