@@ -352,12 +352,16 @@ export async function pushJadwalToCloud(jadwalList: JadwalUjian[]): Promise<{ su
     // 1. Pastikan seluruh Mapel yang digunakan terdaftar di Supabase agar tidak melanggar foreign key
     const allMapel = getStoredMapel();
     if (allMapel.length > 0) {
-      await supabase.from('mapel').upsert(allMapel.map(m => ({
-        id: m.id,
-        kode_mapel: m.kode_mapel,
-        nama_mapel: m.nama_mapel,
-        kkm: m.kkm
-      })), { onConflict: 'id' });
+      const uniqueMapelMap = new Map<number, any>();
+      allMapel.forEach(m => {
+        uniqueMapelMap.set(m.id, {
+          id: m.id,
+          kode_mapel: m.kode_mapel,
+          nama_mapel: m.nama_mapel,
+          kkm: m.kkm
+        });
+      });
+      await supabase.from('mapel').upsert(Array.from(uniqueMapelMap.values()), { onConflict: 'id' });
     }
 
     // 2. Simpan mapping sesi secara persisten di local
@@ -372,14 +376,18 @@ export async function pushJadwalToCloud(jadwalList: JadwalUjian[]): Promise<{ su
     });
     saveStoredJadwalSesiMap(sesiMap);
 
-    const payload = jadwalList.map(j => ({
-      id: j.id,
-      ujian_id: j.ujian_id || 1,
-      mapel_id: j.mapel_id,
-      tanggal: j.tanggal,
-      jam_mulai: j.jam_mulai.length === 5 ? `${j.jam_mulai}:00` : j.jam_mulai,
-      jam_selesai: j.jam_selesai.length === 5 ? `${j.jam_selesai}:00` : j.jam_selesai
-    }));
+    const uniqueJadwalMap = new Map<number, any>();
+    jadwalList.forEach(j => {
+      uniqueJadwalMap.set(j.id, {
+        id: j.id,
+        ujian_id: j.ujian_id || 1,
+        mapel_id: j.mapel_id,
+        tanggal: j.tanggal,
+        jam_mulai: j.jam_mulai.length === 5 ? `${j.jam_mulai}:00` : j.jam_mulai,
+        jam_selesai: j.jam_selesai.length === 5 ? `${j.jam_selesai}:00` : j.jam_selesai
+      });
+    });
+    const payload = Array.from(uniqueJadwalMap.values());
 
     const { error } = await supabase
       .from('jadwal_ujian')

@@ -1,29 +1,37 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   DEMO_RUANG, 
   DEMO_PESERTA, 
-  DEMO_SISWA,
   DEMO_KELAS, 
   DEMO_MAPEL, 
   DEMO_JADWAL, 
-  DEMO_UJIAN,
   generatePesertaFromSiswa
 } from '@/lib/demo-data';
-import { PesertaUjian, Siswa, Ruang } from '@/types/database';
-import { Printer, DoorOpen } from 'lucide-react';
+import { PesertaUjian, Siswa, Ruang, JadwalUjian, Mapel } from '@/types/database';
+import { Printer, DoorOpen, Calendar, Clock, Layers } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
-import { fetchSiswaFromCloud, getStoredRuang } from '@/lib/data-service';
+import { 
+  fetchSiswaFromCloud, 
+  getStoredRuang, 
+  getStoredJadwal, 
+  getStoredMapel, 
+  fetchJadwalFromCloud 
+} from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function DaftarHadirPage() {
   const [selectedRuangId, setSelectedRuangId] = useState<number>(1);
-  const [selectedMapelId, setSelectedMapelId] = useState<number>(1);
+  const [selectedJadwalId, setSelectedJadwalId] = useState<number | null>(null);
+  const [selectedSesiMode, setSelectedSesiMode] = useState<string>('auto'); // 'auto', '1', '2'
   const [ruangList, setRuangList] = useState<Ruang[]>(getStoredRuang());
+  const [jadwalList, setJadwalList] = useState<JadwalUjian[]>(getStoredJadwal());
+  const [mapelList, setMapelList] = useState<Mapel[]>(getStoredMapel());
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
+  // 1. Sinkronisasi Pengaturan Sekolah (Kop Dokumen)
   useEffect(() => {
     const updateSettings = () => {
       setSchoolSettings(getStoredSchoolSettings());
@@ -33,6 +41,7 @@ export default function DaftarHadirPage() {
     return () => window.removeEventListener('school-settings-updated', updateSettings);
   }, []);
 
+  // 2. Sinkronisasi Daftar Ruangan
   useEffect(() => {
     const updateRuang = () => {
       setRuangList(getStoredRuang());
@@ -42,6 +51,32 @@ export default function DaftarHadirPage() {
     return () => window.removeEventListener('ruang-data-updated', updateRuang);
   }, []);
 
+  // 3. Sinkronisasi Master Mata Pelajaran & Jadwal Ujian
+  useEffect(() => {
+    const updateJadwalAndMapel = () => {
+      setJadwalList(getStoredJadwal());
+      setMapelList(getStoredMapel());
+    };
+    updateJadwalAndMapel();
+
+    window.addEventListener('jadwal-data-updated', updateJadwalAndMapel);
+    window.addEventListener('mapel-data-updated', updateJadwalAndMapel);
+
+    if (isSupabaseConfigured) {
+      fetchJadwalFromCloud().then(cloudJadwal => {
+        if (cloudJadwal && cloudJadwal.length > 0) {
+          setJadwalList(cloudJadwal);
+        }
+      });
+    }
+
+    return () => {
+      window.removeEventListener('jadwal-data-updated', updateJadwalAndMapel);
+      window.removeEventListener('mapel-data-updated', updateJadwalAndMapel);
+    };
+  }, []);
+
+  // 4. Sinkronisasi Data Peserta Ujian Per Ruangan
   useEffect(() => {
     const syncData = () => {
       try {
@@ -77,13 +112,76 @@ export default function DaftarHadirPage() {
     return () => window.removeEventListener('storage', syncData);
   }, []);
 
+  // Format Hari dan Tanggal Indonesia resmi
+  const formatHariTanggalIndo = (tglStr?: string) => {
+    if (!tglStr) return '-';
+    try {
+      const date = new Date(tglStr + 'T00:00:00');
+      if (isNaN(date.getTime())) return tglStr;
+      return new Intl.DateTimeFormat('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }).format(date);
+    } catch {
+      return tglStr;
+    }
+  };
+
+  // Urutkan jadwal berdasarkan tanggal dan waktu pelaksanaan
+  const sortedJadwalList = useMemo(() => {
+    const list = jadwalList.length > 0 ? jadwalList : DEMO_JADWAL;
+    return [...list].sort((a, b) => {
+      if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
+      return a.jam_mulai.localeCompare(b.jam_mulai);
+    });
+  }, [jadwalList]);
+
+  // Tentukan jadwal yang sedang aktif dipilih
+  const currentJadwal = useMemo(() => {
+    if (selectedJadwalId !== null) {
+      const found = sortedJadwalList.find(j => j.id === selectedJadwalId);
+      if (found) return found;
+    }
+    return sortedJadwalList[0] || null;
+  }, [selectedJadwalId, sortedJadwalList]);
+
+  // Resolusi Mata Pelajaran dari Jadwal Aktif
+  const currentMapel = useMemo(() => {
+    if (currentJadwal) {
+      const mapelFromList = mapelList.find(m => m.id === currentJadwal.mapel_id);
+      if (mapelFromList) return mapelFromList;
+      if (currentJadwal.mapel) return currentJadwal.mapel;
+      const demoMapel = DEMO_MAPEL.find(m => m.id === currentJadwal.mapel_id);
+      if (demoMapel) return demoMapel;
+    }
+    return DEMO_MAPEL[0];
+  }, [currentJadwal, mapelList]);
+
+  // Resolusi Sesi Ujian (otomatis dari jadwal atau override manual)
+  const autoSesi = useMemo(() => {
+    if (!currentJadwal) return 1;
+    if (currentJadwal.sesi === 2) return 2;
+    if (currentJadwal.sesi === 1) return 1;
+    // Auto inference berdasarkan jam mulai: jika >= 09:45 maka Sesi 2
+    const jamMulaiClean = (currentJadwal.jam_mulai || '').slice(0, 5);
+    return jamMulaiClean >= '09:45' ? 2 : 1;
+  }, [currentJadwal]);
+
+  const displaySesi = selectedSesiMode === 'auto' ? autoSesi : Number(selectedSesiMode);
+
+  // Waktu pelaksanaan ujian dari jadwal aktif
+  const displayWaktu = currentJadwal
+    ? `${currentJadwal.jam_mulai.slice(0, 5)} - ${currentJadwal.jam_selesai.slice(0, 5)} WIB`
+    : '08:00 - 09:30 WIB';
+
+  // Ruangan yang sedang dipilih
   const currentRuang = ruangList.find(r => r.id === selectedRuangId) || ruangList[0] || DEMO_RUANG[0];
-  const currentMapel = DEMO_MAPEL.find(m => m.id === selectedMapelId) || DEMO_MAPEL[0];
-  const jadwal = DEMO_JADWAL.find(j => j.mapel_id === currentMapel.id);
-  const ujian = DEMO_UJIAN[0];
 
   // Peserta yang ditempatkan di ruang ini
-  const pesertaRuang = pesertaList.filter(p => p.ruang_id === selectedRuangId)
+  const pesertaRuang = pesertaList
+    .filter(p => p.ruang_id === selectedRuangId)
     .sort((a, b) => (a.no_meja || 0) - (b.no_meja || 0));
 
   return (
@@ -93,17 +191,18 @@ export default function DaftarHadirPage() {
         <div>
           <h2 className="text-xl font-extrabold text-slate-900">Daftar Hadir Per Ruang Ujian</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Format lembar presensi resmi per ruangan ujian lengkap dengan kolom tanda tangan silang.
+            Waktu, sesi, dan mata pelajaran otomatis sinkron dengan Manajemen Jadwal Ujian.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Pilih Ruangan */}
           <div className="flex items-center gap-2">
-            <DoorOpen className="w-4 h-4 text-slate-400" />
+            <DoorOpen className="w-4 h-4 text-indigo-500 flex-shrink-0" />
             <select
               value={selectedRuangId}
               onChange={(e) => setSelectedRuangId(Number(e.target.value))}
-              className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {ruangList.map((r) => (
                 <option key={r.id} value={r.id}>{r.kode_ruang} - {r.nama_ruang}</option>
@@ -111,18 +210,41 @@ export default function DaftarHadirPage() {
             </select>
           </div>
 
+          {/* Pilih Jadwal Ujian (Sinkron Waktu, Tanggal, & Mapel) */}
           <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-amber-500 flex-shrink-0" />
             <select
-              value={selectedMapelId}
-              onChange={(e) => setSelectedMapelId(Number(e.target.value))}
-              className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={currentJadwal?.id || ''}
+              onChange={(e) => setSelectedJadwalId(Number(e.target.value))}
+              className="text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 max-w-[280px] sm:max-w-xs truncate"
             >
-              {DEMO_MAPEL.map((m) => (
-                <option key={m.id} value={m.id}>{m.kode_mapel} - {m.nama_mapel}</option>
-              ))}
+              {sortedJadwalList.map((j) => {
+                const mapelObj = mapelList.find(m => m.id === j.mapel_id) || j.mapel || DEMO_MAPEL.find(m => m.id === j.mapel_id);
+                const s = (j.sesi === 2 || (j.jam_mulai && j.jam_mulai.slice(0, 5) >= '09:45')) ? 2 : 1;
+                return (
+                  <option key={j.id} value={j.id}>
+                    {j.tanggal} • Sesi {s} • {mapelObj?.nama_mapel || 'Mapel'} ({j.jam_mulai.slice(0, 5)}-{j.jam_selesai.slice(0, 5)})
+                  </option>
+                );
+              })}
             </select>
           </div>
 
+          {/* Opsi Sesi (Auto dari Jadwal atau Pilihan Manual) */}
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            <select
+              value={selectedSesiMode}
+              onChange={(e) => setSelectedSesiMode(e.target.value)}
+              className="text-xs font-semibold border border-slate-300 rounded-lg px-2.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="auto">Sesi {autoSesi} (Otomatis)</option>
+              <option value="1">Sesi 1</option>
+              <option value="2">Sesi 2</option>
+            </select>
+          </div>
+
+          {/* Tombol Cetak Dokumen */}
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
@@ -149,7 +271,7 @@ export default function DaftarHadirPage() {
           </p>
         </div>
 
-        {/* Informasi Detail Ruang & Jadwal */}
+        {/* Informasi Detail Ruang & Jadwal (Sinkron Penuh) */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-900 mb-4 pb-3 border-b border-dashed border-slate-400">
           <div className="space-y-1">
             <div className="grid grid-cols-12">
@@ -160,12 +282,12 @@ export default function DaftarHadirPage() {
             <div className="grid grid-cols-12">
               <span className="col-span-4 font-semibold text-slate-600">Mata Pelajaran</span>
               <span className="col-span-1">:</span>
-              <span className="col-span-7 font-bold">{currentMapel.nama_mapel} ({currentMapel.kode_mapel})</span>
+              <span className="col-span-7 font-bold">{currentMapel?.nama_mapel} ({currentMapel?.kode_mapel})</span>
             </div>
             <div className="grid grid-cols-12">
               <span className="col-span-4 font-semibold text-slate-600">Sesi</span>
               <span className="col-span-1">:</span>
-              <span className="col-span-7 font-medium">Sesi 1</span>
+              <span className="col-span-7 font-bold text-indigo-900 print:text-black">Sesi {displaySesi}</span>
             </div>
           </div>
 
@@ -173,12 +295,12 @@ export default function DaftarHadirPage() {
             <div className="grid grid-cols-12">
               <span className="col-span-4 font-semibold text-slate-600">Hari / Tanggal</span>
               <span className="col-span-1">:</span>
-              <span className="col-span-7 font-medium">{jadwal?.tanggal || '2026-11-20'}</span>
+              <span className="col-span-7 font-medium">{formatHariTanggalIndo(currentJadwal?.tanggal)}</span>
             </div>
             <div className="grid grid-cols-12">
               <span className="col-span-4 font-semibold text-slate-600">Pukul / Waktu</span>
               <span className="col-span-1">:</span>
-              <span className="col-span-7 font-medium">{jadwal?.jam_mulai || '07:30'} - {jadwal?.jam_selesai || '09:30'} WIB</span>
+              <span className="col-span-7 font-medium">{displayWaktu}</span>
             </div>
             <div className="grid grid-cols-12">
               <span className="col-span-4 font-semibold text-slate-600">Kapasitas Ruang</span>
@@ -215,7 +337,7 @@ export default function DaftarHadirPage() {
               )}
               {pesertaRuang.map((peserta, idx) => {
                 const siswa = peserta.siswa;
-                const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
+                const kelasNama = siswa?.kelas?.nama_kelas || DEMO_KELAS.find(k => k.id === siswa?.kelas_id)?.nama_kelas || '-';
                 const isEven = (idx + 1) % 2 === 0;
 
                 return (
@@ -234,7 +356,7 @@ export default function DaftarHadirPage() {
                       {siswa?.nama_lengkap}
                     </td>
                     <td className="border border-slate-400 px-2 py-1 text-center font-medium">
-                      {kelas?.nama_kelas}
+                      {kelasNama}
                     </td>
 
                     {/* Kolom Tanda Tangan Ganjil */}
@@ -295,4 +417,3 @@ export default function DaftarHadirPage() {
     </div>
   );
 }
-
