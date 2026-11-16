@@ -208,12 +208,49 @@ export function getStoredJadwal(): JadwalUjian[] {
   return DEMO_JADWAL;
 }
 
+const JADWAL_SESI_MAP_KEY = 'adm_jadwal_sesi_map';
+
+/**
+ * Mengambil peta mapping sesi jadwal dari localStorage
+ */
+export function getStoredJadwalSesiMap(): Record<string, number> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(JADWAL_SESI_MAP_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Error reading jadwal sesi map:', e);
+  }
+  return {};
+}
+
+/**
+ * Menyimpan peta mapping sesi jadwal ke localStorage
+ */
+export function saveStoredJadwalSesiMap(map: Record<string, number>): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(JADWAL_SESI_MAP_KEY, JSON.stringify(map));
+}
+
 /**
  * Menyimpan data jadwal ujian ke localStorage dan trigger event
  */
 export function saveStoredJadwal(jadwalList: JadwalUjian[]): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(JADWAL_STORAGE_KEY, JSON.stringify(jadwalList));
+
+  // Simpan mapping sesi secara persisten
+  const sesiMap = getStoredJadwalSesiMap();
+  jadwalList.forEach(j => {
+    const sesiVal = j.sesi || (j.jam_mulai >= '09:45' ? 2 : 1);
+    if (j.id) sesiMap[String(j.id)] = sesiVal;
+    if (j.tanggal && j.jam_mulai) {
+      sesiMap[`${j.tanggal}_${j.jam_mulai.slice(0, 5)}`] = sesiVal;
+      sesiMap[`${j.tanggal}_${j.mapel_id}`] = sesiVal;
+    }
+  });
+  saveStoredJadwalSesiMap(sesiMap);
+
   window.dispatchEvent(new Event('jadwal-data-updated'));
   window.dispatchEvent(new Event('storage'));
 }
@@ -237,28 +274,63 @@ export async function fetchJadwalFromCloud(): Promise<JadwalUjian[] | null> {
     }
 
     if (Array.isArray(data) && data.length > 0) {
+      const sesiMap = getStoredJadwalSesiMap();
+
       const formatted: JadwalUjian[] = data.map((item: any) => {
         let mapelObj = item.mapel;
         if (!mapelObj && item.mapel_id) {
           mapelObj = DEMO_MAPEL.find(m => m.id === item.mapel_id);
         }
+        const jamMulaiClean = String(item.jam_mulai || '').slice(0, 5);
+        const jamSelesaiClean = String(item.jam_selesai || '').slice(0, 5);
+
+        // Resolusi Sesi:
+        // 1. Dari item.sesi (jika ada)
+        // 2. Dari sesiMap berdasarkan ID
+        // 3. Dari sesiMap berdasarkan tanggal_jamMulai
+        // 4. Dari sesiMap berdasarkan tanggal_mapelId
+        // 5. Dari jam mulai: jika >= 09:45 otomatis Sesi 2, sebaliknya Sesi 1
+        let sesi = 1;
+        const timeKey = `${item.tanggal}_${jamMulaiClean}`;
+        const mapelKey = `${item.tanggal}_${item.mapel_id}`;
+
+        if (item.sesi) {
+          sesi = Number(item.sesi);
+        } else if (sesiMap[String(item.id)]) {
+          sesi = sesiMap[String(item.id)];
+        } else if (sesiMap[timeKey]) {
+          sesi = sesiMap[timeKey];
+        } else if (sesiMap[mapelKey]) {
+          sesi = sesiMap[mapelKey];
+        } else if (jamMulaiClean >= '09:45') {
+          sesi = 2;
+        } else {
+          sesi = 1;
+        }
+
         return {
           id: item.id,
           ujian_id: item.ujian_id || 1,
           mapel_id: item.mapel_id,
           tanggal: String(item.tanggal || ''),
-          jam_mulai: String(item.jam_mulai || '').slice(0, 5),
-          jam_selesai: String(item.jam_selesai || '').slice(0, 5),
-          sesi: item.sesi || 1,
+          jam_mulai: jamMulaiClean,
+          jam_selesai: jamSelesaiClean,
+          sesi: sesi,
           mapel: mapelObj
         };
       });
 
-      if (typeof window !== 'undefined' && formatted.length > 0) {
-        localStorage.setItem(JADWAL_STORAGE_KEY, JSON.stringify(formatted));
+      // Gabungkan dengan jadwal lokal agar jadwal baru tidak terhapus jika belum tersinkron
+      const currentLocal = getStoredJadwal();
+      const cloudIds = new Set(formatted.map(f => f.id));
+      const localOnly = currentLocal.filter(l => !cloudIds.has(l.id));
+      const combined = [...formatted, ...localOnly];
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(JADWAL_STORAGE_KEY, JSON.stringify(combined));
         window.dispatchEvent(new Event('jadwal-data-updated'));
       }
-      return formatted;
+      return combined;
     }
     return null;
   } catch (err) {
@@ -277,6 +349,29 @@ export async function pushJadwalToCloud(jadwalList: JadwalUjian[]): Promise<{ su
   if (jadwalList.length === 0) return { success: true, count: 0 };
 
   try {
+    // 1. Pastikan seluruh Mapel yang digunakan terdaftar di Supabase agar tidak melanggar foreign key
+    const allMapel = getStoredMapel();
+    if (allMapel.length > 0) {
+      await supabase.from('mapel').upsert(allMapel.map(m => ({
+        id: m.id,
+        kode_mapel: m.kode_mapel,
+        nama_mapel: m.nama_mapel,
+        kkm: m.kkm
+      })), { onConflict: 'id' });
+    }
+
+    // 2. Simpan mapping sesi secara persisten di local
+    const sesiMap = getStoredJadwalSesiMap();
+    jadwalList.forEach(j => {
+      const sesiVal = j.sesi || (j.jam_mulai >= '09:45' ? 2 : 1);
+      if (j.id) sesiMap[String(j.id)] = sesiVal;
+      if (j.tanggal && j.jam_mulai) {
+        sesiMap[`${j.tanggal}_${j.jam_mulai.slice(0, 5)}`] = sesiVal;
+        sesiMap[`${j.tanggal}_${j.mapel_id}`] = sesiVal;
+      }
+    });
+    saveStoredJadwalSesiMap(sesiMap);
+
     const payload = jadwalList.map(j => ({
       id: j.id,
       ujian_id: j.ujian_id || 1,

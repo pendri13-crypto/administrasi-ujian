@@ -55,6 +55,7 @@ export default function KelolaJadwalPage() {
   // Filter & Search States
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterTanggal, setFilterTanggal] = useState<string>('all');
+  const [filterSesi, setFilterSesi] = useState<string>('all');
 
   // Cloud & UI States
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -190,6 +191,11 @@ export default function KelolaJadwalPage() {
         const matchTanggal = filterTanggal === 'all' || j.tanggal === filterTanggal;
         if (!matchTanggal) return false;
 
+        const actualSesi = (j.sesi === 2 || (j.jam_mulai && j.jam_mulai.slice(0, 5) >= '09:45')) ? 2 : 1;
+        if (filterSesi !== 'all' && actualSesi.toString() !== filterSesi) {
+          return false;
+        }
+
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
           const mapelObj = mapelList.find(m => m.id === j.mapel_id) || j.mapel;
@@ -207,7 +213,27 @@ export default function KelolaJadwalPage() {
         }
         return a.jam_mulai.localeCompare(b.jam_mulai);
       });
-  }, [jadwalList, filterTanggal, searchQuery, mapelList]);
+  }, [jadwalList, filterTanggal, filterSesi, searchQuery, mapelList]);
+
+  // Handler otomatis set jam selesai & deteksi sesi saat jam mulai berubah
+  const handleJamMulaiChange = (val: string) => {
+    setFormJamMulai(val);
+    if (val >= '09:45') {
+      setFormSesi(2);
+    } else {
+      setFormSesi(1);
+    }
+
+    try {
+      const [h, m] = val.split(':').map(Number);
+      if (!isNaN(h) && !isNaN(m)) {
+        const endMinutes = h * 60 + m + 90;
+        const endH = Math.floor(endMinutes / 60) % 24;
+        const endM = endMinutes % 60;
+        setFormJamSelesai(`${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
+      }
+    } catch {}
+  };
 
   // Buka Modal Tambah Jadwal
   const handleOpenAddModal = () => {
@@ -230,7 +256,8 @@ export default function KelolaJadwalPage() {
     setFormTanggal(j.tanggal);
     setFormJamMulai(j.jam_mulai.slice(0, 5));
     setFormJamSelesai(j.jam_selesai.slice(0, 5));
-    setFormSesi(j.sesi || 1);
+    const detectedSesi = (j.sesi === 2 || j.jam_mulai.slice(0, 5) >= '09:45') ? 2 : (j.sesi || 1);
+    setFormSesi(detectedSesi);
     setIsAddMapelMode(false);
     setFormError(null);
     setIsModalOpen(true);
@@ -402,7 +429,7 @@ export default function KelolaJadwalPage() {
         mapelObj?.kode_mapel || '-',
         mapelObj?.nama_mapel || '-',
         mapelObj?.kkm || 75,
-        `Sesi ${j.sesi || 1}`
+        `Sesi ${(j.sesi === 2 || (j.jam_mulai && j.jam_mulai.slice(0, 5) >= '09:45')) ? 2 : 1}`
       ]);
     });
 
@@ -639,6 +666,19 @@ export default function KelolaJadwalPage() {
                 ))}
               </select>
             </div>
+
+            {/* Filter Sesi */}
+            <div className="flex items-center gap-1.5">
+              <select
+                value={filterSesi}
+                onChange={(e) => setFilterSesi(e.target.value)}
+                className="text-xs font-semibold border border-slate-300 rounded-xl px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="all">Semua Sesi</option>
+                <option value="1">Sesi 1 (Pagi)</option>
+                <option value="2">Sesi 2 (Siang)</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-center">
@@ -749,9 +789,18 @@ export default function KelolaJadwalPage() {
 
                       {/* Sesi */}
                       <td className="py-3 px-4 text-center">
-                        <span className="inline-block px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-bold text-[10px]">
-                          Sesi {jadwal.sesi || 1}
-                        </span>
+                        {(() => {
+                          const isSesi2 = jadwal.sesi === 2 || (jadwal.jam_mulai && jadwal.jam_mulai.slice(0, 5) >= '09:45');
+                          return (
+                            <span className={`inline-block px-2.5 py-0.5 rounded-md font-bold text-[10px] ${
+                              isSesi2 
+                                ? 'bg-purple-100 text-purple-800 border border-purple-200' 
+                                : 'bg-blue-100 text-blue-800 border border-blue-200'
+                            }`}>
+                              Sesi {isSesi2 ? 2 : 1}
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* KKM */}
@@ -956,7 +1005,7 @@ export default function KelolaJadwalPage() {
                   <input
                     type="time"
                     value={formJamMulai}
-                    onChange={(e) => setFormJamMulai(e.target.value)}
+                    onChange={(e) => handleJamMulaiChange(e.target.value)}
                     required
                     className="w-full text-xs font-semibold border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
                   />
@@ -987,10 +1036,10 @@ export default function KelolaJadwalPage() {
                   <select
                     value={formSesi}
                     onChange={(e) => setFormSesi(Number(e.target.value))}
-                    className="text-xs font-bold border border-slate-300 rounded-lg px-2 py-1 bg-white"
+                    className="text-xs font-bold border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   >
-                    <option value={1}>Sesi 1 (Pagi)</option>
-                    <option value={2}>Sesi 2 (Siang)</option>
+                    <option value={1}>Sesi 1 (Pagi: 07.30 - 09.30)</option>
+                    <option value={2}>Sesi 2 (Siang: 10.00 - 11.30)</option>
                   </select>
                 </div>
               </div>
