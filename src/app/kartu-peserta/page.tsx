@@ -9,9 +9,11 @@ import { fetchSiswaFromCloud, fetchRuangFromCloud, getStoredRuang, fetchSplitRul
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export default function KartuPesertaPage() {
-  const [selectedKelas, setSelectedKelas] = useState<string>('all');
+  const [selectedKelas, setSelectedKelas] = useState<string>('1'); // Default ke Kelas VII-A agar browser langsung enteng & tidak crash
   const [selectedRuang, setSelectedRuang] = useState<string>('all');
-  const [layoutMode, setLayoutMode] = useState<'6' | '4' | '2'>('6'); // 6 per halaman (A4 penuh), 4 per halaman, atau 2 per halaman
+  const [currentBatch, setCurrentBatch] = useState<number>(0);
+  const BATCH_SIZE_PAGES = 10; // Maksimal 10 lembar F4 (60 kartu) per tampilan batch agar memori browser sangat aman
+  const [layoutMode, setLayoutMode] = useState<'6' | '4' | '2'>('6'); // 6 per halaman (F4 penuh), 4 per halaman, atau 2 per halaman
   const [ruangList, setRuangList] = useState(getStoredRuang());
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
@@ -88,6 +90,7 @@ export default function KartuPesertaPage() {
 
   const handleSelectKelas = (val: string) => {
     setSelectedKelas(val);
+    setCurrentBatch(0);
     if (val !== 'all') {
       setSelectedRuang('all');
     }
@@ -95,6 +98,7 @@ export default function KartuPesertaPage() {
 
   const handleSelectRuang = (val: string) => {
     setSelectedRuang(val);
+    setCurrentBatch(0);
     if (val !== 'all') {
       setSelectedKelas('all');
     }
@@ -103,6 +107,7 @@ export default function KartuPesertaPage() {
   const handleResetFilter = () => {
     setSelectedKelas('all');
     setSelectedRuang('all');
+    setCurrentBatch(0);
   };
 
   const filteredPeserta = pesertaList
@@ -139,10 +144,19 @@ export default function KartuPesertaPage() {
 
   // Kelompokkan kartu per lembar F4 (6 kartu, 4 kartu, atau 2 kartu per halaman)
   const pageSize = layoutMode === '6' ? 6 : layoutMode === '4' ? 4 : 2;
-  const pages: PesertaUjian[][] = [];
+  const allPages: PesertaUjian[][] = [];
   for (let i = 0; i < filteredPeserta.length; i += pageSize) {
-    pages.push(filteredPeserta.slice(i, i + pageSize));
+    allPages.push(filteredPeserta.slice(i, i + pageSize));
   }
+
+  // Terapkan pembagian batch jika jumlah lembar > BATCH_SIZE_PAGES agar browser tidak Out of Memory (Error 39)
+  const totalBatches = Math.max(1, Math.ceil(allPages.length / BATCH_SIZE_PAGES));
+  const safeBatchIdx = Math.min(currentBatch, totalBatches - 1);
+  const displayedPages = allPages.length > BATCH_SIZE_PAGES
+    ? allPages.slice(safeBatchIdx * BATCH_SIZE_PAGES, (safeBatchIdx + 1) * BATCH_SIZE_PAGES)
+    : allPages;
+  const startPageNum = safeBatchIdx * BATCH_SIZE_PAGES + 1;
+  const endPageNum = Math.min((safeBatchIdx + 1) * BATCH_SIZE_PAGES, allPages.length);
 
   const handlePrint = () => {
     window.print();
@@ -153,69 +167,118 @@ export default function KartuPesertaPage() {
   return (
     <div className="space-y-6">
       {/* Action Bar (Hidden when printing) */}
-      <div className="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900">Cetak Kartu Peserta Ujian (Kertas F4 / Folio)</h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Format Standar F4 / Folio (215 x 330 mm) &bull; Menampilkan {filteredPeserta.length} kartu ({pages.length} lembar F4 siap cetak &bull; {layoutMode} kartu per lembar).
-          </p>
-        </div>
-
-        {/* Filter Controls */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-slate-400" />
-            <select
-              value={selectedKelas}
-              onChange={(e) => handleSelectKelas(e.target.value)}
-              className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Semua Kelas</option>
-              {DEMO_KELAS.map((k) => (
-                <option key={k.id} value={k.id}>{k.nama_kelas}</option>
-              ))}
-            </select>
-
-            <select
-              value={selectedRuang}
-              onChange={(e) => handleSelectRuang(e.target.value)}
-              className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Semua Ruang</option>
-              {ruangList.map((r) => (
-                <option key={r.id} value={r.id}>{r.kode_ruang} - {r.nama_ruang}</option>
-              ))}
-            </select>
-
-            {(selectedKelas !== 'all' || selectedRuang !== 'all') && (
-              <button
-                type="button"
-                onClick={handleResetFilter}
-                className="text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-50 transition"
-              >
-                Reset Filter
-              </button>
-            )}
-
-            <select
-              value={layoutMode}
-              onChange={(e) => setLayoutMode(e.target.value as '6' | '4' | '2')}
-              className="text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
-            >
-              <option value="6">6 Kartu / Lembar F4 (Grid 2x3 - Pas & Rapi)</option>
-              <option value="4">4 Kartu / Lembar F4 (Grid 2x2)</option>
-              <option value="2">2 Kartu / Lembar F4 (Besar)</option>
-            </select>
+      <div className="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900">Cetak Kartu Peserta Ujian (Kertas F4 / Folio)</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Format Standar F4 / Folio (215 x 330 mm) &bull; Menampilkan {filteredPeserta.length} kartu ({allPages.length} lembar F4 &bull; {layoutMode} kartu per lembar).
+            </p>
           </div>
 
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
-          >
-            <Printer className="w-4 h-4" />
-            Cetak Kartu Sekarang
-          </button>
+          {/* Filter Controls */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-slate-400" />
+              <select
+                value={selectedKelas}
+                onChange={(e) => handleSelectKelas(e.target.value)}
+                className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">Semua Kelas ({pesertaList.length} Siswa)</option>
+                {DEMO_KELAS.map((k) => (
+                  <option key={k.id} value={k.id}>{k.nama_kelas}</option>
+                ))}
+              </select>
+
+              <select
+                value={selectedRuang}
+                onChange={(e) => handleSelectRuang(e.target.value)}
+                className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">Semua Ruang</option>
+                {ruangList.map((r) => (
+                  <option key={r.id} value={r.id}>{r.kode_ruang} - {r.nama_ruang}</option>
+                ))}
+              </select>
+
+              {(selectedKelas !== 'all' || selectedRuang !== 'all') && (
+                <button
+                  type="button"
+                  onClick={handleResetFilter}
+                  className="text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-50 transition"
+                >
+                  Semua Kelas
+                </button>
+              )}
+
+              <select
+                value={layoutMode}
+                onChange={(e) => setLayoutMode(e.target.value as '6' | '4' | '2')}
+                className="text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+              >
+                <option value="6">6 Kartu / Lembar F4 (Grid 2x3 - Pas & Rapi)</option>
+                <option value="4">4 Kartu / Lembar F4 (Grid 2x2)</option>
+                <option value="2">2 Kartu / Lembar F4 (Besar)</option>
+              </select>
+            </div>
+
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
+            >
+              <Printer className="w-4 h-4" />
+              Cetak Kartu Sekarang
+            </button>
+          </div>
         </div>
+
+        {/* Navigator Batch jika lembar cetak sangat banyak (Mencegah browser tab crash / error 39) */}
+        {totalBatches > 1 && (
+          <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/70 p-3 rounded-xl border border-slate-200">
+            <div className="flex items-center gap-2 text-slate-700">
+              <span className="font-extrabold bg-blue-600 text-white px-2.5 py-0.5 rounded-full text-[11px]">
+                Bagian {safeBatchIdx + 1} dari {totalBatches}
+              </span>
+              <span className="text-slate-600">
+                Menampilkan <b>Lembar {startPageNum} - {endPageNum}</b> ({displayedPages.reduce((acc, p) => acc + p.length, 0)} kartu siap cetak).
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={safeBatchIdx === 0}
+                onClick={() => setCurrentBatch(b => Math.max(0, b - 1))}
+                className="px-3 py-1.5 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-800 font-bold rounded-lg border border-slate-200 shadow-xs transition"
+              >
+                &laquo; Lembar Sebelumnya
+              </button>
+              <select
+                value={safeBatchIdx}
+                onChange={(e) => setCurrentBatch(Number(e.target.value))}
+                className="font-bold border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 outline-none"
+              >
+                {Array.from({ length: totalBatches }).map((_, idx) => {
+                  const sP = idx * BATCH_SIZE_PAGES + 1;
+                  const eP = Math.min((idx + 1) * BATCH_SIZE_PAGES, allPages.length);
+                  return (
+                    <option key={idx} value={idx}>
+                      Bagian {idx + 1}: Lembar {sP} - {eP}
+                    </option>
+                  );
+                })}
+              </select>
+              <button
+                type="button"
+                disabled={safeBatchIdx >= totalBatches - 1}
+                onClick={() => setCurrentBatch(b => Math.min(totalBatches - 1, b + 1))}
+                className="px-3 py-1.5 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-800 font-bold rounded-lg border border-slate-200 shadow-xs transition"
+              >
+                Lembar Selanjutnya &raquo;
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Grid Kartu Peserta - Siap Cetak Kertas F4 */}
@@ -228,7 +291,7 @@ export default function KartuPesertaPage() {
         </div>
       ) : (
         <div className="space-y-8 print:space-y-0">
-          {pages.map((pagePeserta, pageIdx) => (
+          {displayedPages.map((pagePeserta, pageIdx) => (
             <div
               key={pageIdx}
               className={`print-page ${isMode6 ? 'grid-6' : ''} grid gap-3 print:gap-2.5 ${
@@ -261,6 +324,8 @@ export default function KartuPesertaPage() {
                           <img
                             src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl || '/images/logo-tasikmalaya.png'}
                             alt="Logo Pemda"
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-contain filter drop-shadow-sm select-none"
                           />
                         </div>
@@ -287,6 +352,8 @@ export default function KartuPesertaPage() {
                           <img
                             src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'}
                             alt="Logo Sekolah"
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-contain filter drop-shadow-sm select-none"
                           />
                         </div>
@@ -302,6 +369,8 @@ export default function KartuPesertaPage() {
                           <img
                             src={siswa.foto_url}
                             alt={siswa.nama_lengkap}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
                             onError={(e) => {
@@ -399,6 +468,8 @@ export default function KartuPesertaPage() {
                           <img
                             src={schoolSettings.ttdKepsekUrl || '/images/ttd-kepsek.png'}
                             alt="Tanda Tangan Kepala Sekolah"
+                            loading="lazy"
+                            decoding="async"
                             className={`${isMode6 ? 'max-h-8' : 'max-h-11'} w-auto object-contain select-none`}
                           />
                         </div>
