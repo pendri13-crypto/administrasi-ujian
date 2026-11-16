@@ -490,12 +490,14 @@ export default function SiswaPage() {
           const matchedKelas = DEMO_KELAS.find(k => k.nama_kelas.toLowerCase() === rawKelas.toLowerCase());
           const kelasIdVal = matchedKelas ? matchedKelas.id : 1;
 
-          // Cek apakah siswa dengan NISN, NIS, atau Nama ini sudah ada di database
-          const existingIdx = updatedList.findIndex(s => 
-            (rawNisn && String(s.nisn).trim() === rawNisn) || 
-            (rawNis && String(s.nis || '').trim() === rawNis) ||
-            (rawNama && s.nama_lengkap.trim().toLowerCase() === rawNama.toLowerCase())
-          );
+          // Cek apakah siswa dengan NISN atau NIS ini sudah ada di database.
+          // Hanya mencocokkan Nama jika NISN & NIS kosong dan berada di kelas yang sama (mencegah siswa berbeda dengan nama sama saling menimpa).
+          const existingIdx = updatedList.findIndex(s => {
+            if (rawNisn && String(s.nisn).trim() === rawNisn) return true;
+            if (rawNis && s.nis && String(s.nis).trim() === rawNis) return true;
+            if (!rawNisn && !rawNis && rawNama && s.nama_lengkap.trim().toLowerCase() === rawNama.toLowerCase() && s.kelas_id === kelasIdVal) return true;
+            return false;
+          });
 
           if (existingIdx !== -1) {
             // Update data dan foto siswa yang sudah ada
