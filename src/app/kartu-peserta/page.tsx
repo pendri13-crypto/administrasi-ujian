@@ -309,14 +309,14 @@ export default function KartuPesertaPage() {
                 return (
                   <div
                     key={peserta.id}
-                    className={`card-item bg-white border-2 border-slate-800 rounded-lg ${isMode6 ? 'p-2' : 'p-3'} shadow-sm flex flex-col justify-between`}
+                    className={`card-item bg-white border-2 border-slate-800 rounded-lg ${isMode6 ? 'p-2.5' : 'p-3'} shadow-sm flex flex-col justify-between`}
                     style={{
                       height: isMode6 ? '100mm' : layoutMode === '4' ? '150mm' : '150mm',
                       maxHeight: isMode6 ? '101mm' : layoutMode === '4' ? '152mm' : '152mm',
                     }}
                   >
                     {/* Kop Kartu Peserta Resmi */}
-                    <div className={`border-b-2 sm:border-b-4 border-double border-slate-900 ${isMode6 ? 'pb-1 mb-1' : 'pb-1.5 mb-2'}`}>
+                    <div className={`border-b-2 sm:border-b-4 border-double border-slate-900 ${isMode6 ? 'pb-1 mb-1.5' : 'pb-1.5 mb-2'}`}>
                       <div className="flex items-center justify-between gap-2 sm:gap-3 px-1">
                         {/* Logo Kiri: Pemda Kab. Tasikmalaya */}
                         <div className={`${isMode6 ? 'w-[48px] h-[58px]' : 'w-[64px] h-[74px]'} flex-shrink-0 flex items-center justify-center`}>
@@ -330,16 +330,16 @@ export default function KartuPesertaPage() {
 
                         {/* Teks Kop Tengah */}
                         <div className="flex-1 text-center leading-snug px-1">
-                          <h3 className={`${isMode6 ? 'text-[11.5px]' : 'text-[13px] sm:text-[14px]'} font-black tracking-tight text-slate-950 uppercase`}>
+                          <h3 className={`${isMode6 ? 'text-[12.5px]' : 'text-[13px] sm:text-[14px]'} font-black tracking-wide text-slate-950 uppercase`}>
                             KARTU PESERTA
                           </h3>
-                          <h4 className={`${isMode6 ? 'text-[10.5px]' : 'text-[12px] sm:text-[13px]'} font-black text-slate-900 uppercase`}>
+                          <h4 className={`${isMode6 ? 'text-[11.5px]' : 'text-[12px] sm:text-[13px]'} font-black text-slate-900 uppercase`}>
                             {schoolSettings.namaUjian}
                           </h4>
-                          <p className={`${isMode6 ? 'text-[10px]' : 'text-[11px] sm:text-[12px]'} font-black text-slate-900 uppercase`}>
+                          <p className={`${isMode6 ? 'text-[11px]' : 'text-[11px] sm:text-[12px]'} font-black text-slate-900 uppercase`}>
                             {schoolSettings.namaSekolah}
                           </p>
-                          <p className={`${isMode6 ? 'text-[9px]' : 'text-[10px] sm:text-[11px]'} font-extrabold text-slate-800 uppercase tracking-wide`}>
+                          <p className={`${isMode6 ? 'text-[9.5px]' : 'text-[10px] sm:text-[11px]'} font-extrabold text-slate-800 uppercase tracking-wide`}>
                             TAHUN PELAJARAN {schoolSettings.tahunAjaran}
                           </p>
                         </div>
@@ -357,9 +357,9 @@ export default function KartuPesertaPage() {
                     </div>
 
                     {/* Konten Utama: Foto & Biodata */}
-                    <div className="flex gap-3 items-start my-0.5">
+                    <div className="flex gap-3 items-start my-auto">
                       {/* Pas Foto Siswa 3x4 */}
-                      <div className={`${isMode6 ? 'w-[26mm] h-[35mm]' : 'w-[32mm] h-[43mm]'} border-2 border-slate-400 rounded bg-slate-50 flex-shrink-0 overflow-hidden flex flex-col items-center justify-center relative shadow-inner`}>
+                      <div className={`${isMode6 ? 'w-[28mm] h-[37mm]' : 'w-[32mm] h-[43mm]'} border-2 border-slate-400 rounded bg-slate-50 flex-shrink-0 overflow-hidden flex flex-col items-center justify-center relative shadow-inner`}>
                         {siswa?.foto_url ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
                           <img
@@ -370,60 +370,60 @@ export default function KartuPesertaPage() {
                         ) : (
                           <div className="fallback-foto text-center p-1 text-slate-400 flex flex-col items-center justify-center">
                             <ImageIcon className={`${isMode6 ? 'w-6 h-6' : 'w-8 h-8'} mx-auto stroke-1 text-slate-400`} />
-                            <span className={`${isMode6 ? 'text-[8.5px]' : 'text-[9px]'} font-medium block mt-0.5 text-slate-500`}>Foto 3x4</span>
+                            <span className={`${isMode6 ? 'text-[9px]' : 'text-[9.5px]'} font-medium block mt-0.5 text-slate-500`}>Foto 3x4</span>
                           </div>
                         )}
-                        <span className={`absolute bottom-0.5 ${isMode6 ? 'text-[8px] px-1.5 py-0.5' : 'text-[8.5px] px-2 py-0.5'} bg-black/70 text-white rounded font-medium z-10`}>
+                        <span className={`absolute bottom-0.5 ${isMode6 ? 'text-[8.5px] px-2 py-0.5' : 'text-[9px] px-2.5 py-0.5'} bg-black/75 text-white rounded font-bold z-10`}>
                           {peserta.no_meja ? `Meja ${peserta.no_meja}` : 'Meja -'}
                         </span>
                       </div>
 
                       {/* Data Peserta */}
-                      <div className={`flex-1 ${isMode6 ? 'text-[10px] space-y-0.5' : 'text-[11px] space-y-1.5'} leading-tight`}>
-                        <div className="grid grid-cols-12 gap-1 pb-0.5 border-b border-dashed border-slate-300">
-                          <span className="col-span-4 text-slate-600 font-medium">No. Peserta</span>
-                          <span className="col-span-1">:</span>
-                          <span className={`col-span-7 font-black text-slate-950 font-mono tracking-wider ${isMode6 ? 'text-[11.5px]' : 'text-xs'}`}>
+                      <div className={`flex-1 ${isMode6 ? 'text-[11.5px] space-y-1' : 'text-xs space-y-1.5'} leading-snug`}>
+                        <div className="grid grid-cols-12 gap-1 pb-1 border-b border-dashed border-slate-300 items-baseline">
+                          <span className="col-span-4 text-slate-700 font-bold">No. Peserta</span>
+                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
+                          <span className={`col-span-7 font-black text-slate-950 font-mono tracking-wider ${isMode6 ? 'text-[13px]' : 'text-sm'}`}>
                             {peserta.no_peserta}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1">
-                          <span className="col-span-4 text-slate-600 font-medium">Nama Siswa</span>
-                          <span className="col-span-1">:</span>
-                          <span className="col-span-7 font-bold text-slate-900 uppercase">
+                        <div className="grid grid-cols-12 gap-1 items-baseline">
+                          <span className="col-span-4 text-slate-700 font-bold">Nama Siswa</span>
+                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
+                          <span className={`col-span-7 font-black text-slate-950 uppercase ${isMode6 ? 'text-[12px]' : 'text-[13px]'}`}>
                             {siswa?.nama_lengkap}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1">
-                          <span className="col-span-4 text-slate-600 font-medium">NISN / NIS</span>
-                          <span className="col-span-1">:</span>
-                          <span className="col-span-7 font-medium text-slate-800">
+                        <div className="grid grid-cols-12 gap-1 items-baseline">
+                          <span className="col-span-4 text-slate-700 font-bold">NISN / NIS</span>
+                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
+                          <span className={`col-span-7 font-bold text-slate-900 ${isMode6 ? 'text-[11.5px]' : 'text-xs'}`}>
                             {siswa?.nisn} / {siswa?.nis || '-'}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1">
-                          <span className="col-span-4 text-slate-600 font-medium">Kelas</span>
-                          <span className="col-span-1">:</span>
-                          <span className="col-span-7 font-semibold text-slate-800">
+                        <div className="grid grid-cols-12 gap-1 items-baseline">
+                          <span className="col-span-4 text-slate-700 font-bold">Kelas</span>
+                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
+                          <span className={`col-span-7 font-black text-slate-950 ${isMode6 ? 'text-[12px]' : 'text-[13px]'}`}>
                             {kelasNama}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1">
-                          <span className="col-span-4 text-slate-600 font-medium">Ruang Ujian</span>
-                          <span className="col-span-1">:</span>
-                          <span className="col-span-7 font-semibold text-slate-800">
+                        <div className="grid grid-cols-12 gap-1 items-baseline">
+                          <span className="col-span-4 text-slate-700 font-bold">Ruang Ujian</span>
+                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
+                          <span className={`col-span-7 font-bold text-slate-900 ${isMode6 ? 'text-[11.5px]' : 'text-xs'}`}>
                             {ruang?.kode_ruang} ({ruang?.nama_ruang})
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1">
-                          <span className="col-span-4 text-slate-600 font-medium">Sesi</span>
-                          <span className="col-span-1">:</span>
-                          <span className="col-span-7 font-semibold text-slate-800">
+                        <div className="grid grid-cols-12 gap-1 items-baseline">
+                          <span className="col-span-4 text-slate-700 font-bold">Sesi</span>
+                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
+                          <span className={`col-span-7 font-bold text-slate-900 ${isMode6 ? 'text-[11.5px]' : 'text-xs'}`}>
                             Sesi {peserta.sesi}
                           </span>
                         </div>
@@ -431,22 +431,22 @@ export default function KartuPesertaPage() {
                     </div>
 
                     {/* Footer Kartu & Tanda Tangan */}
-                    <div className={`border-t-2 border-slate-800 ${isMode6 ? 'pt-1 mt-1 text-[8.5px]' : 'pt-1.5 mt-1.5 text-[9px]'} flex items-end justify-between`}>
+                    <div className={`border-t-2 border-slate-800 ${isMode6 ? 'pt-1.5 mt-1 text-[9px]' : 'pt-2 mt-1.5 text-[9.5px]'} flex items-end justify-between`}>
                       <div className="text-slate-600 space-y-0.5">
                         <div className="flex items-center gap-1.5">
-                          <QrCode className={`${isMode6 ? 'w-6 h-6' : 'w-8 h-8'} text-slate-800`} />
+                          <QrCode className={`${isMode6 ? 'w-7 h-7' : 'w-8 h-8'} text-slate-800`} />
                           <div>
-                            <p className="font-semibold text-slate-800">VERIFIKASI PANITIA</p>
-                            <p className="italic text-[7.5px] text-slate-500">Wajib dibawa saat ujian</p>
+                            <p className="font-bold text-slate-800 text-[9.5px]">VERIFIKASI PANITIA</p>
+                            <p className="italic text-[8px] text-slate-500">Wajib dibawa saat ujian</p>
                           </div>
                         </div>
                       </div>
 
-                      <div className={`text-center ${isMode6 ? 'min-w-[150px]' : 'min-w-[170px]'}`}>
-                        <p className={`${isMode6 ? 'text-[8.5px]' : 'text-[9px]'} text-slate-700 leading-tight`}>
+                      <div className={`text-center ${isMode6 ? 'min-w-[155px]' : 'min-w-[170px]'}`}>
+                        <p className={`${isMode6 ? 'text-[9px]' : 'text-[9.5px]'} text-slate-700 leading-tight`}>
                           {schoolSettings.kotaTtd}, {schoolSettings.tanggalTtd}
                         </p>
-                        <p className={`${isMode6 ? 'text-[8.5px]' : 'text-[9px]'} font-medium text-slate-800 leading-tight`}>
+                        <p className={`${isMode6 ? 'text-[9px]' : 'text-[9.5px]'} font-semibold text-slate-800 leading-tight`}>
                           {schoolSettings.jabatanKepsek}
                         </p>
                         
@@ -460,10 +460,10 @@ export default function KartuPesertaPage() {
                           />
                         </div>
 
-                        <p className={`font-bold text-slate-950 ${isMode6 ? 'text-[9px]' : 'text-[10px]'} leading-tight underline decoration-slate-900 underline-offset-2`}>
+                        <p className={`font-black text-slate-950 ${isMode6 ? 'text-[10px]' : 'text-[10.5px]'} leading-tight underline decoration-slate-900 underline-offset-2`}>
                           {schoolSettings.namaKepsek}
                         </p>
-                        <p className={`${isMode6 ? 'text-[8px]' : 'text-[8.5px]'} font-bold text-slate-800 leading-tight mt-0.5`}>
+                        <p className={`${isMode6 ? 'text-[8.5px]' : 'text-[9px]'} font-bold text-slate-800 leading-tight mt-0.5`}>
                           NIP. {schoolSettings.nipKepsek}
                         </p>
                       </div>
