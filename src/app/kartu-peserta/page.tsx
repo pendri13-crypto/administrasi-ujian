@@ -47,44 +47,58 @@ export default function KartuPesertaPage() {
   }, []);
 
   useEffect(() => {
-    const syncData = () => {
+    // 1. Baca data lokal pertama kali (cepat & instan)
+    const storedRuang = getStoredRuang();
+    const saved = localStorage.getItem('adm_siswa_data');
+    if (saved) {
       try {
-        const storedRuang = getStoredRuang();
-        const saved = localStorage.getItem('adm_siswa_data');
-        if (saved) {
-          const parsedSiswa: Siswa[] = JSON.parse(saved);
-          if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
-            setPesertaList(generatePesertaFromSiswa(parsedSiswa, storedRuang));
-          }
-        }
-        
-        // Tarik otomatis data mapping split rules & data siswa lengkap dari Supabase Cloud
-        if (isSupabaseConfigured) {
-          Promise.all([
-            fetchRuangFromCloud(),
-            fetchSplitRulesFromCloud(),
-            fetchSiswaFromCloud()
-          ]).then(([cloudRuang, rules, cloudSiswa]) => {
-            const activeRuang = (cloudRuang && cloudRuang.length > 0) ? cloudRuang : (storedRuang.length > 0 ? storedRuang : getStoredRuang());
-            if (cloudRuang && cloudRuang.length > 0) {
-              setRuangList(cloudRuang);
-            }
-            if (cloudSiswa && cloudSiswa.length > 0) {
-              setPesertaList(generatePesertaFromSiswa(cloudSiswa, activeRuang, rules || undefined));
-            }
-          });
+        const parsedSiswa: Siswa[] = JSON.parse(saved);
+        if (Array.isArray(parsedSiswa) && parsedSiswa.length > 0) {
+          setPesertaList(generatePesertaFromSiswa(parsedSiswa, storedRuang));
         }
       } catch (e) {
-        console.error('Gagal memuat foto & data siswa tersimpan:', e);
+        console.error('Gagal membaca cache lokal:', e);
       }
+    }
+
+    // 2. Tarik update terbaru dari Cloud HANYA SEKALI saat halaman dimuat
+    if (isSupabaseConfigured) {
+      Promise.all([
+        fetchRuangFromCloud(),
+        fetchSplitRulesFromCloud(),
+        fetchSiswaFromCloud()
+      ]).then(([cloudRuang, rules, cloudSiswa]) => {
+        const activeRuang = (cloudRuang && cloudRuang.length > 0) ? cloudRuang : (storedRuang.length > 0 ? storedRuang : getStoredRuang());
+        if (cloudRuang && cloudRuang.length > 0) {
+          setRuangList(cloudRuang);
+        }
+        if (cloudSiswa && cloudSiswa.length > 0) {
+          setPesertaList(generatePesertaFromSiswa(cloudSiswa, activeRuang, rules || undefined));
+        }
+      }).catch(err => {
+        console.error('Gagal sinkron cloud:', err);
+      });
+    }
+
+    // 3. Listener hanya untuk update lokal dari tab lain / form tanpa loop cloud
+    const handleLocalUpdate = () => {
+      try {
+        const currentRuang = getStoredRuang();
+        const localSaved = localStorage.getItem('adm_siswa_data');
+        if (localSaved) {
+          const parsed = JSON.parse(localSaved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPesertaList(generatePesertaFromSiswa(parsed, currentRuang));
+          }
+        }
+      } catch (e) {}
     };
 
-    syncData();
-    window.addEventListener('storage', syncData);
-    window.addEventListener('siswa-data-updated', syncData);
+    window.addEventListener('storage', handleLocalUpdate);
+    window.addEventListener('siswa-data-updated', handleLocalUpdate);
     return () => {
-      window.removeEventListener('storage', syncData);
-      window.removeEventListener('siswa-data-updated', syncData);
+      window.removeEventListener('storage', handleLocalUpdate);
+      window.removeEventListener('siswa-data-updated', handleLocalUpdate);
     };
   }, []);
 

@@ -120,8 +120,6 @@ export async function fetchSplitRulesFromCloud(): Promise<SplitGroupRule[] | nul
     if (hasCustom && reconstructedRules.length > 0) {
       if (typeof window !== 'undefined') {
         localStorage.setItem(SPLIT_RULES_STORAGE_KEY, JSON.stringify(reconstructedRules));
-        window.dispatchEvent(new Event('split-rules-updated'));
-        window.dispatchEvent(new Event('storage'));
       }
       return reconstructedRules;
     }
@@ -187,7 +185,9 @@ export async function fetchRuangFromCloud(): Promise<Ruang[] | null> {
         kapasitas: Number(r.kapasitas) || 20,
       }));
 
-      saveStoredRuang(formatted);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(RUANG_STORAGE_KEY, JSON.stringify(formatted));
+      }
       return formatted;
     }
 
@@ -611,8 +611,6 @@ export async function fetchSiswaFromCloud(): Promise<Siswa[] | null> {
       // Update cache di localStorage dengan data lengkap
       if (typeof window !== 'undefined' && formatted.length > 0) {
         localStorage.setItem(SISWA_STORAGE_KEY, JSON.stringify(formatted));
-        window.dispatchEvent(new Event('storage'));
-        window.dispatchEvent(new Event('siswa-data-updated'));
       }
 
       return formatted;
