@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistem Assesmen SMPN 1 Rajapolah</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    @media print {
+      @page {
+        size: 215mm 330mm; /* Kertas F4 / Folio */
+        margin: 5mm 5mm;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-family: Arial, sans-serif !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-page {
+        page-break-after: always !important;
+        break-after: page !important;
+        height: 318mm !important;
+        max-height: 318mm !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
+        gap: 3mm !important;
+        box-sizing: border-box !important;
+        margin: 0 auto !important;
+      }
+      .card-item {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        height: 100mm !important;
+        max-height: 101mm !important;
+        box-sizing: border-box !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+  <!-- Header & Navigasi Web App (Hidden when printing) -->
+  <header class="no-print bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-3">
+          <img id="header-logo" src="https://administrasi-ujian-mu.vercel.app/images/logo-smpn1-rajapolah.png" alt="Logo" class="w-10 h-10 object-contain">
+          <div>
+            <h1 class="text-base font-extrabold text-slate-900 leading-tight">Sistem Assesmen SMPN 1 Rajapolah</h1>
+            <p class="text-xs text-blue-600 font-bold">Google Apps Script &bull; Google Sheets Database</p>
+          </div>
+        </div>
+
+        <!-- Tab Buttons -->
+        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+          <button onclick="switchTab('kartu')" id="tab-btn-kartu" class="tab-btn px-4 py-2 text-xs font-bold rounded-lg transition bg-blue-600 text-white shadow-sm">
+            Kartu Peserta F4
+          </button>
+          <button onclick="switchTab('hadir')" id="tab-btn-hadir" class="tab-btn px-4 py-2 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900">
+            Daftar Hadir
+          </button>
+          <button onclick="switchTab('siswa')" id="tab-btn-siswa" class="tab-btn px-4 py-2 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900">
+            Data Siswa
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Kontainer Utama -->
+  <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+    
+    <!-- Loading State -->
+    <div id="loading-spinner" class="bg-white p-12 rounded-2xl border border-slate-200 text-center shadow-sm my-8">
+      <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent mb-4"></div>
+      <p class="text-sm font-bold text-slate-800">Menghubungkan ke Google Spreadsheet...</p>
+      <p class="text-xs text-slate-500 mt-1">Mengambil 1.094 data siswa, ruang ujian, dan kartu peserta.</p>
+    </div>
+
+    <!-- TAB 1: KARTU PESERTA -->
+    <div id="view-kartu" class="space-y-6 hidden">
+      <!-- Toolbar Filter & Cetak -->
+      <div class="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-black text-slate-900">Cetak Kartu Peserta Ujian (Kertas F4 / Folio)</h2>
+          <p id="kartu-subtitle" class="text-xs text-slate-500 mt-0.5">Format Standar 6 Kartu / Lembar F4 (Grid 2x3).</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <select id="filter-kelas" onchange="applyFilters()" class="text-xs font-bold border border-slate-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="all">Semua Kelas</option>
+          </select>
+
+          <select id="filter-ruang" onchange="applyFilters()" class="text-xs font-bold border border-slate-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="all">Semua Ruangan</option>
+          </select>
+
+          <button onclick="window.print()" class="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition">
+            <i data-lucide="printer" class="w-4 h-4"></i> Cetak Kartu Sekarang
+          </button>
+        </div>
+      </div>
+
+      <!-- Batch Navigator (Jika kartu banyak) -->
+      <div id="batch-navigator" class="no-print hidden bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between text-xs font-bold">
+        <span id="batch-info" class="text-slate-700"></span>
+        <div class="flex items-center gap-2">
+          <button onclick="prevBatch()" id="btn-prev-batch" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-40">&laquo; Lembar Sebelumnya</button>
+          <select id="select-batch" onchange="changeBatch(this.value)" class="border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white font-bold outline-none"></select>
+          <button onclick="nextBatch()" id="btn-next-batch" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-40">Lembar Selanjutnya &raquo;</button>
+        </div>
+      </div>
+
+      <!-- Kartu Print Container -->
+      <div id="kartu-container" class="space-y-6 print:space-y-0"></div>
+    </div>
+
+    <!-- TAB 2: DAFTAR HADIR -->
+    <div id="view-hadir" class="space-y-6 hidden">
+      <div class="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-black text-slate-900">Daftar Hadir Peserta Ujian (Per Ruangan)</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Pilih ruangan untuk mencetak daftar hadir presensi 36 siswa.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <select id="hadir-select-ruang" onchange="renderDaftarHadir()" class="text-xs font-bold border border-slate-300 rounded-lg px-3 py-2 bg-white"></select>
+          <button onclick="window.print()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5">
+            <i data-lucide="printer" class="w-4 h-4"></i> Cetak Presensi
+          </button>
+        </div>
+      </div>
+      <div id="hadir-container" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"></div>
+    </div>
+
+    <!-- TAB 3: DATA SISWA -->
+    <div id="view-siswa" class="space-y-6 hidden">
+      <div class="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-black text-slate-900">Data Siswa Terdaftar</h2>
+          <p id="siswa-count-label" class="text-xs text-slate-500 mt-0.5"></p>
+        </div>
+        <input type="text" id="search-siswa" oninput="renderTableSiswa()" placeholder="Cari Nama / NISN..." class="text-xs border border-slate-300 rounded-lg px-3 py-2 w-64 outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
+        <table class="w-full text-left text-xs text-slate-700">
+          <thead class="bg-slate-50 border-b border-slate-200 text-slate-900 font-extrabold uppercase">
+            <tr>
+              <th class="p-3">No</th>
+              <th class="p-3">Foto</th>
+              <th class="p-3">NISN</th>
+              <th class="p-3">NIS</th>
+              <th class="p-3">Nama Lengkap</th>
+              <th class="p-3">L/P</th>
+              <th class="p-3">Kelas</th>
+            </tr>
+          </thead>
+          <tbody id="table-siswa-body" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    var APP_DATA = null;
+    var currentBatch = 0;
+    var BATCH_SIZE = 10; // 10 lembar (60 kartu) per batch
+
+    // Inisialisasi data dari Google Apps Script
+    window.addEventListener('DOMContentLoaded', function() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(onDataLoaded)
+          .withFailureHandler(onDataError)
+          .getInitialData();
+      } else {
+        // Fallback demo jika dijalankan offline di browser biasa
+        fetchDemoData();
+      }
+    });
+
+    function onDataLoaded(data) {
+      APP_DATA = data;
+      document.getElementById('loading-spinner').classList.add('hidden');
+      
+      // Populate filters
+      populateFilters();
+      
+      // Default view: Tab Kartu
+      switchTab('kartu');
+      lucide.createIcons();
+    }
+
+    function onDataError(err) {
+      document.getElementById('loading-spinner').innerHTML = `
+        <p class="text-red-600 font-bold">Gagal memuat data dari Spreadsheet!</p>
+        <p class="text-xs text-slate-500 mt-2">${err.message || err}</p>
+      `;
+    }
+
+    function fetchDemoData() {
+      // Dummy saat testing lokal
+      console.log('Running in local offline mode.');
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white', 'shadow-sm');
+        btn.classList.add('text-slate-600');
+      });
+      document.getElementById('tab-btn-' + tab).classList.add('bg-blue-600', 'text-white', 'shadow-sm');
+      document.getElementById('tab-btn-' + tab).classList.remove('text-slate-600');
+
+      document.getElementById('view-kartu').classList.add('hidden');
+      document.getElementById('view-hadir').classList.add('hidden');
+      document.getElementById('view-siswa').classList.add('hidden');
+
+      if (tab === 'kartu') {
+        document.getElementById('view-kartu').classList.remove('hidden');
+        renderKartu();
+      } else if (tab === 'hadir') {
+        document.getElementById('view-hadir').classList.remove('hidden');
+        renderDaftarHadir();
+      } else if (tab === 'siswa') {
+        document.getElementById('view-siswa').classList.remove('hidden');
+        renderTableSiswa();
+      }
+      lucide.createIcons();
+    }
+
+    function populateFilters() {
+      var kelasSelect = document.getElementById('filter-kelas');
+      var ruangSelect = document.getElementById('filter-ruang');
+      var hadirRuangSelect = document.getElementById('hadir-select-ruang');
+
+      kelasSelect.innerHTML = '<option value="all">Semua Kelas</option>';
+      ruangSelect.innerHTML = '<option value="all">Semua Ruangan</option>';
+      hadirRuangSelect.innerHTML = '';
+
+      if (APP_DATA.kelasList) {
+        APP_DATA.kelasList.forEach(k => {
+          kelasSelect.innerHTML += `<option value="${k['ID Kelas'] || k.id}">${k['Nama Kelas'] || k.nama_kelas}</option>`;
+        });
+      }
+
+      if (APP_DATA.ruangList) {
+        APP_DATA.ruangList.forEach(r => {
+          var label = `${r['Kode Ruang'] || r.kode_ruang} - ${r['Nama Ruang'] || r.nama_ruang}`;
+          var val = r['ID Ruang'] || r.id;
+          ruangSelect.innerHTML += `<option value="${val}">${label}</option>`;
+          hadirRuangSelect.innerHTML += `<option value="${val}">${label}</option>`;
+        });
+      }
+    }
+
+    function getFilteredPeserta() {
+      if (!APP_DATA || !APP_DATA.pesertaList) return [];
+      var selK = document.getElementById('filter-kelas').value;
+      var selR = document.getElementById('filter-ruang').value;
+
+      return APP_DATA.pesertaList.filter(p => {
+        var matchK = selK === 'all' || String(p['ID Kelas'] || p.kelas_id) === selK || String(p['Kelas']) === selK;
+        var matchR = selR === 'all' || String(p['Ruang ID'] || p.ruang_id) === selR || String(p['Ruang Ujian']).includes(selR);
+        return matchK && matchR;
+      });
+    }
+
+    function applyFilters() {
+      currentBatch = 0;
+      renderKartu();
+    }
+
+    function renderKartu() {
+      var peserta = getFilteredPeserta();
+      var cfg = APP_DATA.pengaturan;
+      var container = document.getElementById('kartu-container');
+      
+      document.getElementById('kartu-subtitle').innerText = `Format Standar F4 / Folio (215 x 330 mm) • Menampilkan ${peserta.length} kartu siap cetak.`;
+
+      // 6 kartu per lembar F4
+      var pages = [];
+      for (var i = 0; i < peserta.length; i += 6) {
+        pages.push(peserta.slice(i, i + 6));
+      }
+
+      var totalBatches = Math.max(1, Math.ceil(pages.length / BATCH_SIZE));
+      var nav = document.getElementById('batch-navigator');
+      
+      if (totalBatches > 1) {
+        nav.classList.remove('hidden');
+        document.getElementById('batch-info').innerText = `Bagian ${currentBatch + 1} dari ${totalBatches} (Lembar ${currentBatch * BATCH_SIZE + 1} - ${Math.min((currentBatch + 1) * BATCH_SIZE, pages.length)})`;
+        var sel = document.getElementById('select-batch');
+        sel.innerHTML = '';
+        for (var b = 0; b < totalBatches; b++) {
+          sel.innerHTML += `<option value="${b}" ${b === currentBatch ? 'selected' : ''}>Bagian ${b + 1}: Lembar ${b * BATCH_SIZE + 1} - ${Math.min((b + 1) * BATCH_SIZE, pages.length)}</option>`;
+        }
+        document.getElementById('btn-prev-batch').disabled = currentBatch === 0;
+        document.getElementById('btn-next-batch').disabled = currentBatch >= totalBatches - 1;
+      } else {
+        nav.classList.add('hidden');
+      }
+
+      var displayedPages = totalBatches > 1 
+        ? pages.slice(currentBatch * BATCH_SIZE, (currentBatch + 1) * BATCH_SIZE)
+        : pages;
+
+      var html = '';
+      displayedPages.forEach(function(pagePeserta) {
+        html += '<div class="print-page bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">';
+        pagePeserta.forEach(function(p) {
+          html += `
+            <div class="card-item bg-white border-2 border-slate-800 rounded-lg p-2.5 flex flex-col justify-between shadow-xs">
+              <!-- Kop Kartu -->
+              <div class="border-b-2 sm:border-b-4 border-double border-slate-900 pb-1 mb-1.5 flex items-center justify-between gap-2 px-1">
+                <img src="${cfg.logoPemdaUrl}" class="w-[48px] h-[58px] object-contain flex-shrink-0" alt="Pemda">
+                <div class="flex-1 text-center leading-snug">
+                  <h3 class="text-[12.5px] font-black text-slate-950 uppercase tracking-wide">KARTU PESERTA</h3>
+                  <h4 class="text-[11.5px] font-black text-slate-900 uppercase">${cfg.namaUjian}</h4>
+                  <p class="text-[11px] font-black text-slate-900 uppercase">${cfg.namaSekolah}</p>
+                  <p class="text-[9.5px] font-extrabold text-slate-800 uppercase">TAHUN PELAJARAN ${cfg.tahunAjaran}</p>
+                </div>
+                <img src="${cfg.logoSekolahUrl}" class="w-[48px] h-[58px] object-contain flex-shrink-0" alt="Sekolah">
+              </div>
+
+              <!-- Foto & Biodata -->
+              <div class="flex gap-3 items-start my-auto">
+                <div class="w-[28mm] h-[37mm] border-2 border-slate-400 rounded bg-slate-50 flex-shrink-0 overflow-hidden relative shadow-inner flex items-center justify-center">
+                  ${p['Foto Siswa (URL)'] ? `<img src="${p['Foto Siswa (URL)']}" class="w-full h-full object-cover">` : `<span class="text-[9px] text-slate-400 font-bold">Foto 3x4</span>`}
+                  <span class="absolute bottom-0.5 text-[8.5px] px-2 py-0.5 bg-black/75 text-white rounded font-bold z-10">Meja ${p['No. Meja'] || '-'}</span>
+                </div>
+
+                <div class="flex-1 text-[11.5px] space-y-1 leading-snug">
+                  <div class="grid grid-cols-12 gap-1 pb-1 border-b border-dashed border-slate-300 items-baseline">
+                    <span class="col-span-4 text-slate-700 font-bold">No. Peserta</span>
+                    <span class="col-span-1 text-center font-bold text-slate-700">:</span>
+                    <span class="col-span-7 font-black text-slate-950 font-mono tracking-wider text-[13px]">${p['No. Peserta']}</span>
+                  </div>
+                  <div class="grid grid-cols-12 gap-1 items-baseline">
+                    <span class="col-span-4 text-slate-700 font-bold">Nama Siswa</span>
+                    <span class="col-span-1 text-center font-bold text-slate-700">:</span>
+                    <span class="col-span-7 font-black text-slate-950 uppercase text-[12px] truncate">${p['Nama Siswa'] || p['Nama Lengkap']}</span>
+                  </div>
+                  <div class="grid grid-cols-12 gap-1 items-baseline">
+                    <span class="col-span-4 text-slate-700 font-bold">NISN / NIS</span>
+                    <span class="col-span-1 text-center font-bold text-slate-700">:</span>
+                    <span class="col-span-7 font-bold text-slate-900">${p['NISN']} / ${p['NIS'] || '-'}</span>
+                  </div>
+                  <div class="grid grid-cols-12 gap-1 items-baseline">
+                    <span class="col-span-4 text-slate-700 font-bold">Kelas</span>
+                    <span class="col-span-1 text-center font-bold text-slate-700">:</span>
+                    <span class="col-span-7 font-black text-slate-950">${p['Kelas']}</span>
+                  </div>
+                  <div class="grid grid-cols-12 gap-1 items-baseline">
+                    <span class="col-span-4 text-slate-700 font-bold">Ruang Ujian</span>
+                    <span class="col-span-1 text-center font-bold text-slate-700">:</span>
+                    <span class="col-span-7 font-bold text-slate-900">${p['Ruang Ujian']}</span>
+                  </div>
+                  <div class="grid grid-cols-12 gap-1 items-baseline">
+                    <span class="col-span-4 text-slate-700 font-bold">Sesi</span>
+                    <span class="col-span-1 text-center font-bold text-slate-700">:</span>
+                    <span class="col-span-7 font-bold text-slate-900">Sesi ${p['Sesi'] || 1}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer & TTD -->
+              <div class="border-t-2 border-slate-800 pt-1.5 mt-1 text-[9px] flex items-end justify-between">
+                <div>
+                  <p class="font-bold text-slate-800 text-[9.5px]">VERIFIKASI PANITIA</p>
+                  <p class="italic text-[8px] text-slate-500">Wajib dibawa saat ujian</p>
+                </div>
+                <div class="text-center min-w-[155px]">
+                  <p class="text-slate-700 leading-tight">${cfg.kotaTtd}, ${cfg.tanggalTtd}</p>
+                  <p class="font-semibold text-slate-800 leading-tight">${cfg.jabatanKepsek}</p>
+                  <div class="h-8 my-0.5 flex items-center justify-center">
+                    <img src="${cfg.ttdKepsekUrl}" class="max-h-8 w-auto object-contain">
+                  </div>
+                  <p class="font-black text-slate-950 text-[10px] underline leading-tight">${cfg.namaKepsek}</p>
+                  <p class="text-[8.5px] font-bold text-slate-800 leading-tight">NIP. ${cfg.nipKepsek}</p>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function prevBatch() {
+      if (currentBatch > 0) { currentBatch--; renderKartu(); }
+    }
+    function nextBatch() {
+      currentBatch++;
+      renderKartu();
+    }
+    function changeBatch(val) {
+      currentBatch = Number(val);
+      renderKartu();
+    }
+
+    function renderDaftarHadir() {
+      var selRId = document.getElementById('hadir-select-ruang').value;
+      var cfg = APP_DATA.pengaturan;
+      var container = document.getElementById('hadir-container');
+      
+      var ruangObj = APP_DATA.ruangList.find(r => String(r['ID Ruang'] || r.id) === String(selRId)) || APP_DATA.ruangList[0];
+      var kodeR = ruangObj ? (ruangObj['Kode Ruang'] || ruangObj.kode_ruang) : 'R-01';
+      var namaR = ruangObj ? (ruangObj['Nama Ruang'] || ruangObj.nama_ruang) : 'Ruang 01';
+
+      var siswaRuang = APP_DATA.pesertaList.filter(p => {
+        return String(p['Ruang ID'] || p.ruang_id) === String(selRId) || String(p['Ruang Ujian']).includes(kodeR);
+      }).sort((a,b) => (Number(a['No. Meja']) || 0) - (Number(b['No. Meja']) || 0));
+
+      var rowsHtml = '';
+      for (var i = 0; i < 36; i++) {
+        var p = siswaRuang[i];
+        rowsHtml += `
+          <tr class="h-8 border-b border-slate-300 text-xs">
+            <td class="text-center font-bold">${i + 1}</td>
+            <td class="font-mono font-bold text-center">${p ? p['No. Peserta'] : '-'}</td>
+            <td class="font-semibold uppercase">${p ? (p['Nama Siswa'] || p['Nama Lengkap']) : ''}</td>
+            <td class="text-center font-bold">${p ? p['Kelas'] : ''}</td>
+            <td class="w-16 border-r border-slate-300">
+              ${(i % 2 === 0) ? `<div class="text-[10px] font-bold pl-1 text-slate-500">${i + 1}. .........</div>` : ''}
+            </td>
+            <td class="w-16">
+              ${(i % 2 !== 0) ? `<div class="text-[10px] font-bold pl-1 text-slate-500">${i + 1}. .........</div>` : ''}
+            </td>
+          </tr>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="border-b-4 border-double border-slate-900 pb-2 mb-4 text-center">
+          <h2 class="text-base font-black uppercase">DAFTAR HADIR PESERTA UJIAN</h2>
+          <h3 class="text-sm font-extrabold uppercase">${cfg.namaUjian}</h3>
+          <p class="text-xs font-bold uppercase">${cfg.namaSekolah} • TP ${cfg.tahunAjaran}</p>
+        </div>
+        <div class="flex justify-between text-xs font-bold mb-3">
+          <span>Ruang: ${kodeR} (${namaR})</span>
+          <span>Sesi: 1</span>
+          <span>Jumlah Peserta: ${siswaRuang.length} Siswa</span>
+        </div>
+        <table class="w-full border-collapse border border-slate-400 text-xs">
+          <thead class="bg-slate-100 font-extrabold border-b border-slate-400">
+            <tr>
+              <th class="p-2 border border-slate-400 w-10 text-center">No</th>
+              <th class="p-2 border border-slate-400 w-32 text-center">No. Peserta</th>
+              <th class="p-2 border border-slate-400 text-left">Nama Peserta</th>
+              <th class="p-2 border border-slate-400 w-20 text-center">Kelas</th>
+              <th colspan="2" class="p-2 border border-slate-400 w-36 text-center">Tanda Tangan</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      `;
+    }
+
+    function renderTableSiswa() {
+      var query = (document.getElementById('search-siswa').value || '').toLowerCase();
+      var tbody = document.getElementById('table-siswa-body');
+      var list = APP_DATA.siswaList || [];
+
+      var filtered = list.filter(s => {
+        return (s['Nama Lengkap'] || '').toLowerCase().includes(query) ||
+               String(s['NISN'] || '').includes(query);
+      });
+
+      document.getElementById('siswa-count-label').innerText = `Menampilkan ${filtered.length} dari ${list.length} siswa.`;
+
+      var html = '';
+      filtered.slice(0, 100).forEach((s, idx) => {
+        html += `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 font-bold">${idx + 1}</td>
+            <td class="p-3">
+              ${s['Foto Siswa (URL)'] ? `<img src="${s['Foto Siswa (URL)']}" class="w-8 h-10 object-cover rounded shadow-xs">` : `<span class="text-slate-400">-</span>`}
+            </td>
+            <td class="p-3 font-mono font-bold">${s['NISN']}</td>
+            <td class="p-3 font-mono">${s['NIS'] || '-'}</td>
+            <td class="p-3 font-bold uppercase text-slate-900">${s['Nama Lengkap']}</td>
+            <td class="p-3 font-bold">${s['L/P']}</td>
+            <td class="p-3 font-bold text-blue-700">${s['Kelas']}</td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
