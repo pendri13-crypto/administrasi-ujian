@@ -108,7 +108,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </div>
               <div>
                 <h1 className="text-base font-bold text-slate-900 leading-tight">
-                  Sistem Asesmen
+                  Sistem Assesmen
                 </h1>
                 <p className="text-[11px] font-semibold text-slate-600 block">
                   SMPN 1 Rajapolah
@@ -259,7 +259,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Footer (Hidden on print) */}
       <footer className="no-print bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
-        <p>© 2026 Sistem Asesmen SMPN 1 Rajapolah • Terintegrasi Cloud Supabase & Vercel</p>
+        <p>© 2026 Sistem Assesmen SMPN 1 Rajapolah • Terintegrasi Cloud Supabase & Vercel</p>
       </footer>
     </div>
   );

@@ -73,7 +73,7 @@ export default function Dashboard() {
               <Calendar className="w-3.5 h-3.5" /> Agenda Aktif: {schoolSettings.namaUjian} ({schoolSettings.semester}) • TP {schoolSettings.tahunAjaran}
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Sistem Asesmen SMPN 1 Rajapolah
+              Sistem Assesmen SMPN 1 Rajapolah
             </h1>
             <p className="mt-2 text-blue-100 text-sm sm:text-base leading-relaxed">
               Kelola kartu peserta dengan foto siswa, cetak daftar hadir ujian per ruangan, 
