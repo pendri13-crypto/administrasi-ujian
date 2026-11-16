@@ -14,7 +14,9 @@ import {
   UserCheck,
   Settings,
   DoorOpen,
-  Calendar
+  Calendar,
+  Menu,
+  X
 } from 'lucide-react';
 import { getStoredUser, clearUserSession, isAdmin, AuthUser } from '@/lib/auth';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
@@ -24,7 +26,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const updateSettings = () => {
@@ -89,150 +96,138 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return null;
   }
 
+  const navItems = [
+    {
+      href: '/kartu-peserta',
+      label: 'Kartu Peserta',
+      icon: CreditCard,
+      activeColor: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 ring-2 ring-blue-400/30',
+      inactiveColor: 'text-slate-700 hover:text-blue-600 hover:bg-blue-50/80',
+      iconColor: 'text-blue-600',
+    },
+    {
+      href: '/nomor-meja',
+      label: 'Label Meja',
+      icon: Tag,
+      activeColor: 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-md shadow-purple-500/25 ring-2 ring-purple-400/30',
+      inactiveColor: 'text-slate-700 hover:text-purple-600 hover:bg-purple-50/80',
+      iconColor: 'text-purple-600',
+    },
+    {
+      href: '/nilai-kelas',
+      label: 'Nilai Per Kelas',
+      icon: FileSpreadsheet,
+      activeColor: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/25 ring-2 ring-emerald-400/30',
+      inactiveColor: 'text-slate-700 hover:text-emerald-600 hover:bg-emerald-50/80',
+      iconColor: 'text-emerald-600',
+    },
+    {
+      href: '/nilai-mapel',
+      label: 'Nilai Per Mapel',
+      icon: Award,
+      activeColor: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/25 ring-2 ring-amber-400/30',
+      inactiveColor: 'text-slate-700 hover:text-amber-600 hover:bg-amber-50/80',
+      iconColor: 'text-amber-600',
+    },
+    {
+      href: '/daftar-hadir',
+      label: 'Daftar Hadir Ruang',
+      icon: ClipboardList,
+      activeColor: 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-500/25 ring-2 ring-cyan-400/30',
+      inactiveColor: 'text-slate-700 hover:text-cyan-600 hover:bg-cyan-50/80',
+      iconColor: 'text-cyan-600',
+    },
+    {
+      href: '/siswa',
+      label: 'Data Siswa',
+      icon: Users,
+      activeColor: 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md shadow-rose-500/25 ring-2 ring-rose-400/30',
+      inactiveColor: 'text-slate-700 hover:text-rose-600 hover:bg-rose-50/80',
+      iconColor: 'text-rose-600',
+    },
+    ...(isAdmin(currentUser) ? [
+      {
+        href: '/ruang',
+        label: 'Ruang',
+        icon: DoorOpen,
+        activeColor: 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-500/25 ring-2 ring-teal-400/30',
+        inactiveColor: 'text-slate-700 hover:text-teal-600 hover:bg-teal-50/80',
+        iconColor: 'text-teal-600',
+      },
+      {
+        href: '/jadwal',
+        label: 'Jadwal',
+        icon: Calendar,
+        activeColor: 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-md shadow-orange-500/25 ring-2 ring-orange-400/30',
+        inactiveColor: 'text-slate-700 hover:text-orange-600 hover:bg-orange-50/80',
+        iconColor: 'text-orange-600',
+      },
+      {
+        href: '/pengaturan',
+        label: 'Pengaturan',
+        icon: Settings,
+        activeColor: 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md shadow-violet-500/25 ring-2 ring-violet-400/30',
+        inactiveColor: 'text-slate-700 hover:text-violet-600 hover:bg-violet-50/80',
+        iconColor: 'text-violet-600',
+      },
+    ] : [])
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Top Navbar (Hidden on print) */}
-      <header className="no-print bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
+    <div className="min-h-screen flex flex-col bg-slate-50/50">
+      {/* Top Navbar Lebih Lebar & Responsif (Hidden on print) */}
+      <header className="no-print bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 shadow-xs">
+        <div className="max-w-[1720px] w-full mx-auto px-3 sm:px-6 xl:px-8">
+          <div className="flex justify-between h-16 items-center gap-2">
             
             {/* Brand Logo & Title */}
-            <Link href="/" className="flex items-center gap-3 group">
+            <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group flex-shrink-0">
               <div className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={schoolSettings.logoSekolahUrl || '/images/logo-sekolah-3d.png'} 
                   alt="Logo Sekolah" 
-                  className="w-full h-full object-contain filter drop-shadow hover:scale-105 transition-transform" 
+                  className="w-full h-full object-contain filter drop-shadow group-hover:scale-105 transition-transform" 
                 />
               </div>
-              <div>
-                <h1 className="text-base font-bold text-slate-900 leading-tight">
+              <div className="hidden sm:block">
+                <h1 className="text-sm sm:text-base font-extrabold text-slate-900 leading-tight tracking-tight">
                   Sistem Assesmen
                 </h1>
-                <p className="text-[11px] font-semibold text-slate-600 block">
+                <p className="text-[11px] font-semibold text-slate-500 block">
                   SMPN 1 Rajapolah
                 </p>
               </div>
             </Link>
 
-            {/* Menu Navigasi */}
-            <nav className="hidden lg:flex items-center gap-1">
-              <Link
-                href="/kartu-peserta"
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                  pathname === '/kartu-peserta' 
-                    ? 'text-blue-600 bg-blue-50' 
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
-              >
-                <CreditCard className="w-4 h-4 text-blue-600" />
-                Kartu Peserta
-              </Link>
-              <Link
-                href="/nomor-meja"
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                  pathname === '/nomor-meja' 
-                    ? 'text-blue-600 bg-blue-50' 
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
-              >
-                <Tag className="w-4 h-4 text-violet-600" />
-                Label Meja
-              </Link>
-              <Link
-                href="/nilai-kelas"
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                  pathname === '/nilai-kelas' 
-                    ? 'text-blue-600 bg-blue-50' 
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
-              >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                Nilai Per Kelas
-              </Link>
-              <Link
-                href="/nilai-mapel"
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                  pathname === '/nilai-mapel' 
-                    ? 'text-blue-600 bg-blue-50' 
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
-              >
-                <Award className="w-4 h-4 text-amber-600" />
-                Nilai Per Mapel
-              </Link>
-              <Link
-                href="/daftar-hadir"
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                  pathname === '/daftar-hadir' 
-                    ? 'text-blue-600 bg-blue-50' 
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
-              >
-                <ClipboardList className="w-4 h-4 text-indigo-600" />
-                Daftar Hadir Ruang
-              </Link>
-              <Link
-                href="/siswa"
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                  pathname === '/siswa' 
-                    ? 'text-blue-600 bg-blue-50' 
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
-              >
-                <Users className="w-4 h-4 text-slate-600" />
-                Data Siswa
-              </Link>
-
-              {isAdmin(currentUser) && (
-                <>
+            {/* Menu Navigasi Desktop: Lebar, Rapi, Tanpa Patah Baris, Efek Aktif Berwarna */}
+            <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 flex-1 justify-center px-1 overflow-x-auto no-scrollbar py-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
                   <Link
-                    href="/ruang"
-                    className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                      pathname === '/ruang' 
-                        ? 'text-teal-600 bg-teal-50 font-bold' 
-                        : 'text-slate-700 hover:text-teal-600 hover:bg-teal-50'
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-2 px-2.5 xl:px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-200 ease-out transform active:scale-95 ${
+                      isActive 
+                        ? `${item.activeColor} scale-[1.02]` 
+                        : `${item.inactiveColor} hover:-translate-y-0.5 hover:shadow-xs`
                     }`}
-                    title="Kelola Ruang Ujian (Khusus Role Admin)"
                   >
-                    <DoorOpen className="w-4 h-4 text-teal-600" />
-                    Ruang
+                    <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : item.iconColor}`} />
+                    <span>{item.label}</span>
                   </Link>
-                  <Link
-                    href="/jadwal"
-                    className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                      pathname === '/jadwal' 
-                        ? 'text-amber-600 bg-amber-50 font-bold' 
-                        : 'text-slate-700 hover:text-amber-600 hover:bg-amber-50'
-                    }`}
-                    title="Kelola Jadwal Ujian (Khusus Role Admin)"
-                  >
-                    <Calendar className="w-4 h-4 text-amber-600" />
-                    Jadwal
-                  </Link>
-                  <Link
-                    href="/pengaturan"
-                    className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                      pathname === '/pengaturan' 
-                        ? 'text-indigo-600 bg-indigo-50 font-bold' 
-                        : 'text-slate-700 hover:text-indigo-600 hover:bg-indigo-50'
-                    }`}
-                    title="Pengaturan Ujian & Sekolah (Khusus Role Admin)"
-                  >
-                    <Settings className="w-4 h-4 text-indigo-600" />
-                    Pengaturan
-                  </Link>
-                </>
-              )}
+                );
+              })}
             </nav>
 
             {/* User Session & Logout Action */}
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <div className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-100/80 border border-slate-200 text-xs">
                 <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-                <span className="text-xs font-semibold text-slate-800">{currentUser.name}</span>
-                <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded">
+                <span className="font-bold text-slate-800">{currentUser.name}</span>
+                <span className="text-[10px] bg-blue-100 text-blue-700 font-extrabold px-1.5 py-0.5 rounded-md">
                   {currentUser.role}
                 </span>
               </div>
@@ -240,20 +235,54 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 rounded-lg transition shadow-sm"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 rounded-xl transition-all shadow-xs"
                 title="Keluar dari sistem"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Keluar</span>
               </button>
+
+              {/* Mobile Menu Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="lg:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Toggle Menu"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
             </div>
 
           </div>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden bg-white border-t border-slate-200 px-4 pt-3 pb-5 space-y-1.5 shadow-xl animate-in slide-in-from-top duration-200">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-all ${
+                    isActive 
+                      ? item.activeColor 
+                      : `${item.inactiveColor} bg-slate-50/50`
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : item.iconColor}`} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-[1720px] w-full mx-auto p-4 sm:p-6 lg:p-8">
         {children}
       </main>
 
