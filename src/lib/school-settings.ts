@@ -24,7 +24,7 @@ export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
   alamatSekolah: 'Jl. Raya Rajapolah No. 1 • Kab. Tasikmalaya',
   jenisAsesmen: 'SAS',
   namaUjian: 'SUMATIF AKHIR SEMESTER (SAS)',
-  tahunAjaran: '2025/2026',
+  tahunAjaran: '2026/2027',
   semester: 'Ganjil',
   jabatanKepsek: 'Kepala SMPN 1 Rajapolah,',
   namaKepsek: 'H. UCU KARNI, M.Pd.',
