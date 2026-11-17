@@ -10,7 +10,7 @@ import {
   generatePesertaFromSiswa
 } from '@/lib/demo-data';
 import { PesertaUjian, Siswa, Ruang, JadwalUjian, Mapel, Kelas } from '@/types/database';
-import { Printer, DoorOpen, Calendar, Clock, Layers, GraduationCap } from 'lucide-react';
+import { Printer, DoorOpen, Calendar, Clock, Layers, GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 import { 
   fetchSiswaFromCloud, 
@@ -36,11 +36,14 @@ export default function DaftarHadirPage() {
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+  const [showNoPeserta, setShowNoPeserta] = useState<boolean>(false);
 
   // 1. Sinkronisasi Pengaturan Sekolah (Kop Dokumen)
   useEffect(() => {
     const updateSettings = () => {
-      setSchoolSettings(getStoredSchoolSettings());
+      const s = getStoredSchoolSettings();
+      setSchoolSettings(s);
+      setShowNoPeserta(s.tampilkanNoPeserta ?? false);
     };
     updateSettings();
     window.addEventListener('school-settings-updated', updateSettings);
@@ -354,6 +357,30 @@ export default function DaftarHadirPage() {
               </select>
             </div>
 
+            {/* Toggle Tampilkan / Hilangkan No. Peserta */}
+            <button
+              type="button"
+              onClick={() => setShowNoPeserta(!showNoPeserta)}
+              title={showNoPeserta ? "Nomor Peserta Ditampilkan (Klik untuk hilangkan)" : "Nomor Peserta Dihilangkan (Klik untuk tampilkan)"}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition ${
+                showNoPeserta 
+                  ? 'bg-indigo-50 text-indigo-700 border-indigo-300' 
+                  : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'
+              }`}
+            >
+              {showNoPeserta ? (
+                <>
+                  <Eye className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>No. Peserta: Tampil</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-3.5 h-3.5 text-slate-500" />
+                  <span>No. Peserta: Dihilangkan</span>
+                </>
+              )}
+            </button>
+
             {/* Tombol Cetak Dokumen */}
             <button
               onClick={() => window.print()}
@@ -433,8 +460,10 @@ export default function DaftarHadirPage() {
               <tr className="bg-slate-100 text-slate-900 uppercase font-bold text-[10px] text-center tracking-wider">
                 <th className="border border-slate-400 px-2 py-2 w-10">No</th>
                 <th className="border border-slate-400 px-2 py-2 w-16">No Meja</th>
-                <th className="border border-slate-400 px-3 py-2 w-32">Nomor Peserta</th>
-                <th className="border border-slate-400 px-3 py-2 w-24">NISN</th>
+                {showNoPeserta && (
+                  <th className="border border-slate-400 px-3 py-2 w-32">Nomor Peserta</th>
+                )}
+                <th className="border border-slate-400 px-3 py-2 w-28">NISN</th>
                 <th className="border border-slate-400 px-3 py-2 text-left">Nama Peserta Ujian</th>
                 <th className="border border-slate-400 px-2 py-2 w-16">Kelas</th>
                 <th className="border border-slate-400 px-3 py-2 w-44" colSpan={2}>
@@ -446,7 +475,7 @@ export default function DaftarHadirPage() {
             <tbody>
               {pesertaRuang.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="border border-slate-400 py-10 text-center text-slate-500 italic">
+                  <td colSpan={showNoPeserta ? 9 : 8} className="border border-slate-400 py-10 text-center text-slate-500 italic">
                     {isLoading ? (
                       <span className="flex items-center justify-center gap-2">
                         <span className="inline-block w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
@@ -469,9 +498,11 @@ export default function DaftarHadirPage() {
                     <td className="border border-slate-400 px-2 py-1 text-center font-bold font-mono bg-slate-50/50">
                       {peserta.no_meja || idx + 1}
                     </td>
-                    <td className="border border-slate-400 px-3 py-1 text-center font-mono font-bold text-slate-900">
-                      {peserta.no_peserta}
-                    </td>
+                    {showNoPeserta && (
+                      <td className="border border-slate-400 px-3 py-1 text-center font-mono font-bold text-slate-900">
+                        {peserta.no_peserta}
+                      </td>
+                    )}
                     <td className="border border-slate-400 px-3 py-1 text-center font-mono text-slate-700">
                       {siswa?.nisn}
                     </td>

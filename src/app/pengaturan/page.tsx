@@ -13,6 +13,7 @@ import {
   CheckCircle2, 
   Upload, 
   Eye, 
+  EyeOff,
   ShieldAlert,
   Sparkles,
   Info,
@@ -672,6 +673,65 @@ export default function PengaturanAdminPage() {
             </div>
           </div>
 
+          {/* 7. Opsi Nomor Peserta Ujian */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">7. Opsi Nomor Peserta Ujian</h2>
+                <p className="text-[11px] text-slate-500">Pilih apakah nomor peserta (01-xx-xxx) ditampilkan pada kartu, label meja, dan daftar hadir</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSettings({ ...settings, tampilkanNoPeserta: false })}
+                className={`p-4 rounded-xl border text-left transition relative flex flex-col justify-between ${
+                  !settings.tampilkanNoPeserta
+                    ? 'border-purple-600 bg-purple-50/60 ring-2 ring-purple-600/20'
+                    : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900">Hilangkan / Sembunyikan</span>
+                    {!settings.tampilkanNoPeserta && (
+                      <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                    )}
+                  </div>
+                  <p className="text-[11px] font-semibold text-slate-700 mt-1">
+                    Tanpa Nomor Peserta (Rekomendasi)
+                  </p>
+                  <span className="text-[10px] text-slate-500 mt-0.5">Identifikasi peserta cukup dengan Nama, NISN/NIS, Kelas, dan Ruangan.</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSettings({ ...settings, tampilkanNoPeserta: true })}
+                className={`p-4 rounded-xl border text-left transition relative flex flex-col justify-between ${
+                  settings.tampilkanNoPeserta
+                    ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-600/20'
+                    : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900">Tampilkan Nomor Peserta</span>
+                    {settings.tampilkanNoPeserta && (
+                      <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                    )}
+                  </div>
+                  <p className="text-[11px] font-semibold text-slate-700 mt-1">
+                    Gunakan Format 01-xx-xxx
+                  </p>
+                  <span className="text-[10px] text-slate-500 mt-0.5">Tampilkan baris Nomor Peserta di kartu, label meja, dan daftar hadir.</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
           {/* Tombol Simpan Bawah */}
           <div className="pt-2">
             <button
@@ -726,9 +786,15 @@ export default function PengaturanAdminPage() {
                   <span>Nama Peserta:</span>
                   <span className="font-bold text-slate-900">ADELIA PUTRI</span>
                 </div>
+                {settings.tampilkanNoPeserta && (
+                  <div className="flex justify-between">
+                    <span>No. Peserta:</span>
+                    <span className="font-mono font-bold text-slate-900">01-07-001</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <span>No. Peserta:</span>
-                  <span className="font-mono font-bold text-slate-900">01-07-001</span>
+                  <span>NISN / NIS:</span>
+                  <span className="font-semibold text-slate-800">262770001 / 3134688</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Kelas / Ruang:</span>

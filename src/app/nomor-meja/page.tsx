@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { DEMO_PESERTA, DEMO_SISWA, DEMO_RUANG, DEMO_KELAS, generatePesertaFromSiswa } from '@/lib/demo-data';
 import { PesertaUjian, Siswa, Ruang, Kelas } from '@/types/database';
-import { Printer, Filter, DoorOpen, GraduationCap } from 'lucide-react';
+import { Printer, Filter, DoorOpen, GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 import { fetchSiswaFromCloud, fetchRuangFromCloud, getStoredRuang, fetchSplitRulesFromCloud } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -16,10 +16,13 @@ export default function NomorMejaPage() {
   const [kelasList, setKelasList] = useState<Kelas[]>(DEMO_KELAS);
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+  const [showNoPeserta, setShowNoPeserta] = useState<boolean>(false);
 
   useEffect(() => {
     const updateSettings = () => {
-      setSchoolSettings(getStoredSchoolSettings());
+      const s = getStoredSchoolSettings();
+      setSchoolSettings(s);
+      setShowNoPeserta(s.tampilkanNoPeserta ?? false);
     };
     updateSettings();
     window.addEventListener('school-settings-updated', updateSettings);
@@ -209,6 +212,30 @@ export default function NomorMejaPage() {
               </div>
             )}
 
+            {/* Toggle Tampilkan / Hilangkan No. Peserta */}
+            <button
+              type="button"
+              onClick={() => setShowNoPeserta(!showNoPeserta)}
+              title={showNoPeserta ? "Nomor Peserta Ditampilkan (Klik untuk hilangkan)" : "Nomor Peserta Dihilangkan (Klik untuk tampilkan)"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                showNoPeserta 
+                  ? 'bg-blue-50 text-blue-700 border-blue-300' 
+                  : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'
+              }`}
+            >
+              {showNoPeserta ? (
+                <>
+                  <Eye className="w-3.5 h-3.5 text-blue-600" />
+                  <span>No. Peserta: Tampil</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-3.5 h-3.5 text-slate-500" />
+                  <span>No. Peserta: Dihilangkan</span>
+                </>
+              )}
+            </button>
+
             <button
               onClick={() => window.print()}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
@@ -251,16 +278,23 @@ export default function NomorMejaPage() {
 
               {/* Badan Label */}
               <div className="flex items-center justify-between py-2 gap-4">
-                <div className="space-y-1 text-xs">
-                  <p className="text-[10px] text-slate-500 font-medium">Nomor Peserta:</p>
-                  <p className="text-base font-black font-mono tracking-wider text-slate-950">
-                    {peserta.no_peserta}
-                  </p>
-                  <p className="font-bold text-slate-900 uppercase text-xs pt-1">
+                <div className="space-y-1.5 text-xs flex-1">
+                  {showNoPeserta && (
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-medium">Nomor Peserta:</p>
+                      <p className="text-base font-black font-mono tracking-wider text-slate-950">
+                        {peserta.no_peserta}
+                      </p>
+                    </div>
+                  )}
+                  <p className={`font-black text-slate-950 uppercase ${!showNoPeserta ? 'text-sm' : 'text-xs pt-1'}`}>
                     {siswa?.nama_lengkap}
                   </p>
-                  <p className="text-[11px] text-slate-600 font-medium">
-                    NISN: {siswa?.nisn} • Kelas: {kelas?.nama_kelas}
+                  <p className="text-xs text-slate-700 font-medium">
+                    NISN: <span className="font-mono font-bold text-slate-900">{siswa?.nisn || '-'}</span>{siswa?.nis ? ` / NIS: ${siswa.nis}` : ''}
+                  </p>
+                  <p className="text-xs text-slate-600 font-medium">
+                    Kelas: <span className="font-bold text-slate-900">{kelas?.nama_kelas || '-'}</span>
                   </p>
                 </div>
 

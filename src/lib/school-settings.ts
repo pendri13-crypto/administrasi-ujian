@@ -15,6 +15,7 @@ export interface SchoolSettings {
   logoPemdaUrl: string;
   logoSekolahUrl: string;
   logoTasikmalayaUrl?: string | null;
+  tampilkanNoPeserta?: boolean;
 }
 
 export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
@@ -34,6 +35,7 @@ export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
   logoPemdaUrl: '/images/logo-tasikmalaya.png',
   logoSekolahUrl: '/images/logo-sekolah-3d.png',
   logoTasikmalayaUrl: '/images/logo-tasikmalaya.png',
+  tampilkanNoPeserta: false,
 };
 
 const SETTINGS_KEY = 'adm_ujian_school_settings';
@@ -46,9 +48,11 @@ export function getStoredSchoolSettings(): SchoolSettings {
     const parsed = JSON.parse(saved);
     const logoPemda = parsed.logoPemdaUrl || parsed.logoTasikmalayaUrl || DEFAULT_SCHOOL_SETTINGS.logoPemdaUrl;
     const logoSekolah = parsed.logoSekolahUrl || DEFAULT_SCHOOL_SETTINGS.logoSekolahUrl;
+    const tampilkanNoPeserta = parsed.tampilkanNoPeserta ?? false;
     return {
       ...DEFAULT_SCHOOL_SETTINGS,
       ...parsed,
+      tampilkanNoPeserta,
       logoPemdaUrl: logoPemda,
       logoTasikmalayaUrl: logoPemda,
       logoSekolahUrl: logoSekolah,

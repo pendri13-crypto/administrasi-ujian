@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { DEMO_PESERTA, DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, generatePesertaFromSiswa } from '@/lib/demo-data';
 import { PesertaUjian, Siswa } from '@/types/database';
-import { Printer, Filter, Image as ImageIcon, QrCode } from 'lucide-react';
+import { Printer, Filter, Image as ImageIcon, QrCode, Eye, EyeOff } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 import { fetchSiswaFromCloud, fetchRuangFromCloud, getStoredRuang, fetchSplitRulesFromCloud } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -17,11 +17,14 @@ export default function KartuPesertaPage() {
   const [ruangList, setRuangList] = useState(getStoredRuang());
   const [pesertaList, setPesertaList] = useState<PesertaUjian[]>(DEMO_PESERTA);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+  const [showNoPeserta, setShowNoPeserta] = useState<boolean>(false);
 
   // Sinkronisasi data sekolah dan foto siswa dari localStorage
   useEffect(() => {
     const updateSettings = () => {
-      setSchoolSettings(getStoredSchoolSettings());
+      const s = getStoredSchoolSettings();
+      setSchoolSettings(s);
+      setShowNoPeserta(s.tampilkanNoPeserta ?? false);
     };
     updateSettings();
     window.addEventListener('school-settings-updated', updateSettings);
@@ -235,6 +238,29 @@ export default function KartuPesertaPage() {
                 <option value="4">4 Kartu / Lembar F4 (Grid 2x2)</option>
                 <option value="2">2 Kartu / Lembar F4 (Besar)</option>
               </select>
+
+              <button
+                type="button"
+                onClick={() => setShowNoPeserta(!showNoPeserta)}
+                title={showNoPeserta ? "Nomor Peserta Ditampilkan (Klik untuk hilangkan)" : "Nomor Peserta Dihilangkan (Klik untuk tampilkan)"}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition ${
+                  showNoPeserta 
+                    ? 'bg-blue-50 text-blue-700 border-blue-300' 
+                    : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'
+                }`}
+              >
+                {showNoPeserta ? (
+                  <>
+                    <Eye className="w-3.5 h-3.5 text-blue-600" />
+                    <span>No. Peserta: Tampil</span>
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="w-3.5 h-3.5 text-slate-500" />
+                    <span>No. Peserta: Dihilangkan</span>
+                  </>
+                )}
+              </button>
             </div>
 
             <button
@@ -394,15 +420,17 @@ export default function KartuPesertaPage() {
 
                       {/* Data Peserta */}
                       <div className={`flex-1 ${isMode6 ? 'text-[11.5px] space-y-1' : 'text-xs space-y-1.5'} leading-snug`}>
-                        <div className="grid grid-cols-12 gap-1 pb-1 border-b border-dashed border-slate-300 items-baseline">
-                          <span className="col-span-4 text-slate-700 font-bold">No. Peserta</span>
-                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
-                          <span className={`col-span-7 font-black text-slate-950 font-mono tracking-wider ${isMode6 ? 'text-[13px]' : 'text-sm'}`}>
-                            {peserta.no_peserta}
-                          </span>
-                        </div>
+                        {showNoPeserta && (
+                          <div className="grid grid-cols-12 gap-1 pb-1 border-b border-dashed border-slate-300 items-baseline">
+                            <span className="col-span-4 text-slate-700 font-bold">No. Peserta</span>
+                            <span className="col-span-1 text-center font-bold text-slate-700">:</span>
+                            <span className={`col-span-7 font-black text-slate-950 font-mono tracking-wider ${isMode6 ? 'text-[13px]' : 'text-sm'}`}>
+                              {peserta.no_peserta}
+                            </span>
+                          </div>
+                        )}
 
-                        <div className="grid grid-cols-12 gap-1 items-baseline">
+                        <div className={`grid grid-cols-12 gap-1 items-baseline ${!showNoPeserta ? 'pb-1 border-b border-dashed border-slate-300' : ''}`}>
                           <span className="col-span-4 text-slate-700 font-bold">Nama Siswa</span>
                           <span className="col-span-1 text-center font-bold text-slate-700">:</span>
                           <span className={`col-span-7 font-black text-slate-950 uppercase ${isMode6 ? 'text-[12px]' : 'text-[13px]'}`}>
