@@ -66,7 +66,7 @@ export default function KelolaJadwalPage() {
   const [editingJadwal, setEditingJadwal] = useState<JadwalUjian | null>(null);
   const [formMapelId, setFormMapelId] = useState<number>(1);
   const [formTanggal, setFormTanggal] = useState<string>('');
-  const [formJamMulai, setFormJamMulai] = useState<string>('07:30');
+  const [formJamMulai, setFormJamMulai] = useState<string>('08:00');
   const [formJamSelesai, setFormJamSelesai] = useState<string>('09:30');
   const [formSesi, setFormSesi] = useState<number>(1);
   const [formError, setFormError] = useState<string | null>(null);
@@ -241,7 +241,7 @@ export default function KelolaJadwalPage() {
     const lastJadwal = jadwalList[jadwalList.length - 1];
     setFormMapelId(mapelList[0]?.id || 1);
     setFormTanggal(lastJadwal?.tanggal || new Date().toISOString().slice(0, 10));
-    setFormJamMulai('07:30');
+    setFormJamMulai('08:00');
     setFormJamSelesai('09:30');
     setFormSesi(1);
     setIsAddMapelMode(false);

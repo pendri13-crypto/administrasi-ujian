@@ -98,7 +98,7 @@ export const DEMO_JADWAL: JadwalUjian[] = DEMO_MAPEL.map((mapel, idx) => ({
   ujian_id: 1,
   mapel_id: mapel.id,
   tanggal: '2026-11-' + (20 + (idx % 8)).toString().padStart(2, '0'),
-  jam_mulai: '07:30',
+  jam_mulai: '08:00',
   jam_selesai: '09:30',
   mapel: mapel,
 }));

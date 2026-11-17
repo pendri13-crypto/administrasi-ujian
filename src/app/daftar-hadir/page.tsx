@@ -229,10 +229,26 @@ export default function DaftarHadirPage() {
 
   const displaySesi = selectedSesiMode === 'auto' ? autoSesi : Number(selectedSesiMode);
 
-  // Waktu pelaksanaan ujian dari jadwal aktif
-  const displayWaktu = currentJadwal
-    ? `${currentJadwal.jam_mulai.slice(0, 5)} - ${currentJadwal.jam_selesai.slice(0, 5)} WIB`
-    : '08:00 - 09:30 WIB';
+  // Opsi Format Waktu Pelaksanaan Ujian (Default: 08.00 - Selesai sesuai permintaan, atau sinkron jadwal)
+  const [waktuMode, setWaktuMode] = useState<'selesai' | 'jadwal' | 'custom'>('selesai');
+  const [customWaktuText, setCustomWaktuText] = useState<string>('08.00 - Selesai');
+
+  // Waktu pelaksanaan ujian
+  const displayWaktu = useMemo(() => {
+    if (waktuMode === 'custom' && customWaktuText.trim()) {
+      return customWaktuText.trim();
+    }
+    const jamMulaiRaw = currentJadwal?.jam_mulai ? currentJadwal.jam_mulai.slice(0, 5).replace(':', '.') : '08.00';
+    // Jika masih 07.30 (default demo lama), ubah ke 08.00
+    const jamMulai = jamMulaiRaw === '07.30' ? '08.00' : jamMulaiRaw;
+
+    if (waktuMode === 'jadwal' && currentJadwal) {
+      const jamSelesaiRaw = currentJadwal.jam_selesai ? currentJadwal.jam_selesai.slice(0, 5).replace(':', '.') : 'Selesai';
+      return `${jamMulai} - ${jamSelesaiRaw} WIB`;
+    }
+
+    return `${jamMulai} - Selesai`;
+  }, [waktuMode, customWaktuText, currentJadwal]);
 
   // Ruangan yang sedang dipilih
   const currentRuang = ruangList.find(r => r.id === selectedRuangId) || ruangList[0] || DEMO_RUANG[0];
@@ -406,6 +422,32 @@ export default function DaftarHadirPage() {
               </select>
             </div>
 
+            {/* Pilihan Format Pukul / Waktu Ujian */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs">
+              <Clock className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+              <select
+                value={waktuMode}
+                onChange={(e) => setWaktuMode(e.target.value as any)}
+                className="text-xs font-semibold bg-transparent text-slate-800 focus:outline-none cursor-pointer"
+                title="Pilih Format Pukul / Waktu Ujian"
+              >
+                <option value="selesai">08.00 - Selesai (Default)</option>
+                <option value="jadwal">
+                  Sinkron Jadwal ({currentJadwal ? `${(currentJadwal.jam_mulai || '08:00').slice(0, 5).replace(':', '.')} - ${(currentJadwal.jam_selesai || '09:30').slice(0, 5).replace(':', '.')}` : '08.00 - 09.30'})
+                </option>
+                <option value="custom">Kustom Teks...</option>
+              </select>
+              {waktuMode === 'custom' && (
+                <input
+                  type="text"
+                  value={customWaktuText}
+                  onChange={(e) => setCustomWaktuText(e.target.value)}
+                  placeholder="08.00 - Selesai"
+                  className="text-xs font-medium border border-slate-300 rounded px-2 py-0.5 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              )}
+            </div>
+
             {/* Toggle Tampilkan / Hilangkan No. Peserta */}
             <button
               type="button"
@@ -551,7 +593,7 @@ export default function DaftarHadirPage() {
                 <div className="flex">
                   <span className="w-32">Pukul / Waktu</span>
                   <span className="w-4">:</span>
-                  <span>07.30 - Selesai</span>
+                  <span className="font-semibold text-slate-900">{displayWaktu}</span>
                 </div>
                 <div className="flex">
                   <span className="w-32">Kapasitas Ruang</span>
