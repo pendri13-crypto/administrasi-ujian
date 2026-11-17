@@ -10,7 +10,19 @@ import {
   generatePesertaFromSiswa
 } from '@/lib/demo-data';
 import { PesertaUjian, Siswa, Ruang, JadwalUjian, Mapel, Kelas } from '@/types/database';
-import { Printer, DoorOpen, Calendar, Clock, Layers, GraduationCap, Eye, EyeOff } from 'lucide-react';
+import { 
+  Printer, 
+  DoorOpen, 
+  Calendar, 
+  Clock, 
+  Layers, 
+  GraduationCap, 
+  Eye, 
+  EyeOff,
+  TableProperties,
+  FileSpreadsheet,
+  LayoutTemplate
+} from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 import { 
   fetchSiswaFromCloud, 
@@ -37,6 +49,8 @@ export default function DaftarHadirPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
   const [showNoPeserta, setShowNoPeserta] = useState<boolean>(false);
+  const [templateMode, setTemplateMode] = useState<'multi' | 'single'>('multi'); // 'multi' (Sesuai Gambar Lampiran) atau 'single'
+  const [printOrientation, setPrintOrientation] = useState<'landscape' | 'portrait'>('landscape');
 
   // 1. Sinkronisasi Pengaturan Sekolah (Kop Dokumen)
   useEffect(() => {
@@ -266,6 +280,40 @@ export default function DaftarHadirPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Pilihan Template: Multi-Mapel Mingguan (Sesuai Gambar) vs Harian Per Mapel */}
+            <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setTemplateMode('multi');
+                  setPrintOrientation('landscape');
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  templateMode === 'multi'
+                    ? 'bg-white text-indigo-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <TableProperties className="w-3.5 h-3.5" />
+                Format Multi-Mapel (Senin-Kamis)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTemplateMode('single');
+                  setPrintOrientation('portrait');
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  templateMode === 'single'
+                    ? 'bg-white text-indigo-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                Format Per Mapel
+              </button>
+            </div>
+
             {/* Mode Switch: Per Ruangan vs Per Kelas */}
             <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
               <button
@@ -381,6 +429,17 @@ export default function DaftarHadirPage() {
               )}
             </button>
 
+            {/* Pilihan Orientasi Kertas Cetak */}
+            <button
+              type="button"
+              onClick={() => setPrintOrientation(printOrientation === 'landscape' ? 'portrait' : 'landscape')}
+              title="Ganti Orientasi Kertas Cetak"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border bg-white border-slate-300 hover:bg-slate-50 text-slate-700 transition"
+            >
+              <LayoutTemplate className="w-3.5 h-3.5 text-indigo-600" />
+              <span>{printOrientation === 'landscape' ? 'Landscape (Mendatar)' : 'Portrait (Tegak)'}</span>
+            </button>
+
             {/* Tombol Cetak Dokumen */}
             <button
               onClick={() => window.print()}
@@ -393,179 +452,377 @@ export default function DaftarHadirPage() {
         </div>
       </div>
 
-      {/* Lembar Dokumen Siap Cetak (A4 Standard) */}
+      {/* Dynamic Print CSS */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: ${printOrientation};
+            margin: 8mm 10mm;
+          }
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+      `}} />
+
+      {/* Lembar Dokumen Siap Cetak (A4 / F4) */}
       <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm print:border-none print:shadow-none print:p-0">
         
-        {/* Kop Resmi Ujian */}
-        <div className="border-b-2 border-slate-900 pb-3 mb-4 text-center">
-          <p className="text-[10px] tracking-widest font-bold text-slate-700 uppercase">
-            PANITIA PELAKSANA ASESMEN DAN UJIAN • {schoolSettings.namaSekolah}
-          </p>
-          <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 uppercase">
-            DAFTAR HADIR PESERTA UJIAN {filterMode === 'kelas' ? `(KELAS ${currentKelas.nama_kelas})` : ''}
-          </h2>
-          <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">
-            {schoolSettings.namaUjian} • TAHUN PELAJARAN {schoolSettings.tahunAjaran}
-          </p>
-        </div>
+        {templateMode === 'multi' ? (
+          /* ============================================================== */
+          /* TEMPLATE MULTI-MAPEL MINGGUAN (SENIN - KAMIS SESUAI GAMBAR)    */
+          /* ============================================================== */
+          <div>
+            {/* Kop Resmi Sesuai Gambar Lampiran */}
+            <div className="text-center font-bold text-slate-950 pb-2 space-y-0.5">
+              <p className="text-sm sm:text-base font-black tracking-wide uppercase">PANITIA PELAKSANA ASESMEN DAN UJIAN</p>
+              <p className="text-sm sm:text-base font-black tracking-wide uppercase">{schoolSettings.namaSekolah}</p>
+              <p className="text-sm sm:text-base font-black tracking-wide uppercase">
+                DAFTAR HADIR PESERTA UJIAN {filterMode === 'kelas' ? `(KELAS ${currentKelas.nama_kelas})` : ''}
+              </p>
+              <p className="text-sm sm:text-base font-black tracking-wide uppercase">
+                {schoolSettings.namaUjian} TAHUN PELAJARAN {schoolSettings.tahunAjaran}
+              </p>
+            </div>
 
-        {/* Informasi Detail Ruang & Jadwal (Sinkron Penuh) */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-900 mb-4 pb-3 border-b border-dashed border-slate-400">
-          <div className="space-y-1">
-            <div className="grid grid-cols-12">
-              <span className="col-span-4 font-semibold text-slate-600">{filterMode === 'ruang' ? 'Ruangan' : 'Rombel Kelas'}</span>
-              <span className="col-span-1">:</span>
-              <span className="col-span-7 font-bold">
-                {filterMode === 'ruang' 
-                  ? `${currentRuang.kode_ruang} (${currentRuang.nama_ruang})`
-                  : `Kelas ${currentKelas.nama_kelas}`
-                }
-              </span>
-            </div>
-            <div className="grid grid-cols-12">
-              <span className="col-span-4 font-semibold text-slate-600">Mata Pelajaran</span>
-              <span className="col-span-1">:</span>
-              <span className="col-span-7 font-bold">{currentMapel?.nama_mapel} ({currentMapel?.kode_mapel})</span>
-            </div>
-            <div className="grid grid-cols-12">
-              <span className="col-span-4 font-semibold text-slate-600">Sesi</span>
-              <span className="col-span-1">:</span>
-              <span className="col-span-7 font-bold text-indigo-900 print:text-black">Sesi {displaySesi}</span>
-            </div>
-          </div>
+            {/* Garis Ganda Pembatas Kop */}
+            <div className="border-b-4 border-double border-slate-950 mb-3" />
 
-          <div className="space-y-1">
-            <div className="grid grid-cols-12">
-              <span className="col-span-4 font-semibold text-slate-600">Hari / Tanggal</span>
-              <span className="col-span-1">:</span>
-              <span className="col-span-7 font-medium">{formatHariTanggalIndo(currentJadwal?.tanggal)}</span>
-            </div>
-            <div className="grid grid-cols-12">
-              <span className="col-span-4 font-semibold text-slate-600">Pukul / Waktu</span>
-              <span className="col-span-1">:</span>
-              <span className="col-span-7 font-medium">{displayWaktu}</span>
-            </div>
-            <div className="grid grid-cols-12">
-              <span className="col-span-4 font-semibold text-slate-600">Jumlah Peserta</span>
-              <span className="col-span-1">:</span>
-              <span className="col-span-7 font-medium">{pesertaRuang.length} {filterMode === 'ruang' ? `/ ${currentRuang.kapasitas}` : ''} Peserta</span>
-            </div>
-          </div>
-        </div>
+            {/* Metadata Ruang & Jadwal 2 Kolom Sesuai Gambar */}
+            <div className="grid grid-cols-2 gap-x-12 gap-y-1 text-xs text-slate-950 mb-3 font-semibold">
+              <div className="space-y-1">
+                <div className="flex">
+                  <span className="w-32">Ruang</span>
+                  <span className="w-4">:</span>
+                  <span className="font-bold">
+                    {filterMode === 'ruang' 
+                      ? `${currentRuang.kode_ruang} (${currentRuang.nama_ruang})`
+                      : `Kelas ${currentKelas.nama_kelas}`
+                    }
+                  </span>
+                </div>
+                <div className="flex">
+                  <span className="w-32">Mata Pelajaran</span>
+                  <span className="w-4">:</span>
+                  <span>Terlampir pada tabel (8 Mata Pelajaran)</span>
+                </div>
+                <div className="flex">
+                  <span className="w-32">Sesi</span>
+                  <span className="w-4">:</span>
+                  <span>Sesi {displaySesi}</span>
+                </div>
+              </div>
 
-        {/* Tabel Presensi Siswa */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse border border-slate-400 text-xs">
-            <thead>
-              <tr className="bg-slate-100 text-slate-900 uppercase font-bold text-[10px] text-center tracking-wider">
-                <th className="border border-slate-400 px-2 py-2 w-10">No</th>
-                <th className="border border-slate-400 px-2 py-2 w-16">No Meja</th>
-                {showNoPeserta && (
-                  <th className="border border-slate-400 px-3 py-2 w-32">Nomor Peserta</th>
-                )}
-                <th className="border border-slate-400 px-3 py-2 w-28">NIS</th>
-                <th className="border border-slate-400 px-3 py-2 text-left">Nama Peserta Ujian</th>
-                <th className="border border-slate-400 px-2 py-2 w-16">Kelas</th>
-                <th className="border border-slate-400 px-3 py-2 w-44" colSpan={2}>
-                  Tanda Tangan / Kehadiran
-                </th>
-                <th className="border border-slate-400 px-2 py-2 w-20">Ket</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pesertaRuang.length === 0 && (
-                <tr>
-                  <td colSpan={showNoPeserta ? 9 : 8} className="border border-slate-400 py-10 text-center text-slate-500 italic">
-                    {isLoading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <span className="inline-block w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
-                        Sedang memuat data peserta ujian...
-                      </span>
-                    ) : (
-                      'Belum ada peserta ujian di ruangan ini. Silakan masukkan atau impor data siswa pada menu Data Siswa.'
-                    )}
-                  </td>
-                </tr>
-              )}
-              {pesertaRuang.map((peserta, idx) => {
-                const siswa = peserta.siswa;
-                const kelasNama = siswa?.kelas?.nama_kelas || DEMO_KELAS.find(k => k.id === siswa?.kelas_id)?.nama_kelas || '-';
-                const isEven = (idx + 1) % 2 === 0;
+              <div className="space-y-1">
+                <div className="flex">
+                  <span className="w-32">Hari / Tanggal</span>
+                  <span className="w-4">:</span>
+                  <span>Senin - Kamis</span>
+                </div>
+                <div className="flex">
+                  <span className="w-32">Pukul / Waktu</span>
+                  <span className="w-4">:</span>
+                  <span>07.30 - Selesai</span>
+                </div>
+                <div className="flex">
+                  <span className="w-32">Kapasitas Ruang</span>
+                  <span className="w-4">:</span>
+                  <span>{currentRuang.kapasitas || 36} Kursi ({pesertaRuang.length} Siswa Terisi)</span>
+                </div>
+              </div>
+            </div>
 
-                return (
-                  <tr key={peserta.id} className="h-10 hover:bg-slate-50">
-                    <td className="border border-slate-400 px-2 py-1 text-center font-medium">{idx + 1}</td>
-                    <td className="border border-slate-400 px-2 py-1 text-center font-bold font-mono bg-slate-50/50">
-                      {peserta.no_meja || idx + 1}
-                    </td>
+            {/* Tabel Presensi Siswa Sesuai Gambar */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse border border-slate-900 text-xs">
+                <thead>
+                  {/* Baris 1: Kolom Utama & Header Induk Tanda Tangan */}
+                  <tr className="bg-white text-slate-950 font-bold text-center">
+                    <th rowSpan={3} className="border border-slate-900 px-2 py-2 w-10">No</th>
+                    <th rowSpan={3} className="border border-slate-900 px-2 py-2 w-24">NIS</th>
+                    <th rowSpan={3} className="border border-slate-900 px-3 py-2 text-left min-w-[170px]">Nama Peserta</th>
+                    <th rowSpan={3} className="border border-slate-900 px-2 py-2 w-16">Kelas</th>
                     {showNoPeserta && (
-                      <td className="border border-slate-400 px-3 py-1 text-center font-mono font-bold text-slate-900">
-                        {peserta.no_peserta}
-                      </td>
+                      <th rowSpan={3} className="border border-slate-900 px-2 py-2 w-24 font-mono">No. Peserta</th>
                     )}
-                    <td className="border border-slate-400 px-3 py-1 text-center font-mono text-slate-700">
-                      {siswa?.nis || siswa?.nisn || '-'}
-                    </td>
-                    <td className="border border-slate-400 px-3 py-1 font-bold text-slate-900 uppercase">
-                      {siswa?.nama_lengkap}
-                    </td>
-                    <td className="border border-slate-400 px-2 py-1 text-center font-medium">
-                      {kelasNama}
-                    </td>
-
-                    {/* Kolom Tanda Tangan Ganjil */}
-                    <td className="border border-slate-400 px-2 py-1 w-22 align-top text-[10px] text-slate-600">
-                      {!isEven && (
-                        <span>{idx + 1}. ....................</span>
-                      )}
-                    </td>
-
-                    {/* Kolom Tanda Tangan Genap */}
-                    <td className="border border-slate-400 px-2 py-1 w-22 align-top text-[10px] text-slate-600">
-                      {isEven && (
-                        <span>{idx + 1}. ....................</span>
-                      )}
-                    </td>
-
-                    <td className="border border-slate-400 px-2 py-1 text-center text-[10px] text-slate-400">
-                      [ &nbsp; ] Hadir
-                    </td>
+                    <th colSpan={8} className="border border-slate-900 px-2 py-1.5 text-center font-black tracking-wide text-xs">
+                      Tanda Tangan
+                    </th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
 
-        {/* Berita Acara Singkat & Tanda Tangan Pengawas */}
-        <div className="mt-6 pt-3 border-t border-slate-300 text-xs text-slate-800">
-          <div className="grid grid-cols-2 gap-8">
-            <div className="border border-slate-300 rounded p-2.5 bg-slate-50/50">
-              <p className="font-bold mb-1 text-[11px] text-slate-900 uppercase">Catatan Pengawas Ruang:</p>
-              <div className="text-[10px] space-y-1 text-slate-700">
-                <p>• Jumlah Peserta Seharusnya : <strong>{pesertaRuang.length}</strong> orang</p>
-                <p>• Jumlah Peserta Hadir : ......... orang</p>
-                <p>• Jumlah Peserta Tidak Hadir : ......... orang</p>
-              </div>
+                  {/* Baris 2: Hari-Hari (Senin, Selasa, Rabu, Kamis) */}
+                  <tr className="bg-white text-slate-950 font-bold text-center text-xs">
+                    <th colSpan={2} className="border border-slate-900 px-2 py-1">Senin</th>
+                    <th colSpan={2} className="border border-slate-900 px-2 py-1">Selasa</th>
+                    <th colSpan={2} className="border border-slate-900 px-2 py-1">Rabu</th>
+                    <th colSpan={2} className="border border-slate-900 px-2 py-1">Kamis</th>
+                  </tr>
+
+                  {/* Baris 3: Mata Pelajaran Sesuai Gambar Lampiran */}
+                  <tr className="bg-white text-slate-950 font-bold text-center text-[10.5px]">
+                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">PAIBP</th>
+                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">B. Indo</th>
+                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">IPS</th>
+                    <th className="border border-slate-900 px-1 py-1 w-18 font-bold">B. Inggris</th>
+                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">IPA</th>
+                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">PPKN</th>
+                    <th className="border border-slate-900 px-1 py-1 w-20 font-bold">Matematika</th>
+                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">B. Sunda</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pesertaRuang.length === 0 ? (
+                    <tr>
+                      <td colSpan={showNoPeserta ? 13 : 12} className="border border-slate-900 py-10 text-center text-slate-500 italic">
+                        {isLoading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <span className="inline-block w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+                            Sedang memuat data peserta ujian...
+                          </span>
+                        ) : (
+                          'Belum ada peserta ujian di ruangan ini. Silakan masukkan atau impor data siswa pada menu Data Siswa.'
+                        )}
+                      </td>
+                    </tr>
+                  ) : (
+                    pesertaRuang.map((peserta, idx) => {
+                      const siswa = peserta.siswa;
+                      const kelasNama = siswa?.kelas?.nama_kelas || DEMO_KELAS.find(k => k.id === siswa?.kelas_id)?.nama_kelas || '-';
+
+                      return (
+                        <tr key={peserta.id} className="h-8 print:h-[28px] hover:bg-slate-50 text-slate-950">
+                          <td className="border border-slate-900 px-2 py-0.5 text-center font-medium">{idx + 1}</td>
+                          <td className="border border-slate-900 px-2 py-0.5 text-center font-mono font-medium">{siswa?.nis || siswa?.nisn || '-'}</td>
+                          <td className="border border-slate-900 px-3 py-0.5 font-bold uppercase text-slate-950 truncate max-w-[200px]">{siswa?.nama_lengkap}</td>
+                          <td className="border border-slate-900 px-2 py-0.5 text-center font-medium">{kelasNama}</td>
+                          {showNoPeserta && (
+                            <td className="border border-slate-900 px-2 py-0.5 text-center font-mono font-bold">{peserta.no_peserta}</td>
+                          )}
+                          {/* 8 Kotak Kosong Tanda Tangan Siswa */}
+                          <td className="border border-slate-900 px-1 py-0.5 text-center"></td>
+                          <td className="border border-slate-900 px-1 py-0.5 text-center"></td>
+                          <td className="border border-slate-900 px-1 py-0.5 text-center"></td>
+                          <td className="border border-slate-900 px-1 py-0.5 text-center"></td>
+                          <td className="border border-slate-900 px-1 py-0.5 text-center"></td>
+                          <td className="border border-slate-900 px-1 py-0.5 text-center"></td>
+                          <td className="border border-slate-900 px-1 py-0.5 text-center"></td>
+                          <td className="border border-slate-900 px-1 py-0.5 text-center"></td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
 
-            <div className="flex justify-around text-center text-xs">
-              <div>
-                <p>Pengawas 1,</p>
-                <div className="h-12"></div>
-                <p className="font-bold border-b border-slate-900 inline-block px-4">(.....................................)</p>
-                <p className="text-[9px] text-slate-500 mt-0.5">NIP.</p>
-              </div>
+            {/* Berita Acara Singkat & Tanda Tangan Pengawas */}
+            <div className="mt-4 pt-2 text-xs text-slate-900 font-medium">
+              <div className="grid grid-cols-2 gap-8 items-start">
+                <div className="border border-slate-900 rounded p-2.5 bg-slate-50/50 print:bg-transparent">
+                  <p className="font-bold mb-1 text-[11px] text-slate-950 uppercase">Catatan Pengawas Ruang:</p>
+                  <div className="text-[10px] space-y-1 text-slate-800">
+                    <p>&bull; Jumlah Peserta Seharusnya : <strong>{pesertaRuang.length}</strong> orang</p>
+                    <p>&bull; Jumlah Peserta Hadir : ......... orang</p>
+                    <p>&bull; Jumlah Peserta Tidak Hadir : ......... orang</p>
+                  </div>
+                </div>
 
-              <div>
-                <p>Pengawas 2,</p>
-                <div className="h-12"></div>
-                <p className="font-bold border-b border-slate-900 inline-block px-4">(.....................................)</p>
-                <p className="text-[9px] text-slate-500 mt-0.5">NIP.</p>
+                <div className="flex justify-around text-center text-xs">
+                  <div>
+                    <p className="font-semibold">Pengawas 1,</p>
+                    <div className="h-10"></div>
+                    <p className="font-bold border-b border-slate-900 inline-block px-4 min-w-[140px]">(.....................................)</p>
+                    <p className="text-[9px] text-slate-600 mt-0.5">NIP.</p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold">Pengawas 2,</p>
+                    <div className="h-10"></div>
+                    <p className="font-bold border-b border-slate-900 inline-block px-4 min-w-[140px]">(.....................................)</p>
+                    <p className="text-[9px] text-slate-600 mt-0.5">NIP.</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          /* ============================================================== */
+          /* TEMPLATE HARIAN PER MATA PELAJARAN (FORMAT LAMA)              */
+          /* ============================================================== */
+          <div>
+            {/* Kop Resmi Ujian */}
+            <div className="border-b-2 border-slate-900 pb-3 mb-4 text-center">
+              <p className="text-[10px] tracking-widest font-bold text-slate-700 uppercase">
+                PANITIA PELAKSANA ASESMEN DAN UJIAN &bull; {schoolSettings.namaSekolah}
+              </p>
+              <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 uppercase">
+                DAFTAR HADIR PESERTA UJIAN {filterMode === 'kelas' ? `(KELAS ${currentKelas.nama_kelas})` : ''}
+              </h2>
+              <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">
+                {schoolSettings.namaUjian} &bull; TAHUN PELAJARAN {schoolSettings.tahunAjaran}
+              </p>
+            </div>
+
+            {/* Informasi Detail Ruang & Jadwal (Sinkron Penuh) */}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-900 mb-4 pb-3 border-b border-dashed border-slate-400">
+              <div className="space-y-1">
+                <div className="grid grid-cols-12">
+                  <span className="col-span-4 font-semibold text-slate-600">{filterMode === 'ruang' ? 'Ruangan' : 'Rombel Kelas'}</span>
+                  <span className="col-span-1">:</span>
+                  <span className="col-span-7 font-bold">
+                    {filterMode === 'ruang' 
+                      ? `${currentRuang.kode_ruang} (${currentRuang.nama_ruang})`
+                      : `Kelas ${currentKelas.nama_kelas}`
+                    }
+                  </span>
+                </div>
+                <div className="grid grid-cols-12">
+                  <span className="col-span-4 font-semibold text-slate-600">Mata Pelajaran</span>
+                  <span className="col-span-1">:</span>
+                  <span className="col-span-7 font-bold">{currentMapel?.nama_mapel} ({currentMapel?.kode_mapel})</span>
+                </div>
+                <div className="grid grid-cols-12">
+                  <span className="col-span-4 font-semibold text-slate-600">Sesi</span>
+                  <span className="col-span-1">:</span>
+                  <span className="col-span-7 font-bold text-indigo-900 print:text-black">Sesi {displaySesi}</span>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="grid grid-cols-12">
+                  <span className="col-span-4 font-semibold text-slate-600">Hari / Tanggal</span>
+                  <span className="col-span-1">:</span>
+                  <span className="col-span-7 font-medium">{formatHariTanggalIndo(currentJadwal?.tanggal)}</span>
+                </div>
+                <div className="grid grid-cols-12">
+                  <span className="col-span-4 font-semibold text-slate-600">Pukul / Waktu</span>
+                  <span className="col-span-1">:</span>
+                  <span className="col-span-7 font-medium">{displayWaktu}</span>
+                </div>
+                <div className="grid grid-cols-12">
+                  <span className="col-span-4 font-semibold text-slate-600">Jumlah Peserta</span>
+                  <span className="col-span-1">:</span>
+                  <span className="col-span-7 font-medium">{pesertaRuang.length} {filterMode === 'ruang' ? `/ ${currentRuang.kapasitas}` : ''} Peserta</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabel Presensi Siswa */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse border border-slate-400 text-xs">
+                <thead>
+                  <tr className="bg-slate-100 text-slate-900 uppercase font-bold text-[10px] text-center tracking-wider">
+                    <th className="border border-slate-400 px-2 py-2 w-10">No</th>
+                    <th className="border border-slate-400 px-2 py-2 w-16">No Meja</th>
+                    {showNoPeserta && (
+                      <th className="border border-slate-400 px-3 py-2 w-32">Nomor Peserta</th>
+                    )}
+                    <th className="border border-slate-400 px-3 py-2 w-28">NIS</th>
+                    <th className="border border-slate-400 px-3 py-2 text-left">Nama Peserta Ujian</th>
+                    <th className="border border-slate-400 px-2 py-2 w-16">Kelas</th>
+                    <th className="border border-slate-400 px-3 py-2 w-44" colSpan={2}>
+                      Tanda Tangan / Kehadiran
+                    </th>
+                    <th className="border border-slate-400 px-2 py-2 w-20">Ket</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pesertaRuang.length === 0 && (
+                    <tr>
+                      <td colSpan={showNoPeserta ? 9 : 8} className="border border-slate-400 py-10 text-center text-slate-500 italic">
+                        {isLoading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <span className="inline-block w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+                            Sedang memuat data peserta ujian...
+                          </span>
+                        ) : (
+                          'Belum ada peserta ujian di ruangan ini. Silakan masukkan atau impor data siswa pada menu Data Siswa.'
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  {pesertaRuang.map((peserta, idx) => {
+                    const siswa = peserta.siswa;
+                    const kelasNama = siswa?.kelas?.nama_kelas || DEMO_KELAS.find(k => k.id === siswa?.kelas_id)?.nama_kelas || '-';
+                    const isEven = (idx + 1) % 2 === 0;
+
+                    return (
+                      <tr key={peserta.id} className="h-10 hover:bg-slate-50">
+                        <td className="border border-slate-400 px-2 py-1 text-center font-medium">{idx + 1}</td>
+                        <td className="border border-slate-400 px-2 py-1 text-center font-bold font-mono bg-slate-50/50">
+                          {peserta.no_meja || idx + 1}
+                        </td>
+                        {showNoPeserta && (
+                          <td className="border border-slate-400 px-3 py-1 text-center font-mono font-bold text-slate-900">
+                            {peserta.no_peserta}
+                          </td>
+                        )}
+                        <td className="border border-slate-400 px-3 py-1 text-center font-mono text-slate-700">
+                          {siswa?.nis || siswa?.nisn || '-'}
+                        </td>
+                        <td className="border border-slate-400 px-3 py-1 font-bold text-slate-900 uppercase">
+                          {siswa?.nama_lengkap}
+                        </td>
+                        <td className="border border-slate-400 px-2 py-1 text-center font-medium">
+                          {kelasNama}
+                        </td>
+
+                        {/* Kolom Tanda Tangan Ganjil */}
+                        <td className="border border-slate-400 px-2 py-1 w-22 align-top text-[10px] text-slate-600">
+                          {!isEven && (
+                            <span>{idx + 1}. ....................</span>
+                          )}
+                        </td>
+
+                        {/* Kolom Tanda Tangan Genap */}
+                        <td className="border border-slate-400 px-2 py-1 w-22 align-top text-[10px] text-slate-600">
+                          {isEven && (
+                            <span>{idx + 1}. ....................</span>
+                          )}
+                        </td>
+
+                        <td className="border border-slate-400 px-2 py-1 text-center text-[10px] text-slate-400">
+                          [ &nbsp; ] Hadir
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Berita Acara Singkat & Tanda Tangan Pengawas */}
+            <div className="mt-6 pt-3 border-t border-slate-300 text-xs text-slate-800">
+              <div className="grid grid-cols-2 gap-8">
+                <div className="border border-slate-300 rounded p-2.5 bg-slate-50/50">
+                  <p className="font-bold mb-1 text-[11px] text-slate-900 uppercase">Catatan Pengawas Ruang:</p>
+                  <div className="text-[10px] space-y-1 text-slate-700">
+                    <p>&bull; Jumlah Peserta Seharusnya : <strong>{pesertaRuang.length}</strong> orang</p>
+                    <p>&bull; Jumlah Peserta Hadir : ......... orang</p>
+                    <p>&bull; Jumlah Peserta Tidak Hadir : ......... orang</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-around text-center text-xs">
+                  <div>
+                    <p>Pengawas 1,</p>
+                    <div className="h-12"></div>
+                    <p className="font-bold border-b border-slate-900 inline-block px-4">(.....................................)</p>
+                    <p className="text-[9px] text-slate-500 mt-0.5">NIP.</p>
+                  </div>
+
+                  <div>
+                    <p>Pengawas 2,</p>
+                    <div className="h-12"></div>
+                    <p className="font-bold border-b border-slate-900 inline-block px-4">(.....................................)</p>
+                    <p className="text-[9px] text-slate-500 mt-0.5">NIP.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
