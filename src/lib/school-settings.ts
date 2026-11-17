@@ -33,7 +33,7 @@ export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
   tanggalTtd: '30 November 2026',
   ttdKepsekUrl: '/images/ttd-kepsek.png',
   logoPemdaUrl: '/images/logo-tasikmalaya.png',
-  logoSekolahUrl: '/images/logo-sekolah-3d.png',
+  logoSekolahUrl: '/images/logo-smpn1-rajapolah.png',
   logoTasikmalayaUrl: '/images/logo-tasikmalaya.png',
   tampilkanNoPeserta: false,
 };
@@ -47,7 +47,10 @@ export function getStoredSchoolSettings(): SchoolSettings {
     if (!saved) return DEFAULT_SCHOOL_SETTINGS;
     const parsed = JSON.parse(saved);
     const logoPemda = parsed.logoPemdaUrl || parsed.logoTasikmalayaUrl || DEFAULT_SCHOOL_SETTINGS.logoPemdaUrl;
-    const logoSekolah = parsed.logoSekolahUrl || DEFAULT_SCHOOL_SETTINGS.logoSekolahUrl;
+    const rawSekolah = parsed.logoSekolahUrl;
+    const logoSekolah = (rawSekolah && rawSekolah !== '/images/logo-sekolah-3d.png') 
+      ? rawSekolah 
+      : DEFAULT_SCHOOL_SETTINGS.logoSekolahUrl;
     const tampilkanNoPeserta = parsed.tampilkanNoPeserta ?? false;
     return {
       ...DEFAULT_SCHOOL_SETTINGS,

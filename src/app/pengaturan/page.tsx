@@ -136,25 +136,29 @@ export default function PengaturanAdminPage() {
       const base64 = event.target?.result as string;
       if (base64) {
         const trimmed = await trimImageWhitespace(base64);
-        setSettings(prev => ({
-          ...prev,
+        const updated = {
+          ...settings,
           logoPemdaUrl: trimmed,
           logoTasikmalayaUrl: trimmed,
-        }));
-        showToast('Logo PEMDA berhasil dimuat dan disesuaikan!');
+        };
+        setSettings(updated);
+        saveStoredSchoolSettings(updated);
+        showToast('Logo PEMDA berhasil dimuat dan langsung disinkronkan ke seluruh dokumen!');
       }
     };
     reader.readAsDataURL(file);
   };
 
   const handleResetLogoPemda = () => {
-    setSettings(prev => ({
-      ...prev,
+    const updated = {
+      ...settings,
       logoPemdaUrl: DEFAULT_SCHOOL_SETTINGS.logoPemdaUrl,
       logoTasikmalayaUrl: DEFAULT_SCHOOL_SETTINGS.logoPemdaUrl,
-    }));
+    };
+    setSettings(updated);
+    saveStoredSchoolSettings(updated);
     if (logoPemdaInputRef.current) logoPemdaInputRef.current.value = '';
-    showToast('Logo PEMDA dikembalikan ke file bawaan.');
+    showToast('Logo PEMDA dikembalikan ke file bawaan dan disinkronkan.');
   };
 
   const handleLogoSekolahUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,23 +180,27 @@ export default function PengaturanAdminPage() {
       const base64 = event.target?.result as string;
       if (base64) {
         const trimmed = await trimImageWhitespace(base64);
-        setSettings(prev => ({
-          ...prev,
+        const updated = {
+          ...settings,
           logoSekolahUrl: trimmed,
-        }));
-        showToast('Logo Sekolah berhasil dimuat dan disesuaikan!');
+        };
+        setSettings(updated);
+        saveStoredSchoolSettings(updated);
+        showToast('Logo Sekolah berhasil dimuat dan langsung disinkronkan ke Login, Kartu, & Daftar Hadir!');
       }
     };
     reader.readAsDataURL(file);
   };
 
   const handleResetLogoSekolah = () => {
-    setSettings(prev => ({
-      ...prev,
+    const updated = {
+      ...settings,
       logoSekolahUrl: DEFAULT_SCHOOL_SETTINGS.logoSekolahUrl,
-    }));
+    };
+    setSettings(updated);
+    saveStoredSchoolSettings(updated);
     if (logoSekolahInputRef.current) logoSekolahInputRef.current.value = '';
-    showToast('Logo Sekolah dikembalikan ke file bawaan.');
+    showToast('Logo Sekolah dikembalikan ke file bawaan dan disinkronkan.');
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -529,7 +537,7 @@ export default function PengaturanAdminPage() {
                   <div className="h-24 bg-white rounded-lg border border-blue-200 p-2 flex items-center justify-center relative shadow-inner overflow-hidden mb-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={settings.logoSekolahUrl || '/images/logo-sekolah-3d.png'}
+                      src={settings.logoSekolahUrl || DEFAULT_SCHOOL_SETTINGS.logoSekolahUrl}
                       alt="Logo Sekolah"
                       className="max-h-full max-w-full object-contain filter drop-shadow-md"
                     />
@@ -779,7 +787,7 @@ export default function PengaturanAdminPage() {
                 </div>
                 <div className="w-10 h-12 flex-shrink-0 flex items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={settings.logoSekolahUrl || '/images/logo-sekolah-3d.png'} alt="Logo Sekolah" className="max-h-full max-w-full object-contain" />
+                  <img src={settings.logoSekolahUrl || DEFAULT_SCHOOL_SETTINGS.logoSekolahUrl} alt="Logo Sekolah" className="max-h-full max-w-full object-contain" />
                 </div>
               </div>
 

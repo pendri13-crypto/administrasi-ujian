@@ -82,7 +82,7 @@ export default function Dashboard() {
           </div>
           <div className="hidden sm:flex flex-shrink-0 items-center justify-center p-3 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20 shadow-inner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={schoolSettings.logoSekolahUrl || '/images/logo-sekolah-3d.png'} alt="Logo Sekolah" className="w-24 h-24 object-contain drop-shadow-xl" />
+            <img src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'} alt="Logo Sekolah" className="w-24 h-24 object-contain drop-shadow-xl" />
           </div>
         </div>
 

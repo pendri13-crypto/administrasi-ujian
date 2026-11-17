@@ -84,7 +84,7 @@ export default function LoginPage() {
             <div className="w-20 h-20 mx-auto mb-4 relative flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
-                src={schoolSettings.logoSekolahUrl || '/images/logo-sekolah-3d.png'} 
+                src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'} 
                 alt="Logo Sekolah" 
                 className="w-full h-full object-contain filter drop-shadow-md hover:scale-105 transition-transform"
               />

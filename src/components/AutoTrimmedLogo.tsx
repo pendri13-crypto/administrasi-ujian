@@ -6,7 +6,11 @@ export function trimImageWhitespace(base64OrUrl: string): Promise<string> {
   return new Promise((resolve) => {
     if (!base64OrUrl) return resolve(base64OrUrl);
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    
+    // PENTING: Jangan set crossOrigin untuk data URI agar tidak diblokir kebijakan CORS oleh browser!
+    if (!base64OrUrl.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
 
     img.onload = () => {
       try {
@@ -94,22 +98,23 @@ export function AutoTrimmedLogo({
   className = 'w-full h-full object-contain filter drop-shadow-sm select-none',
   fallbackSrc = '/images/logo-smpn1-rajapolah.png',
 }: AutoTrimmedLogoProps) {
-  const initialSrc = src || fallbackSrc;
-  const [displaySrc, setDisplaySrc] = useState<string>(initialSrc);
+  const effectiveSrc = src || fallbackSrc;
+  const [displaySrc, setDisplaySrc] = useState<string>(effectiveSrc);
 
+  // Selalu sinkronkan displaySrc segera saat effectiveSrc berubah (misal dari localStorage)
   useEffect(() => {
-    const rawSrc = src || fallbackSrc;
-    if (!rawSrc) return;
-
-    trimImageWhitespace(rawSrc).then((trimmed) => {
-      setDisplaySrc(trimmed);
+    setDisplaySrc(effectiveSrc);
+    trimImageWhitespace(effectiveSrc).then((trimmed) => {
+      if (trimmed && trimmed !== effectiveSrc) {
+        setDisplaySrc(trimmed);
+      }
     });
-  }, [src, fallbackSrc]);
+  }, [effectiveSrc]);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={displaySrc}
+      src={displaySrc || effectiveSrc}
       alt={alt}
       className={className}
     />

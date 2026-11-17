@@ -78,7 +78,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="w-16 h-16 relative animate-pulse flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
-            src={schoolSettings.logoSekolahUrl || '/images/logo-sekolah-3d.png'} 
+            src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'} 
             alt="Logo Sekolah" 
             className="w-full h-full object-contain" 
           />
@@ -189,7 +189,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <div className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
-                  src={schoolSettings.logoSekolahUrl || '/images/logo-sekolah-3d.png'} 
+                  src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'} 
                   alt="Logo Sekolah" 
                   className="w-full h-full object-contain filter drop-shadow group-hover:scale-105 transition-transform" 
                 />
