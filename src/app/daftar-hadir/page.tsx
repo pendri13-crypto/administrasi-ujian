@@ -578,40 +578,56 @@ export default function DaftarHadirPage() {
 
             {/* Tabel Presensi Siswa Sesuai Gambar */}
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse border border-slate-900 text-xs">
+              <table className="w-full text-left border-collapse border border-slate-900 text-xs table-fixed">
+                <colgroup>
+                  <col style={{ width: '4%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: showNoPeserta ? '18%' : '26%' }} />
+                  <col style={{ width: '5%' }} />
+                  {showNoPeserta && <col style={{ width: '8%' }} />}
+                  {/* 8 Kolom Tanda Tangan Mapel dibuat 100% SAMA LEBAR (masing-masing 6.875% = 55% total) */}
+                  <col style={{ width: showNoPeserta ? '6.875%' : '6.875%' }} />
+                  <col style={{ width: showNoPeserta ? '6.875%' : '6.875%' }} />
+                  <col style={{ width: showNoPeserta ? '6.875%' : '6.875%' }} />
+                  <col style={{ width: showNoPeserta ? '6.875%' : '6.875%' }} />
+                  <col style={{ width: showNoPeserta ? '6.875%' : '6.875%' }} />
+                  <col style={{ width: showNoPeserta ? '6.875%' : '6.875%' }} />
+                  <col style={{ width: showNoPeserta ? '6.875%' : '6.875%' }} />
+                  <col style={{ width: showNoPeserta ? '6.875%' : '6.875%' }} />
+                </colgroup>
                 <thead>
                   {/* Baris 1: Kolom Utama & Header Induk Tanda Tangan */}
                   <tr className="bg-white text-slate-950 font-bold text-center">
-                    <th rowSpan={3} className="border border-slate-900 px-2 py-2 w-10">No</th>
-                    <th rowSpan={3} className="border border-slate-900 px-2 py-2 w-24">NIS</th>
-                    <th rowSpan={3} className="border border-slate-900 px-3 py-2 text-left min-w-[170px]">Nama Peserta</th>
-                    <th rowSpan={3} className="border border-slate-900 px-2 py-2 w-16">Kelas</th>
+                    <th rowSpan={3} className="border border-slate-900 px-1 py-2 text-center">No</th>
+                    <th rowSpan={3} className="border border-slate-900 px-1 py-2 text-center">NIS</th>
+                    <th rowSpan={3} className="border border-slate-900 px-2 py-2 text-left truncate">Nama Peserta</th>
+                    <th rowSpan={3} className="border border-slate-900 px-1 py-2 text-center">Kelas</th>
                     {showNoPeserta && (
-                      <th rowSpan={3} className="border border-slate-900 px-2 py-2 w-24 font-mono">No. Peserta</th>
+                      <th rowSpan={3} className="border border-slate-900 px-1 py-2 text-center font-mono">No. Peserta</th>
                     )}
                     <th colSpan={8} className="border border-slate-900 px-2 py-1.5 text-center font-black tracking-wide text-xs">
                       Tanda Tangan
                     </th>
                   </tr>
 
-                  {/* Baris 2: Hari-Hari (Senin, Selasa, Rabu, Kamis) */}
+                  {/* Baris 2: Hari-Hari (Senin, Selasa, Rabu, Kamis - Masing-masing persis 2 kolom sama lebar) */}
                   <tr className="bg-white text-slate-950 font-bold text-center text-xs">
-                    <th colSpan={2} className="border border-slate-900 px-2 py-1">Senin</th>
-                    <th colSpan={2} className="border border-slate-900 px-2 py-1">Selasa</th>
-                    <th colSpan={2} className="border border-slate-900 px-2 py-1">Rabu</th>
-                    <th colSpan={2} className="border border-slate-900 px-2 py-1">Kamis</th>
+                    <th colSpan={2} className="border border-slate-900 px-1 py-1">Senin</th>
+                    <th colSpan={2} className="border border-slate-900 px-1 py-1">Selasa</th>
+                    <th colSpan={2} className="border border-slate-900 px-1 py-1">Rabu</th>
+                    <th colSpan={2} className="border border-slate-900 px-1 py-1">Kamis</th>
                   </tr>
 
-                  {/* Baris 3: Mata Pelajaran Sesuai Gambar Lampiran */}
-                  <tr className="bg-white text-slate-950 font-bold text-center text-[10.5px]">
-                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">PAIBP</th>
-                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">B. Indo</th>
-                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">IPS</th>
-                    <th className="border border-slate-900 px-1 py-1 w-18 font-bold">B. Inggris</th>
-                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">IPA</th>
-                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">PPKN</th>
-                    <th className="border border-slate-900 px-1 py-1 w-20 font-bold">Matematika</th>
-                    <th className="border border-slate-900 px-1 py-1 w-16 font-bold">B. Sunda</th>
+                  {/* Baris 3: 8 Mata Pelajaran - Lebar Seragam & Simetris */}
+                  <tr className="bg-white text-slate-950 font-bold text-center text-[10px]">
+                    <th className="border border-slate-900 px-0.5 py-1 font-bold">PAIBP</th>
+                    <th className="border border-slate-900 px-0.5 py-1 font-bold">B. Indo</th>
+                    <th className="border border-slate-900 px-0.5 py-1 font-bold">IPS</th>
+                    <th className="border border-slate-900 px-0.5 py-1 font-bold">B. Inggris</th>
+                    <th className="border border-slate-900 px-0.5 py-1 font-bold">IPA</th>
+                    <th className="border border-slate-900 px-0.5 py-1 font-bold">PPKN</th>
+                    <th className="border border-slate-900 px-0.5 py-1 font-bold">Matematika</th>
+                    <th className="border border-slate-900 px-0.5 py-1 font-bold">B. Sunda</th>
                   </tr>
                 </thead>
                 <tbody>
