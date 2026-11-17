@@ -463,7 +463,7 @@ export default function DaftarHadirPage() {
                 {showNoPeserta && (
                   <th className="border border-slate-400 px-3 py-2 w-32">Nomor Peserta</th>
                 )}
-                <th className="border border-slate-400 px-3 py-2 w-28">NISN</th>
+                <th className="border border-slate-400 px-3 py-2 w-28">NIS</th>
                 <th className="border border-slate-400 px-3 py-2 text-left">Nama Peserta Ujian</th>
                 <th className="border border-slate-400 px-2 py-2 w-16">Kelas</th>
                 <th className="border border-slate-400 px-3 py-2 w-44" colSpan={2}>
@@ -504,7 +504,7 @@ export default function DaftarHadirPage() {
                       </td>
                     )}
                     <td className="border border-slate-400 px-3 py-1 text-center font-mono text-slate-700">
-                      {siswa?.nisn}
+                      {siswa?.nis || siswa?.nisn || '-'}
                     </td>
                     <td className="border border-slate-400 px-3 py-1 font-bold text-slate-900 uppercase">
                       {siswa?.nama_lengkap}

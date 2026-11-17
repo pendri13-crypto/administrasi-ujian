@@ -137,7 +137,7 @@ export default function NilaiMapelPage() {
         const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
         return {
           'No. Peserta': peserta.no_peserta,
-          'NISN': siswa?.nisn || '',
+          'NIS': siswa?.nis || siswa?.nisn || '',
           'Nama Siswa': siswa?.nama_lengkap || '',
           'Kelas': kelas?.nama_kelas || '',
           'Nilai PG': '',
@@ -184,13 +184,13 @@ export default function NilaiMapelPage() {
           const newList = [...prevList];
           importedData.forEach((row) => {
             const noPeserta = String(row['No. Peserta'] || row['no_peserta'] || row['Nomor Peserta'] || '').trim();
-            const nisn = String(row['NISN'] || row['nisn'] || '').trim();
+            const idNum = String(row['NIS'] || row['nis'] || row['NISN'] || row['nisn'] || '').trim();
             const rawNama = String(row['Nama Siswa'] || row['Nama Lengkap'] || row['nama_siswa'] || '').trim().toLowerCase();
 
             const peserta = currentPeserta.find(p => {
               if (noPeserta && p.no_peserta === noPeserta) return true;
               const s = allSiswa.find(sw => sw.id === p.siswa_id);
-              if (nisn && s?.nisn === nisn) return true;
+              if (idNum && ((s?.nis && s.nis === idNum) || s?.nisn === idNum)) return true;
               if (rawNama && s?.nama_lengkap.trim().toLowerCase() === rawNama) return true;
               return false;
             });
@@ -250,7 +250,7 @@ export default function NilaiMapelPage() {
     const data = sortedList.map((item, idx) => ({
       'Peringkat': idx + 1,
       'No. Peserta': item.noPeserta,
-      'NISN': item.siswa?.nisn || '',
+      'NIS': item.siswa?.nis || item.siswa?.nisn || '',
       'Nama Siswa': item.siswa?.nama_lengkap || '',
       'Kelas': item.kelas?.nama_kelas || '',
       'Nilai PG': item.nilaiPG,
@@ -408,7 +408,7 @@ export default function NilaiMapelPage() {
               <tr className="bg-slate-100 text-slate-800 uppercase font-bold text-[10px] tracking-wider text-center">
                 <th className="border border-slate-400 px-2 py-2.5 w-12">No</th>
                 <th className="border border-slate-400 px-3 py-2.5 w-28">No. Peserta</th>
-                <th className="border border-slate-400 px-3 py-2.5 w-24">NISN</th>
+                <th className="border border-slate-400 px-3 py-2.5 w-24">NIS</th>
                 <th className="border border-slate-400 px-3 py-2.5 text-left">Nama Lengkap Siswa</th>
                 <th className="border border-slate-400 px-3 py-2.5 w-20">Kelas</th>
                 <th className="border border-slate-400 px-2 py-2.5 w-16">Nilai PG</th>
@@ -432,7 +432,7 @@ export default function NilaiMapelPage() {
                     {idx + 1}
                   </td>
                   <td className="border border-slate-300 px-3 py-2 text-center font-mono text-slate-700">{row.noPeserta}</td>
-                  <td className="border border-slate-300 px-3 py-2 text-center font-mono text-slate-700">{row.siswa?.nisn}</td>
+                  <td className="border border-slate-300 px-3 py-2 text-center font-mono text-slate-700">{row.siswa?.nis || row.siswa?.nisn || '-'}</td>
                   <td className="border border-slate-300 px-3 py-2 font-semibold text-slate-900">{row.siswa?.nama_lengkap}</td>
                   <td className="border border-slate-300 px-3 py-2 text-center font-medium">{row.kelas?.nama_kelas}</td>
                   <td className="border border-slate-300 px-2 py-2 text-center font-mono">{row.nilaiPG}</td>

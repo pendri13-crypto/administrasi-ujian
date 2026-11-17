@@ -291,7 +291,7 @@ export default function NomorMejaPage() {
                     {siswa?.nama_lengkap}
                   </p>
                   <p className="text-xs text-slate-700 font-medium">
-                    NISN: <span className="font-mono font-bold text-slate-900">{siswa?.nisn || '-'}</span>{siswa?.nis ? ` / NIS: ${siswa.nis}` : ''}
+                    NIS: <span className="font-mono font-bold text-slate-900">{siswa?.nis || siswa?.nisn || '-'}</span>
                   </p>
                   <p className="text-xs text-slate-600 font-medium">
                     Kelas: <span className="font-bold text-slate-900">{kelas?.nama_kelas || '-'}</span>

@@ -439,10 +439,10 @@ export default function KartuPesertaPage() {
                         </div>
 
                         <div className="grid grid-cols-12 gap-1 items-baseline">
-                          <span className="col-span-4 text-slate-700 font-bold">NISN / NIS</span>
+                          <span className="col-span-4 text-slate-700 font-bold">NIS</span>
                           <span className="col-span-1 text-center font-bold text-slate-700">:</span>
                           <span className={`col-span-7 font-bold text-slate-900 ${isMode6 ? 'text-[11.5px]' : 'text-xs'}`}>
-                            {siswa?.nisn} / {siswa?.nis || '-'}
+                            {siswa?.nis || siswa?.nisn || '-'}
                           </span>
                         </div>
 

@@ -119,7 +119,7 @@ export default function NilaiKelasPage() {
     const templateData = siswaList.map((siswa, idx) => {
       const item: Record<string, string | number> = {
         'No': idx + 1,
-        'NISN': siswa.nisn,
+        'NIS': siswa.nis || siswa.nisn,
         'Nama Lengkap': siswa.nama_lengkap,
         'L/P': siswa.jenis_kelamin,
       };
@@ -169,8 +169,8 @@ export default function NilaiKelasPage() {
           const newList = [...prevList];
 
           importedData.forEach((row) => {
-            const nisn = String(row['NISN'] || row['nisn'] || '').trim();
-            const siswa = siswaList.find(s => s.nisn === nisn);
+            const idNum = String(row['NIS'] || row['nis'] || row['NISN'] || row['nisn'] || '').trim();
+            const siswa = siswaList.find(s => (s.nis && s.nis === idNum) || s.nisn === idNum);
             if (!siswa) return;
 
             const peserta = currentPeserta.find(p => p.siswa_id === siswa.id);
@@ -239,7 +239,7 @@ export default function NilaiKelasPage() {
     const data = rows.map((row) => {
       const item: Record<string, string | number> = {
         'No': row.no,
-        'NISN': row.siswa.nisn,
+        'NIS': row.siswa.nis || row.siswa.nisn,
         'Nama Siswa': row.siswa.nama_lengkap,
         'L/P': row.siswa.jenis_kelamin,
       };
@@ -358,7 +358,7 @@ export default function NilaiKelasPage() {
             <thead>
               <tr className="bg-slate-100 text-slate-800 uppercase font-bold text-[10px] tracking-wider text-center">
                 <th className="border border-slate-400 px-2 py-2.5 w-10" rowSpan={2}>No</th>
-                <th className="border border-slate-400 px-3 py-2.5 w-28" rowSpan={2}>NISN</th>
+                <th className="border border-slate-400 px-3 py-2.5 w-28" rowSpan={2}>NIS</th>
                 <th className="border border-slate-400 px-3 py-2.5 text-left" rowSpan={2}>Nama Lengkap Siswa</th>
                 <th className="border border-slate-400 px-2 py-2.5 w-10" rowSpan={2}>L/P</th>
                 <th className="border border-slate-400 py-1" colSpan={DEMO_MAPEL.length}>Mata Pelajaran (Nilai Akhir)</th>
@@ -387,7 +387,7 @@ export default function NilaiKelasPage() {
               {rows.map((row) => (
                 <tr key={row.siswa.id} className="hover:bg-slate-50">
                   <td className="border border-slate-300 px-2 py-2 text-center font-medium">{row.no}</td>
-                  <td className="border border-slate-300 px-3 py-2 text-center font-mono text-slate-700">{row.siswa.nisn}</td>
+                  <td className="border border-slate-300 px-3 py-2 text-center font-mono text-slate-700">{row.siswa.nis || row.siswa.nisn || '-'}</td>
                   <td className="border border-slate-300 px-3 py-2 font-semibold text-slate-900">{row.siswa.nama_lengkap}</td>
                   <td className="border border-slate-300 px-2 py-2 text-center">{row.siswa.jenis_kelamin}</td>
                   

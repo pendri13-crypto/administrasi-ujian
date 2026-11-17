@@ -703,7 +703,7 @@ export default function PengaturanAdminPage() {
                   <p className="text-[11px] font-semibold text-slate-700 mt-1">
                     Tanpa Nomor Peserta (Rekomendasi)
                   </p>
-                  <span className="text-[10px] text-slate-500 mt-0.5">Identifikasi peserta cukup dengan Nama, NISN/NIS, Kelas, dan Ruangan.</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5">Identifikasi peserta cukup dengan Nama, NIS, Kelas, dan Ruangan.</span>
                 </div>
               </button>
 
@@ -793,8 +793,8 @@ export default function PengaturanAdminPage() {
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span>NISN / NIS:</span>
-                  <span className="font-semibold text-slate-800">262770001 / 3134688</span>
+                  <span>NIS:</span>
+                  <span className="font-semibold text-slate-800">3134688</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Kelas / Ruang:</span>

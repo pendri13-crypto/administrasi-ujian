@@ -466,7 +466,7 @@ export default function KelolaRuangPage() {
       ['[ PAPAN TULIS & MEJA PENGAWAS UJIAN (DEPAN KELAS) ]'],
       [],
       [`SISI KIRI (MEJA 01 S/D 17) - Terisi: ${kiri.length} Siswa (${kelasKiri})`, '', '', '', '', '', `SISI KANAN (MEJA 18 S/D 34) - Terisi: ${kanan.length} Siswa (${kelasKanan})`],
-      ['No. Meja', 'No. Peserta', 'NISN', 'Nama Lengkap Siswa', 'Kelas', '', 'No. Meja', 'No. Peserta', 'NISN', 'Nama Lengkap Siswa', 'Kelas']
+      ['No. Meja', 'No. Peserta', 'NIS', 'Nama Lengkap Siswa', 'Kelas', '', 'No. Meja', 'No. Peserta', 'NIS', 'Nama Lengkap Siswa', 'Kelas']
     ];
 
     const maxRows = Math.max(kiri.length, kanan.length, 17);
@@ -479,13 +479,13 @@ export default function KelolaRuangPage() {
       aoa.push([
         pKiri ? String(pKiri.no_meja || defMejaKiri).padStart(2, '0') : String(defMejaKiri).padStart(2, '0'),
         pKiri?.no_peserta || (pKiri ? '-' : '(Kosong)'),
-        pKiri?.siswa?.nisn || '',
+        pKiri?.siswa?.nis || pKiri?.siswa?.nisn || '',
         pKiri?.siswa?.nama_lengkap || (pKiri ? '-' : '-'),
         pKiri ? getNamaKelas(pKiri) : '',
         '',
         pKanan ? String(pKanan.no_meja || defMejaKanan).padStart(2, '0') : String(defMejaKanan).padStart(2, '0'),
         pKanan?.no_peserta || (pKanan ? '-' : '(Kosong)'),
-        pKanan?.siswa?.nisn || '',
+        pKanan?.siswa?.nis || pKanan?.siswa?.nisn || '',
         pKanan?.siswa?.nama_lengkap || (pKanan ? '-' : '-'),
         pKanan ? getNamaKelas(pKanan) : ''
       ]);
@@ -534,13 +534,13 @@ export default function KelolaRuangPage() {
     ws['!cols'] = [
       { wch: 10 }, // No. Meja (Kiri)
       { wch: 14 }, // No. Peserta
-      { wch: 14 }, // NISN
+      { wch: 14 }, // NIS
       { wch: 32 }, // Nama Lengkap Siswa
       { wch: 10 }, // Kelas Asal
       { wch: 4 },  // Spacer
       { wch: 10 }, // No. Meja (Kanan)
       { wch: 14 }, // No. Peserta
-      { wch: 14 }, // NISN
+      { wch: 14 }, // NIS
       { wch: 32 }, // Nama Lengkap Siswa
       { wch: 10 }  // Kelas Asal
     ];
@@ -1029,7 +1029,7 @@ export default function KelolaRuangPage() {
                             </span>
                             <div>
                               <p className="font-bold text-slate-900 text-xs leading-tight">{p.siswa?.nama_lengkap}</p>
-                              <p className="text-[10px] text-slate-500 font-mono mt-0.5">NISN: {p.siswa?.nisn || '-'}</p>
+                              <p className="text-[10px] text-slate-500 font-mono mt-0.5">NIS: {p.siswa?.nis || p.siswa?.nisn || '-'}</p>
                             </div>
                           </div>
                           <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
@@ -1079,7 +1079,7 @@ export default function KelolaRuangPage() {
                             </span>
                             <div>
                               <p className="font-bold text-slate-900 text-xs leading-tight">{p.siswa?.nama_lengkap}</p>
-                              <p className="text-[10px] text-slate-500 font-mono mt-0.5">NISN: {p.siswa?.nisn || '-'}</p>
+                              <p className="text-[10px] text-slate-500 font-mono mt-0.5">NIS: {p.siswa?.nis || p.siswa?.nisn || '-'}</p>
                             </div>
                           </div>
                           <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
