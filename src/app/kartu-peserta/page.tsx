@@ -397,9 +397,9 @@ export default function KartuPesertaPage() {
                     </div>
 
                     {/* Konten Utama: Foto & Biodata */}
-                    <div className="flex gap-3 items-start my-auto">
+                    <div className="flex gap-3 sm:gap-4 items-center my-auto flex-1">
                       {/* Pas Foto Siswa 3x4 */}
-                      <div className={`${isMode6 ? 'w-[28mm] h-[37mm]' : 'w-[32mm] h-[43mm]'} border-2 border-slate-400 rounded bg-slate-50 flex-shrink-0 overflow-hidden flex flex-col items-center justify-center relative shadow-inner`}>
+                      <div className={`${isMode6 ? 'w-[30mm] h-[40mm]' : 'w-[34mm] h-[45mm]'} border-2 border-slate-400 rounded bg-slate-50 flex-shrink-0 overflow-hidden flex flex-col items-center justify-center relative shadow-inner`}>
                         {siswa?.foto_url ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
                           <img
@@ -409,63 +409,63 @@ export default function KartuPesertaPage() {
                           />
                         ) : (
                           <div className="fallback-foto text-center p-1 text-slate-400 flex flex-col items-center justify-center">
-                            <ImageIcon className={`${isMode6 ? 'w-6 h-6' : 'w-8 h-8'} mx-auto stroke-1 text-slate-400`} />
-                            <span className={`${isMode6 ? 'text-[9px]' : 'text-[9.5px]'} font-medium block mt-0.5 text-slate-500`}>Foto 3x4</span>
+                            <ImageIcon className={`${isMode6 ? 'w-7 h-7' : 'w-9 h-9'} mx-auto stroke-1 text-slate-400`} />
+                            <span className={`${isMode6 ? 'text-[9.5px]' : 'text-[10px]'} font-medium block mt-0.5 text-slate-500`}>Foto 3x4</span>
                           </div>
                         )}
-                        <span className={`absolute bottom-0.5 ${isMode6 ? 'text-[8.5px] px-2 py-0.5' : 'text-[9px] px-2.5 py-0.5'} bg-black/75 text-white rounded font-bold z-10`}>
+                        <span className={`absolute bottom-0.5 ${isMode6 ? 'text-[9px] px-2 py-0.5' : 'text-[10px] px-2.5 py-0.5'} bg-black/75 text-white rounded font-bold z-10`}>
                           {peserta.no_meja ? `Meja ${peserta.no_meja}` : 'Meja -'}
                         </span>
                       </div>
 
                       {/* Data Peserta */}
-                      <div className={`flex-1 ${isMode6 ? 'text-[11.5px] space-y-1' : 'text-xs space-y-1.5'} leading-snug`}>
+                      <div className={`flex-1 ${isMode6 ? 'space-y-2 py-0.5' : 'space-y-3 py-1'} leading-snug`}>
                         {showNoPeserta && (
-                          <div className="grid grid-cols-12 gap-1 pb-1 border-b border-dashed border-slate-300 items-baseline">
-                            <span className="col-span-4 text-slate-700 font-bold">No. Peserta</span>
-                            <span className="col-span-1 text-center font-bold text-slate-700">:</span>
-                            <span className={`col-span-7 font-black text-slate-950 font-mono tracking-wider ${isMode6 ? 'text-[13px]' : 'text-sm'}`}>
+                          <div className="grid grid-cols-[90px_14px_1fr] items-baseline pb-1 border-b border-dashed border-slate-300">
+                            <span className={`text-slate-700 font-bold ${isMode6 ? 'text-[12.5px]' : 'text-[14px]'}`}>No. Peserta</span>
+                            <span className="text-center font-bold text-slate-700">:</span>
+                            <span className={`font-black text-slate-950 font-mono tracking-wider ${isMode6 ? 'text-[14px]' : 'text-[16px]'}`}>
                               {peserta.no_peserta}
                             </span>
                           </div>
                         )}
 
-                        <div className={`grid grid-cols-12 gap-1 items-baseline ${!showNoPeserta ? 'pb-1 border-b border-dashed border-slate-300' : ''}`}>
-                          <span className="col-span-4 text-slate-700 font-bold">Nama Siswa</span>
-                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
-                          <span className={`col-span-7 font-black text-slate-950 uppercase ${isMode6 ? 'text-[12px]' : 'text-[13px]'}`}>
+                        <div className={`grid grid-cols-[90px_14px_1fr] items-baseline ${!showNoPeserta ? 'pb-1.5 border-b border-dashed border-slate-300' : ''}`}>
+                          <span className={`text-slate-700 font-bold ${isMode6 ? 'text-[13px]' : 'text-[14px]'}`}>Nama Siswa</span>
+                          <span className="text-center font-bold text-slate-700">:</span>
+                          <span className={`font-black text-slate-950 uppercase tracking-wide ${isMode6 ? 'text-[14.5px] sm:text-[15px]' : 'text-[16px] sm:text-[17px]'}`}>
                             {siswa?.nama_lengkap}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1 items-baseline">
-                          <span className="col-span-4 text-slate-700 font-bold">NIS</span>
-                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
-                          <span className={`col-span-7 font-bold text-slate-900 ${isMode6 ? 'text-[11.5px]' : 'text-xs'}`}>
+                        <div className="grid grid-cols-[90px_14px_1fr] items-baseline">
+                          <span className={`text-slate-700 font-bold ${isMode6 ? 'text-[13px]' : 'text-[14px]'}`}>NIS</span>
+                          <span className="text-center font-bold text-slate-700">:</span>
+                          <span className={`font-mono font-bold text-slate-950 tracking-wider ${isMode6 ? 'text-[14px]' : 'text-[15.5px]'}`}>
                             {siswa?.nis || siswa?.nisn || '-'}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1 items-baseline">
-                          <span className="col-span-4 text-slate-700 font-bold">Kelas</span>
-                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
-                          <span className={`col-span-7 font-black text-slate-950 ${isMode6 ? 'text-[12px]' : 'text-[13px]'}`}>
+                        <div className="grid grid-cols-[90px_14px_1fr] items-baseline">
+                          <span className={`text-slate-700 font-bold ${isMode6 ? 'text-[13px]' : 'text-[14px]'}`}>Kelas</span>
+                          <span className="text-center font-bold text-slate-700">:</span>
+                          <span className={`font-black text-slate-950 ${isMode6 ? 'text-[14px]' : 'text-[15.5px]'}`}>
                             {kelasNama}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1 items-baseline">
-                          <span className="col-span-4 text-slate-700 font-bold">Ruang Ujian</span>
-                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
-                          <span className={`col-span-7 font-bold text-slate-900 ${isMode6 ? 'text-[11.5px]' : 'text-xs'}`}>
+                        <div className="grid grid-cols-[90px_14px_1fr] items-baseline">
+                          <span className={`text-slate-700 font-bold ${isMode6 ? 'text-[13px]' : 'text-[14px]'}`}>Ruang Ujian</span>
+                          <span className="text-center font-bold text-slate-700">:</span>
+                          <span className={`font-bold text-slate-900 ${isMode6 ? 'text-[13px]' : 'text-[14.5px]'}`}>
                             {ruang?.kode_ruang} ({ruang?.nama_ruang})
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1 items-baseline">
-                          <span className="col-span-4 text-slate-700 font-bold">Sesi</span>
-                          <span className="col-span-1 text-center font-bold text-slate-700">:</span>
-                          <span className={`col-span-7 font-bold text-slate-900 ${isMode6 ? 'text-[11.5px]' : 'text-xs'}`}>
+                        <div className="grid grid-cols-[90px_14px_1fr] items-baseline">
+                          <span className={`text-slate-700 font-bold ${isMode6 ? 'text-[13px]' : 'text-[14px]'}`}>Sesi</span>
+                          <span className="text-center font-bold text-slate-700">:</span>
+                          <span className={`font-bold text-slate-900 ${isMode6 ? 'text-[13px]' : 'text-[14.5px]'}`}>
                             Sesi {peserta.sesi}
                           </span>
                         </div>
