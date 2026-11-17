@@ -474,19 +474,61 @@ export default function DaftarHadirPage() {
           /* TEMPLATE MULTI-MAPEL MINGGUAN (SENIN - KAMIS SESUAI GAMBAR)    */
           /* ============================================================== */
           <div>
-            {/* Kop Resmi Sesuai Gambar Lampiran */}
-            <div className="text-center font-bold text-slate-950 pb-2 space-y-0.5">
-              <p className="text-sm sm:text-base font-black tracking-wide uppercase">PANITIA PELAKSANA ASESMEN DAN UJIAN</p>
-              <p className="text-sm sm:text-base font-black tracking-wide uppercase">{schoolSettings.namaSekolah}</p>
-              <p className="text-sm sm:text-base font-black tracking-wide uppercase">
-                DAFTAR HADIR PESERTA UJIAN {filterMode === 'kelas' ? `(KELAS ${currentKelas.nama_kelas})` : ''}
-              </p>
-              <p className="text-sm sm:text-base font-black tracking-wide uppercase">
-                {schoolSettings.namaUjian} TAHUN PELAJARAN {schoolSettings.tahunAjaran}
-              </p>
+            {/* Kop Resmi Dinas, Pemerintah Daerah & Sekolah */}
+            <div className="flex items-center justify-between gap-3 sm:gap-4 pb-2">
+              {/* Logo Kiri: Pemerintah Daerah (Kab. Tasikmalaya) */}
+              <div className="w-[64px] sm:w-[75px] h-[75px] sm:h-[88px] flex-shrink-0 flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl || '/images/logo-tasikmalaya.png'}
+                  alt="Logo Pemda"
+                  className="max-h-full max-w-full object-contain filter drop-shadow-sm select-none"
+                />
+              </div>
+
+              {/* Teks Kop Tengah */}
+              <div className="flex-1 text-center font-bold text-slate-950 space-y-0.5 leading-tight">
+                <p className="text-xs sm:text-sm font-black tracking-wider uppercase text-slate-900">
+                  {schoolSettings.namaInstansi || 'PEMERINTAH KABUPATEN TASIKMALAYA'}
+                </p>
+                {!schoolSettings.namaInstansi?.toUpperCase().includes('DINAS') && (
+                  <p className="text-xs sm:text-sm font-black tracking-wider uppercase text-slate-900">
+                    DINAS PENDIDIKAN DAN KEBUDAYAAN
+                  </p>
+                )}
+                <h1 className="text-sm sm:text-base md:text-lg font-black tracking-wide uppercase text-slate-950">
+                  {schoolSettings.namaSekolah}
+                </h1>
+                {schoolSettings.alamatSekolah && (
+                  <p className="text-[10px] sm:text-[11px] font-semibold text-slate-700">
+                    {schoolSettings.alamatSekolah}
+                  </p>
+                )}
+                <div className="pt-1.5 space-y-0.5 border-t border-slate-300 mt-1">
+                  <p className="text-xs sm:text-[13px] font-black tracking-wide uppercase text-slate-950">
+                    PANITIA PELAKSANA ASESMEN DAN UJIAN
+                  </p>
+                  <p className="text-xs sm:text-sm font-black tracking-wide uppercase text-slate-950">
+                    DAFTAR HADIR PESERTA UJIAN {filterMode === 'kelas' ? `(KELAS ${currentKelas.nama_kelas})` : ''}
+                  </p>
+                  <p className="text-[11px] sm:text-xs font-black tracking-wide uppercase text-slate-900">
+                    {schoolSettings.namaUjian} TAHUN PELAJARAN {schoolSettings.tahunAjaran}
+                  </p>
+                </div>
+              </div>
+
+              {/* Logo Kanan: Sekolah (SMPN 1 Rajapolah) */}
+              <div className="w-[64px] sm:w-[75px] h-[75px] sm:h-[88px] flex-shrink-0 flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'}
+                  alt="Logo Sekolah"
+                  className="max-h-full max-w-full object-contain filter drop-shadow-sm select-none"
+                />
+              </div>
             </div>
 
-            {/* Garis Ganda Pembatas Kop */}
+            {/* Garis Ganda Pembatas Kop Standar Dinas */}
             <div className="border-b-4 border-double border-slate-950 mb-3" />
 
             {/* Metadata Ruang & Jadwal 2 Kolom Sesuai Gambar */}
@@ -651,18 +693,62 @@ export default function DaftarHadirPage() {
           /* TEMPLATE HARIAN PER MATA PELAJARAN (FORMAT LAMA)              */
           /* ============================================================== */
           <div>
-            {/* Kop Resmi Ujian */}
-            <div className="border-b-2 border-slate-900 pb-3 mb-4 text-center">
-              <p className="text-[10px] tracking-widest font-bold text-slate-700 uppercase">
-                PANITIA PELAKSANA ASESMEN DAN UJIAN &bull; {schoolSettings.namaSekolah}
-              </p>
-              <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 uppercase">
-                DAFTAR HADIR PESERTA UJIAN {filterMode === 'kelas' ? `(KELAS ${currentKelas.nama_kelas})` : ''}
-              </h2>
-              <p className="text-xs font-bold text-slate-800 uppercase mt-0.5">
-                {schoolSettings.namaUjian} &bull; TAHUN PELAJARAN {schoolSettings.tahunAjaran}
-              </p>
+            {/* Kop Resmi Dinas, Pemerintah Daerah & Sekolah */}
+            <div className="flex items-center justify-between gap-3 sm:gap-4 pb-2">
+              {/* Logo Kiri: Pemerintah Daerah (Kab. Tasikmalaya) */}
+              <div className="w-[64px] sm:w-[75px] h-[75px] sm:h-[88px] flex-shrink-0 flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl || '/images/logo-tasikmalaya.png'}
+                  alt="Logo Pemda"
+                  className="max-h-full max-w-full object-contain filter drop-shadow-sm select-none"
+                />
+              </div>
+
+              {/* Teks Kop Tengah */}
+              <div className="flex-1 text-center font-bold text-slate-950 space-y-0.5 leading-tight">
+                <p className="text-xs sm:text-sm font-black tracking-wider uppercase text-slate-900">
+                  {schoolSettings.namaInstansi || 'PEMERINTAH KABUPATEN TASIKMALAYA'}
+                </p>
+                {!schoolSettings.namaInstansi?.toUpperCase().includes('DINAS') && (
+                  <p className="text-xs sm:text-sm font-black tracking-wider uppercase text-slate-900">
+                    DINAS PENDIDIKAN DAN KEBUDAYAAN
+                  </p>
+                )}
+                <h1 className="text-sm sm:text-base md:text-lg font-black tracking-wide uppercase text-slate-950">
+                  {schoolSettings.namaSekolah}
+                </h1>
+                {schoolSettings.alamatSekolah && (
+                  <p className="text-[10px] sm:text-[11px] font-semibold text-slate-700">
+                    {schoolSettings.alamatSekolah}
+                  </p>
+                )}
+                <div className="pt-1.5 space-y-0.5 border-t border-slate-300 mt-1">
+                  <p className="text-xs sm:text-[13px] font-black tracking-wide uppercase text-slate-950">
+                    PANITIA PELAKSANA ASESMEN DAN UJIAN
+                  </p>
+                  <p className="text-xs sm:text-sm font-black tracking-wide uppercase text-slate-950">
+                    DAFTAR HADIR PESERTA UJIAN {filterMode === 'kelas' ? `(KELAS ${currentKelas.nama_kelas})` : ''}
+                  </p>
+                  <p className="text-[11px] sm:text-xs font-black tracking-wide uppercase text-slate-900">
+                    {schoolSettings.namaUjian} TAHUN PELAJARAN {schoolSettings.tahunAjaran}
+                  </p>
+                </div>
+              </div>
+
+              {/* Logo Kanan: Sekolah (SMPN 1 Rajapolah) */}
+              <div className="w-[64px] sm:w-[75px] h-[75px] sm:h-[88px] flex-shrink-0 flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'}
+                  alt="Logo Sekolah"
+                  className="max-h-full max-w-full object-contain filter drop-shadow-sm select-none"
+                />
+              </div>
             </div>
+
+            {/* Garis Ganda Pembatas Kop Standar Dinas */}
+            <div className="border-b-4 border-double border-slate-950 mb-3" />
 
             {/* Informasi Detail Ruang & Jadwal (Sinkron Penuh) */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-900 mb-4 pb-3 border-b border-dashed border-slate-400">
