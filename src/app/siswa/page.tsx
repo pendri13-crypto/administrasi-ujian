@@ -27,7 +27,8 @@ import * as XLSX from 'xlsx';
 import { 
   fetchSiswaFromCloud, 
   pushSiswaToCloud, 
-  deleteSiswaFromCloud, 
+  deleteSiswaFromCloud,
+  updateSiswaPhotoInCloud,
   exportBackupJSON, 
   restoreBackupJSON 
 } from '@/lib/data-service';
@@ -140,6 +141,10 @@ export default function SiswaPage() {
       const next = typeof newList === 'function' ? newList(prev) : newList;
       try {
         localStorage.setItem('adm_siswa_data', JSON.stringify(next));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('storage'));
+          window.dispatchEvent(new Event('siswa-data-updated'));
+        }
       } catch (e) {
         console.error('Failed to persist siswa to localStorage', e);
       }
@@ -286,8 +291,12 @@ export default function SiswaPage() {
 
       if (targetSiswaId) {
         // Ganti foto siswa yang sudah ada
+        const targetSiswa = siswaList.find(s => s.id === targetSiswaId);
         saveAndSetSiswaList(prev => prev.map(s => s.id === targetSiswaId ? { ...s, foto_url: compressedDataUrl } : s));
         showToast('Foto siswa berhasil diperbarui!');
+        if (targetSiswa) {
+          updateSiswaPhotoInCloud({ id: targetSiswa.id, nisn: targetSiswa.nisn }, compressedDataUrl).catch(() => {});
+        }
       } else {
         // Preview untuk siswa baru
         setPreviewFoto(compressedDataUrl);
@@ -322,6 +331,7 @@ export default function SiswaPage() {
     const normalized = normalizePhotoUrl(input);
     saveAndSetSiswaList(prev => prev.map(s => s.id === targetSiswa.id ? { ...s, foto_url: normalized } : s));
     showToast(normalized ? 'Link foto berhasil disimpan!' : 'Foto siswa berhasil dihapus.');
+    updateSiswaPhotoInCloud({ id: targetSiswa.id, nisn: targetSiswa.nisn }, normalized).catch(() => {});
   };
 
   const handleTambahSiswa = (e: React.FormEvent) => {

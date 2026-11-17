@@ -77,7 +77,24 @@ export default function KartuPesertaPage() {
           setRuangList(cloudRuang);
         }
         if (cloudSiswa && cloudSiswa.length > 0) {
-          setPesertaList(generatePesertaFromSiswa(cloudSiswa, activeRuang, rules || undefined));
+          // Double safeguard: pastikan foto siswa yang tersimpan di lokal tidak tertimpa null
+          let finalSiswa = cloudSiswa;
+          const currentLocal = localStorage.getItem('adm_siswa_data');
+          if (currentLocal) {
+            try {
+              const localList: Siswa[] = JSON.parse(currentLocal);
+              finalSiswa = cloudSiswa.map(cs => {
+                if (cs.foto_url) return cs;
+                const match = localList.find(ls => 
+                  (ls.nisn && ls.nisn === cs.nisn) || 
+                  (ls.id && ls.id === cs.id) ||
+                  (ls.nama_lengkap && ls.nama_lengkap.toLowerCase() === cs.nama_lengkap.toLowerCase())
+                );
+                return match?.foto_url ? { ...cs, foto_url: match.foto_url } : cs;
+              });
+            } catch (e) {}
+          }
+          setPesertaList(generatePesertaFromSiswa(finalSiswa, activeRuang, rules || undefined));
         }
       }).catch(err => {
         console.error('Gagal sinkron cloud:', err);

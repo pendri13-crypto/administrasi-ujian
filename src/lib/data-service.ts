@@ -589,6 +589,28 @@ export async function fetchSiswaFromCloud(): Promise<Siswa[] | null> {
     }
 
     if (allData.length > 0) {
+      // 1. Ambil cache lokal foto siswa agar foto yang sudah di-upload lokal tidak tertimpa null dari cloud
+      const localPhotoMap = new Map<string, string>();
+      if (typeof window !== 'undefined') {
+        try {
+          const localSaved = localStorage.getItem(SISWA_STORAGE_KEY);
+          if (localSaved) {
+            const parsed = JSON.parse(localSaved);
+            if (Array.isArray(parsed)) {
+              for (const s of parsed) {
+                if (s.foto_url) {
+                  if (s.nisn) localPhotoMap.set(String(s.nisn).trim(), s.foto_url);
+                  if (s.id) localPhotoMap.set(String(s.id), s.foto_url);
+                  if (s.nama_lengkap) localPhotoMap.set(String(s.nama_lengkap).trim().toLowerCase(), s.foto_url);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Gagal membaca cache foto lokal:', e);
+        }
+      }
+
       // Map format data dari Supabase ke interface Siswa
       const formatted: Siswa[] = allData.map((item: any) => {
         const kId = Number(item.kelas_id) || 1;
@@ -596,19 +618,31 @@ export async function fetchSiswaFromCloud(): Promise<Siswa[] | null> {
         if (!kelasObj && item.kelas_id) {
           kelasObj = DEMO_KELAS.find(k => k.id === kId);
         }
+        const nisnKey = String(item.nisn || '').trim();
+        const idKey = String(item.id || '');
+        const nameKey = String(item.nama_lengkap || '').trim().toLowerCase();
+
+        const localPhoto = localPhotoMap.get(nisnKey) || localPhotoMap.get(idKey) || localPhotoMap.get(nameKey);
+        const resolvedPhoto = item.foto_url || localPhoto || null;
+
+        // Jika di Cloud fotonya masih null namun di lokal sudah ada, sinkronkan ke Cloud di background
+        if (!item.foto_url && localPhoto) {
+          updateSiswaPhotoInCloud({ id: item.id, nisn: item.nisn }, localPhoto).catch(() => {});
+        }
+
         return {
           id: item.id,
-          nisn: String(item.nisn || ''),
+          nisn: nisnKey,
           nis: item.nis ? String(item.nis) : undefined,
           nama_lengkap: item.nama_lengkap || '',
           jenis_kelamin: (item.jenis_kelamin === 'P' ? 'P' : 'L') as 'L' | 'P',
           kelas_id: kId,
-          foto_url: item.foto_url || null,
+          foto_url: resolvedPhoto,
           kelas: kelasObj,
         };
       });
 
-      // Update cache di localStorage dengan data lengkap
+      // Update cache di localStorage dengan data lengkap yang terjaga fotonya
       if (typeof window !== 'undefined' && formatted.length > 0) {
         localStorage.setItem(SISWA_STORAGE_KEY, JSON.stringify(formatted));
       }
@@ -728,6 +762,42 @@ export async function deleteSiswaFromCloud(nisnList: string[]): Promise<boolean>
     return true;
   } catch (err) {
     console.error('Delete siswa error:', err);
+    return false;
+  }
+}
+
+/**
+ * Menyimpan / memperbarui foto siswa secara spesifik ke Supabase Cloud.
+ */
+export async function updateSiswaPhotoInCloud(
+  target: { id?: number; nisn?: string },
+  fotoUrl: string | null
+): Promise<boolean> {
+  if (!supabase || !isSupabaseConfigured) return false;
+
+  try {
+    const nisn = target.nisn ? String(target.nisn).trim() : '';
+    if (nisn) {
+      const { error } = await supabase
+        .from('siswa')
+        .update({ foto_url: fotoUrl })
+        .eq('nisn', nisn);
+      if (!error) return true;
+      console.warn('Update foto by NISN failed, trying ID...', error);
+    }
+
+    if (target.id) {
+      const { error } = await supabase
+        .from('siswa')
+        .update({ foto_url: fotoUrl })
+        .eq('id', target.id);
+      if (!error) return true;
+      console.error('Update foto by ID failed:', error);
+    }
+
+    return false;
+  } catch (err) {
+    console.error('Error updating siswa foto in Supabase:', err);
     return false;
   }
 }
