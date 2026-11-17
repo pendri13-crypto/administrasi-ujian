@@ -34,6 +34,7 @@ import {
   fetchSplitRulesFromCloud
 } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { AutoTrimmedLogo } from '@/components/AutoTrimmedLogo';
 
 export default function DaftarHadirPage() {
   const [filterMode, setFilterMode] = useState<'ruang' | 'kelas'>('ruang');
@@ -477,12 +478,12 @@ export default function DaftarHadirPage() {
             {/* Kop Resmi Dinas, Pemerintah Daerah & Sekolah */}
             <div className="flex items-center justify-between gap-3 sm:gap-4 pb-2">
               {/* Logo Kiri: Pemerintah Daerah (Kab. Tasikmalaya) */}
-              <div className="w-[64px] sm:w-[75px] h-[75px] sm:h-[88px] flex-shrink-0 flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl || '/images/logo-tasikmalaya.png'}
+              <div className="w-[72px] sm:w-[84px] h-[78px] sm:h-[90px] flex-shrink-0 flex items-center justify-center">
+                <AutoTrimmedLogo
+                  src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl}
+                  fallbackSrc="/images/logo-tasikmalaya.png"
                   alt="Logo Pemda"
-                  className="max-h-full max-w-full object-contain filter drop-shadow-sm select-none"
+                  className="w-full h-full object-contain filter drop-shadow-sm select-none"
                 />
               </div>
 
@@ -517,13 +518,13 @@ export default function DaftarHadirPage() {
                 </div>
               </div>
 
-              {/* Logo Kanan: Sekolah (SMPN 1 Rajapolah) */}
-              <div className="w-[64px] sm:w-[75px] h-[75px] sm:h-[88px] flex-shrink-0 flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'}
+              {/* Logo Kanan: Sekolah (SMPN 1 Rajapolah - Ukuran Disamakan Penuh) */}
+              <div className="w-[84px] sm:w-[94px] h-[78px] sm:h-[90px] flex-shrink-0 flex items-center justify-center">
+                <AutoTrimmedLogo
+                  src={schoolSettings.logoSekolahUrl}
+                  fallbackSrc="/images/logo-smpn1-rajapolah.png"
                   alt="Logo Sekolah"
-                  className="max-h-full max-w-full object-contain filter drop-shadow-sm select-none"
+                  className="w-full h-full object-contain filter drop-shadow-sm select-none"
                 />
               </div>
             </div>
@@ -696,12 +697,12 @@ export default function DaftarHadirPage() {
             {/* Kop Resmi Dinas, Pemerintah Daerah & Sekolah */}
             <div className="flex items-center justify-between gap-3 sm:gap-4 pb-2">
               {/* Logo Kiri: Pemerintah Daerah (Kab. Tasikmalaya) */}
-              <div className="w-[64px] sm:w-[75px] h-[75px] sm:h-[88px] flex-shrink-0 flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl || '/images/logo-tasikmalaya.png'}
+              <div className="w-[72px] sm:w-[84px] h-[78px] sm:h-[90px] flex-shrink-0 flex items-center justify-center">
+                <AutoTrimmedLogo
+                  src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl}
+                  fallbackSrc="/images/logo-tasikmalaya.png"
                   alt="Logo Pemda"
-                  className="max-h-full max-w-full object-contain filter drop-shadow-sm select-none"
+                  className="w-full h-full object-contain filter drop-shadow-sm select-none"
                 />
               </div>
 
@@ -736,13 +737,13 @@ export default function DaftarHadirPage() {
                 </div>
               </div>
 
-              {/* Logo Kanan: Sekolah (SMPN 1 Rajapolah) */}
-              <div className="w-[64px] sm:w-[75px] h-[75px] sm:h-[88px] flex-shrink-0 flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'}
+              {/* Logo Kanan: Sekolah (SMPN 1 Rajapolah - Ukuran Disamakan Penuh) */}
+              <div className="w-[84px] sm:w-[94px] h-[78px] sm:h-[90px] flex-shrink-0 flex items-center justify-center">
+                <AutoTrimmedLogo
+                  src={schoolSettings.logoSekolahUrl}
+                  fallbackSrc="/images/logo-smpn1-rajapolah.png"
                   alt="Logo Sekolah"
-                  className="max-h-full max-w-full object-contain filter drop-shadow-sm select-none"
+                  className="w-full h-full object-contain filter drop-shadow-sm select-none"
                 />
               </div>
             </div>

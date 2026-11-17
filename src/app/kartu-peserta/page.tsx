@@ -7,6 +7,7 @@ import { Printer, Filter, Image as ImageIcon, QrCode, Eye, EyeOff } from 'lucide
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 import { fetchSiswaFromCloud, fetchRuangFromCloud, getStoredRuang, fetchSplitRulesFromCloud } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { AutoTrimmedLogo } from '@/components/AutoTrimmedLogo';
 
 export default function KartuPesertaPage() {
   const [selectedKelas, setSelectedKelas] = useState<string>('1'); // Default ke Kelas VII-A agar browser langsung enteng & tidak crash
@@ -366,11 +367,11 @@ export default function KartuPesertaPage() {
                       <div className="flex items-center justify-between gap-1.5 sm:gap-2 px-1">
                         {/* Logo Kiri: Pemda Kab. Tasikmalaya */}
                         <div className={`${
-                          isMode8 ? 'w-[36px] h-[44px]' : isMode6 ? 'w-[48px] h-[58px]' : 'w-[64px] h-[74px]'
+                          isMode8 ? 'w-[40px] h-[46px]' : isMode6 ? 'w-[52px] h-[58px]' : 'w-[68px] h-[74px]'
                         } flex-shrink-0 flex items-center justify-center`}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl || '/images/logo-tasikmalaya.png'}
+                          <AutoTrimmedLogo
+                            src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl}
+                            fallbackSrc="/images/logo-tasikmalaya.png"
                             alt="Logo Pemda"
                             className="w-full h-full object-contain filter drop-shadow-sm select-none"
                           />
@@ -400,13 +401,13 @@ export default function KartuPesertaPage() {
                           </p>
                         </div>
 
-                        {/* Logo Kanan: SMPN 1 Rajapolah */}
+                        {/* Logo Kanan: SMPN 1 Rajapolah (Ukuran disamakan penuh dengan Logo Pemda) */}
                         <div className={`${
-                          isMode8 ? 'w-[36px] h-[44px]' : isMode6 ? 'w-[48px] h-[58px]' : 'w-[64px] h-[74px]'
+                          isMode8 ? 'w-[46px] h-[46px]' : isMode6 ? 'w-[58px] h-[58px]' : 'w-[74px] h-[74px]'
                         } flex-shrink-0 flex items-center justify-center`}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'}
+                          <AutoTrimmedLogo
+                            src={schoolSettings.logoSekolahUrl}
+                            fallbackSrc="/images/logo-smpn1-rajapolah.png"
                             alt="Logo Sekolah"
                             className="w-full h-full object-contain filter drop-shadow-sm select-none"
                           />

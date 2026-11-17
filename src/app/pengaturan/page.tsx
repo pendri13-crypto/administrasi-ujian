@@ -28,6 +28,7 @@ import {
   resetStoredSchoolSettings 
 } from '@/lib/school-settings';
 import { getStoredUser, isAdmin } from '@/lib/auth';
+import { trimImageWhitespace } from '@/components/AutoTrimmedLogo';
 import { exportBackupJSON, restoreBackupJSON } from '@/lib/data-service';
 
 export default function PengaturanAdminPage() {
@@ -131,15 +132,16 @@ export default function PengaturanAdminPage() {
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const base64 = event.target?.result as string;
       if (base64) {
+        const trimmed = await trimImageWhitespace(base64);
         setSettings(prev => ({
           ...prev,
-          logoPemdaUrl: base64,
-          logoTasikmalayaUrl: base64,
+          logoPemdaUrl: trimmed,
+          logoTasikmalayaUrl: trimmed,
         }));
-        showToast('Logo PEMDA berhasil dimuat!');
+        showToast('Logo PEMDA berhasil dimuat dan disesuaikan!');
       }
     };
     reader.readAsDataURL(file);
@@ -170,14 +172,15 @@ export default function PengaturanAdminPage() {
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const base64 = event.target?.result as string;
       if (base64) {
+        const trimmed = await trimImageWhitespace(base64);
         setSettings(prev => ({
           ...prev,
-          logoSekolahUrl: base64,
+          logoSekolahUrl: trimmed,
         }));
-        showToast('Logo Sekolah berhasil dimuat dan disinkronkan ke Login & Dokumen!');
+        showToast('Logo Sekolah berhasil dimuat dan disesuaikan!');
       }
     };
     reader.readAsDataURL(file);
