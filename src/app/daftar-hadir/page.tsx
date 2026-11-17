@@ -42,7 +42,7 @@ export default function DaftarHadirPage() {
   const [selectedKelasId, setSelectedKelasId] = useState<number>(1);
   const [kelasList, setKelasList] = useState<Kelas[]>(DEMO_KELAS);
   const [selectedJadwalId, setSelectedJadwalId] = useState<number | null>(null);
-  const [selectedSesiMode, setSelectedSesiMode] = useState<string>('auto'); // 'auto', '1', '2'
+  const [selectedSesiMode, setSelectedSesiMode] = useState<string>('1_2'); // '1_2', '1', '2', 'auto'
   const [ruangList, setRuangList] = useState<Ruang[]>(getStoredRuang());
   const [jadwalList, setJadwalList] = useState<JadwalUjian[]>(getStoredJadwal());
   const [mapelList, setMapelList] = useState<Mapel[]>(getStoredMapel());
@@ -227,7 +227,13 @@ export default function DaftarHadirPage() {
     return jamMulaiClean >= '09:45' ? 2 : 1;
   }, [currentJadwal]);
 
-  const displaySesi = selectedSesiMode === 'auto' ? autoSesi : Number(selectedSesiMode);
+  const displaySesi = useMemo(() => {
+    if (selectedSesiMode === '1_2') return 'Sesi 1 dan Sesi 2';
+    if (selectedSesiMode === '1') return 'Sesi 1';
+    if (selectedSesiMode === '2') return 'Sesi 2';
+    if (templateMode === 'multi') return 'Sesi 1 dan Sesi 2';
+    return `Sesi ${autoSesi}`;
+  }, [selectedSesiMode, autoSesi, templateMode]);
 
   // Opsi Format Waktu Pelaksanaan Ujian (Default: 08.00 - Selesai sesuai permintaan, atau sinkron jadwal)
   const [waktuMode, setWaktuMode] = useState<'selesai' | 'jadwal' | 'custom'>('selesai');
@@ -416,9 +422,10 @@ export default function DaftarHadirPage() {
                 onChange={(e) => setSelectedSesiMode(e.target.value)}
                 className="text-xs font-semibold border border-slate-300 rounded-lg px-2.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="auto">Sesi {autoSesi} (Otomatis)</option>
+                <option value="1_2">Sesi 1 dan Sesi 2 (Default)</option>
                 <option value="1">Sesi 1</option>
                 <option value="2">Sesi 2</option>
+                <option value="auto">Sesi {autoSesi} (Otomatis)</option>
               </select>
             </div>
 
@@ -580,7 +587,7 @@ export default function DaftarHadirPage() {
                 <div className="flex">
                   <span className="w-32">Sesi</span>
                   <span className="w-4">:</span>
-                  <span>Sesi {displaySesi}</span>
+                  <span className="font-semibold text-slate-900">{displaySesi}</span>
                 </div>
               </div>
 
@@ -800,7 +807,7 @@ export default function DaftarHadirPage() {
                 <div className="grid grid-cols-12">
                   <span className="col-span-4 font-semibold text-slate-600">Sesi</span>
                   <span className="col-span-1">:</span>
-                  <span className="col-span-7 font-bold text-indigo-900 print:text-black">Sesi {displaySesi}</span>
+                  <span className="col-span-7 font-bold text-indigo-900 print:text-black">{displaySesi}</span>
                 </div>
               </div>
 
