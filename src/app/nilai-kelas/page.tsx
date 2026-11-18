@@ -16,15 +16,18 @@ import { Printer, Download, CheckCircle, AlertTriangle, FileSpreadsheet, CheckCi
 import * as XLSX from 'xlsx';
 import { fetchSiswaFromCloud } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { getStoredSchoolSettings, DEFAULT_SCHOOL_SETTINGS, SchoolSettings } from '@/lib/school-settings';
 
 export default function NilaiKelasPage() {
   const [selectedKelasId, setSelectedKelasId] = useState<number>(1);
   const [nilaiList, setNilaiList] = useState<NilaiUjian[]>([]);
   const [allSiswa, setAllSiswa] = useState<Siswa[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
   useEffect(() => {
     try {
+      setSchoolSettings(getStoredSchoolSettings());
       const saved = localStorage.getItem('adm_siswa_data');
       if (saved) {
         const parsed: Siswa[] = JSON.parse(saved);
@@ -348,7 +351,7 @@ export default function NilaiKelasPage() {
           <div className="mt-3 flex justify-center items-center gap-6 text-xs text-slate-800 font-medium">
             <span>Kelas: <strong className="text-slate-900 font-bold">{currentKelas?.nama_kelas}</strong></span>
             <span>Tingkat: <strong className="text-slate-900 font-bold">{currentKelas?.tingkat}</strong></span>
-            <span>Wali Kelas: <strong className="text-slate-900 font-bold">Siti Rahmawati, S.Pd.</strong></span>
+            <span>Wali Kelas: <strong className="text-slate-900 font-bold">.......................................................</strong></span>
           </div>
         </div>
 
@@ -431,21 +434,21 @@ export default function NilaiKelasPage() {
         <div className="mt-8 pt-4 flex justify-between items-start text-xs text-slate-800">
           <div>
             <p>Mengetahui,</p>
-            <p>Kepala SMPN 1 Rajapolah</p>
+            <p>{schoolSettings.jabatanKepsek || 'Kepala SMPN 1 Rajapolah'}</p>
             <div className="h-14 flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/ttd-kepsek.png" alt="Tanda Tangan" className="max-h-12 w-auto object-contain" />
+              <img src={schoolSettings.ttdKepsekUrl || '/images/ttd-kepsek.png'} alt="Tanda Tangan" className="max-h-12 w-auto object-contain" />
             </div>
-            <p className="font-bold border-b border-slate-900 inline-block">H. UCU KARNI, M.Pd.</p>
-            <p className="text-[10px] text-slate-500">NIP. 19671116 199203 1 005</p>
+            <p className="font-bold border-b border-slate-900 inline-block">{schoolSettings.namaKepsek || 'H. UCU KARNI, M.Pd.'}</p>
+            <p className="text-[10px] text-slate-500">NIP. {schoolSettings.nipKepsek || '19671116 199203 1 005'}</p>
           </div>
 
           <div className="text-right">
-            <p>Rajapolah, 30 November 2026</p>
+            <p>{schoolSettings.kotaTtd || 'Rajapolah'}, {schoolSettings.tanggalTtd || '30 November 2026'}</p>
             <p>Wali Kelas {currentKelas?.nama_kelas}</p>
             <div className="h-14"></div>
-            <p className="font-bold border-b border-slate-900 inline-block">Siti Rahmawati, S.Pd.</p>
-            <p className="text-[10px] text-slate-500">NIP. 19850315 201001 2 018</p>
+            <p className="font-bold inline-block">.......................................................</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">NIP. .......................................................</p>
           </div>
         </div>
 
