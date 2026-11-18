@@ -94,3 +94,19 @@ export interface SplitGroupRule {
   start_meja?: number;
 }
 
+export interface Pengawas {
+  id: number;
+  kode: number;
+  nama: string;
+  nip?: string;
+}
+
+export interface JadwalPengawasSession {
+  id: number;
+  hari_tanggal: string;
+  waktu: string;
+  mapel: string;
+  ruang_pengawas: Record<number, number>; // ruang nomor 1..33 -> kode pengawas
+}
+
+

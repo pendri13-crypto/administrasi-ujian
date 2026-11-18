@@ -13,7 +13,9 @@ import {
   Calendar,
   Tag,
   Settings,
-  DoorOpen
+  DoorOpen,
+  UserCheck,
+  CalendarCheck
 } from 'lucide-react';
 import { DEMO_SISWA, DEMO_KELAS, DEMO_RUANG, DEMO_UJIAN } from '@/lib/demo-data';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
@@ -214,10 +216,10 @@ export default function Dashboard() {
             </div>
           </Link>
 
-          {/* Fitur Tambahan: Cetak Nomor Meja / Label Bangku */}
+          {/* Fitur 5: Cetak Nomor Meja / Label Bangku */}
           <Link 
             href="/nomor-meja"
-            className="group block bg-white p-6 rounded-2xl border border-slate-200 hover:border-violet-500 hover:shadow-xl transition-all duration-200 md:col-span-2"
+            className="group block bg-white p-6 rounded-2xl border border-slate-200 hover:border-violet-500 hover:shadow-xl transition-all duration-200"
           >
             <div className="flex items-start justify-between">
               <div className="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center text-violet-600 group-hover:bg-violet-600 group-hover:text-white transition">
@@ -228,13 +230,61 @@ export default function Dashboard() {
               </span>
             </div>
             <h3 className="text-lg font-bold text-slate-900 mt-4 group-hover:text-violet-600 transition">
-              5. Cetak Nomor Meja & Label Bangku
+              5. Cetak Nomor Meja
             </h3>
             <p className="text-slate-500 text-sm mt-1.5 leading-relaxed">
-              Stiker/label nomor meja peserta yang siap dicetak dan ditempel di setiap sudut meja ruang ujian (8 label per lembar A4).
+              Stiker nomor meja peserta siap cetak untuk ditempel di sudut meja ujian (8 label/lembar).
             </p>
             <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-violet-600">
               Cetak Label Meja Siswa &rarr;
+            </div>
+          </Link>
+
+          {/* Fitur 6: Jadwal Mengawas Ruang */}
+          <Link 
+            href="/jadwal-pengawas"
+            className="group block bg-white p-6 rounded-2xl border border-slate-200 hover:border-indigo-500 hover:shadow-xl transition-all duration-200"
+          >
+            <div className="flex items-start justify-between">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition">
+                <CalendarCheck className="w-6 h-6" />
+              </div>
+              <span className="text-slate-400 group-hover:text-indigo-600 transition">
+                <ArrowRight className="w-5 h-5" />
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mt-4 group-hover:text-indigo-600 transition">
+              6. Jadwal Mengawas Ruang
+            </h3>
+            <p className="text-slate-500 text-sm mt-1.5 leading-relaxed">
+              Matriks jadwal mengawas 33 ruangan lengkap dengan legenda nama guru pengawas, siap cetak format landscape resmi.
+            </p>
+            <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-indigo-600">
+              Lihat & Cetak Jadwal Pengawas &rarr;
+            </div>
+          </Link>
+
+          {/* Fitur 7: Input & Kelola Data Pengawas */}
+          <Link 
+            href="/pengawas"
+            className="group block bg-white p-6 rounded-2xl border border-slate-200 hover:border-teal-500 hover:shadow-xl transition-all duration-200 md:col-span-2"
+          >
+            <div className="flex items-start justify-between">
+              <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition">
+                <UserCheck className="w-6 h-6" />
+              </div>
+              <span className="text-slate-400 group-hover:text-teal-600 transition">
+                <ArrowRight className="w-5 h-5" />
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mt-4 group-hover:text-teal-600 transition">
+              7. Input & Kelola Data Pengawas Ujian
+            </h3>
+            <p className="text-slate-500 text-sm mt-1.5 leading-relaxed">
+              Kelola nama guru pengawas, nomor kode, NIP, serta fitur tambah, ubah, dan hapus data pengawas ujian.
+            </p>
+            <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-teal-600">
+              Kelola Data Pengawas &rarr;
             </div>
           </Link>
 

@@ -15,6 +15,7 @@ import {
   Settings,
   DoorOpen,
   Calendar,
+  CalendarCheck,
   Menu,
   X
 } from 'lucide-react';
@@ -148,6 +149,24 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       activeColor: 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md shadow-rose-500/25 ring-2 ring-rose-400/30',
       inactiveColor: 'text-slate-700 hover:text-rose-600 hover:bg-rose-50/80',
       iconColor: 'text-rose-600',
+    },
+    {
+      href: '/pengawas',
+      shortLabel: 'Pengawas',
+      label: 'Data Pengawas',
+      icon: UserCheck,
+      activeColor: 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-500/25 ring-2 ring-teal-400/30',
+      inactiveColor: 'text-slate-700 hover:text-teal-600 hover:bg-teal-50/80',
+      iconColor: 'text-teal-600',
+    },
+    {
+      href: '/jadwal-pengawas',
+      shortLabel: 'Jadwal Pengawas',
+      label: 'Jadwal Pengawas',
+      icon: CalendarCheck,
+      activeColor: 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-400/30',
+      inactiveColor: 'text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/80',
+      iconColor: 'text-indigo-600',
     },
     ...(isAdmin(currentUser) ? [
       {
