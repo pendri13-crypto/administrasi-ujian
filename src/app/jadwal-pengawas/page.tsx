@@ -10,7 +10,12 @@ import {
   Check, 
   CalendarCheck, 
   Settings2,
-  Info
+  Info,
+  Sparkles,
+  Shuffle,
+  Repeat,
+  CheckCircle2,
+  Users
 } from 'lucide-react';
 import { JadwalPengawasSession, Pengawas } from '@/types/database';
 import { 
@@ -39,6 +44,10 @@ export default function JadwalPengawasPage() {
   const [isCellModalOpen, setIsCellModalOpen] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{ sessionId: number; ruangNum: number; currentKode: number } | null>(null);
   const [cellKodeInput, setCellKodeInput] = useState<number>(1);
+
+  // Modal Buat Jadwal Otomatis
+  const [isAutoModalOpen, setIsAutoModalOpen] = useState(false);
+  const [autoMethod, setAutoMethod] = useState<'acak_seimbang' | 'rotasi_bergulir'>('acak_seimbang');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -164,6 +173,76 @@ export default function JadwalPengawasPage() {
     }
   };
 
+  const handleGenerateAutoSchedule = () => {
+    if (pengawasDataList.length < 33) {
+      alert(`Jumlah data guru pengawas (${pengawasDataList.length}) kurang dari 33 ruangan. Harap tambahkan data pengawas terlebih dahulu.`);
+      return;
+    }
+
+    const totalRooms = 33;
+    const allCodes = pengawasDataList.map((p) => p.kode);
+    const N = allCodes.length;
+
+    let updatedSessions: JadwalPengawasSession[] = [];
+
+    if (autoMethod === 'rotasi_bergulir') {
+      // Rotasi berurutan / circular shift
+      const step = 5;
+      updatedSessions = jadwalList.map((session, sIdx) => {
+        const newMap: { [ruang: number]: number } = {};
+        for (let r = 1; r <= totalRooms; r++) {
+          const codeIndex = (r - 1 + sIdx * step) % N;
+          newMap[r] = allCodes[codeIndex];
+        }
+        return {
+          ...session,
+          ruang_pengawas: newMap,
+        };
+      });
+    } else {
+      // Acak Seimbang (Fair Smart Balancing)
+      const dutyCount: { [kode: number]: number } = {};
+      allCodes.forEach((c) => (dutyCount[c] = 0));
+
+      updatedSessions = jadwalList.map((session) => {
+        // Urutkan kode berdasarkan beban tugas terendah terlebih dahulu, dengan variasi acak
+        const sortedCandidateCodes = [...allCodes].sort((a, b) => {
+          if (dutyCount[a] !== dutyCount[b]) {
+            return dutyCount[a] - dutyCount[b];
+          }
+          return Math.random() - 0.5;
+        });
+
+        // Ambil 33 guru dengan beban mengawas paling sedikit untuk sesi ini
+        const selectedForSession = sortedCandidateCodes.slice(0, totalRooms);
+
+        // Acak penempatan ruangan agar guru berganti-ganti ruang
+        const availableRooms = Array.from({ length: totalRooms }, (_, i) => i + 1);
+        for (let i = availableRooms.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [availableRooms[i], availableRooms[j]] = [availableRooms[j], availableRooms[i]];
+        }
+
+        const newMap: { [ruang: number]: number } = {};
+        selectedForSession.forEach((kode, idx) => {
+          const roomNum = availableRooms[idx];
+          newMap[roomNum] = kode;
+          dutyCount[kode] += 1;
+        });
+
+        return {
+          ...session,
+          ruang_pengawas: newMap,
+        };
+      });
+    }
+
+    saveStoredJadwalPengawas(updatedSessions);
+    setJadwalList(updatedSessions);
+    setIsAutoModalOpen(false);
+    showToast(`Jadwal berhasil dibuat otomatis (${autoMethod === 'acak_seimbang' ? 'Acak Seimbang' : 'Rotasi Bergulir'})!`);
+  };
+
   const handleResetDefault = () => {
     if (confirm('Kembalikan matriks jadwal mengawas ke format default 8 sesi (Senin-Kamis)?')) {
       saveStoredJadwalPengawas(INITIAL_JADWAL_PENGAWAS);
@@ -207,6 +286,15 @@ export default function JadwalPengawasPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setIsAutoModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-xl transition shadow-xs active:scale-95"
+            title="Buat pembagian pengawas jadwal secara otomatis"
+          >
+            <Sparkles className="w-4 h-4 text-amber-600" />
+            <span>Buat Otomatis</span>
+          </button>
+
           <button
             onClick={handleResetDefault}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition border border-slate-300"
@@ -615,6 +703,147 @@ export default function JadwalPengawasPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Buat Jadwal Otomatis */}
+      {isAutoModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header Modal */}
+            <div className="px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-200" />
+                <h2 className="font-extrabold text-sm sm:text-base">
+                  Generator Jadwal Mengawas Otomatis
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAutoModalOpen(false)}
+                className="text-white/80 hover:text-white text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5 text-xs">
+              {/* Ringkasan Konfigurasi */}
+              <div className="grid grid-cols-3 gap-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                <div className="p-2 bg-white rounded-lg border border-slate-200">
+                  <span className="text-[10px] text-slate-500 font-bold block">JUMLAH SESI</span>
+                  <span className="text-base font-black text-slate-800">{jadwalList.length} Sesi</span>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-slate-200">
+                  <span className="text-[10px] text-slate-500 font-bold block">RUANG PER SESI</span>
+                  <span className="text-base font-black text-slate-800">33 Ruang</span>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-slate-200">
+                  <span className="text-[10px] text-slate-500 font-bold block">PENGURUS / GURU</span>
+                  <span className="text-base font-black text-indigo-700">{pengawasDataList.length} Guru</span>
+                </div>
+              </div>
+
+              {/* Pilihan Metode Generator */}
+              <div className="space-y-2.5">
+                <label className="block font-bold text-slate-800">
+                  Pilih Algoritma Distribusi:
+                </label>
+
+                {/* Opsi 1: Acak Seimbang */}
+                <div
+                  onClick={() => setAutoMethod('acak_seimbang')}
+                  className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                    autoMethod === 'acak_seimbang'
+                      ? 'border-amber-500 bg-amber-50/70 shadow-xs'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="autoMethod"
+                      checked={autoMethod === 'acak_seimbang'}
+                      onChange={() => setAutoMethod('acak_seimbang')}
+                      className="mt-1 text-amber-600 focus:ring-amber-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                        <Shuffle className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Acak Seimbang (Adil & Tanpa Bentrok)</span>
+                        <span className="ml-auto text-[9px] font-extrabold bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">
+                          Rekomendasi
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                        • Beban mengawas antar guru dibagi merata (~7 sesi per guru).<br />
+                        • Dalam 1 sesi, setiap ruangan diisi guru berbeda tanpa bentrok.<br />
+                        • 4 guru yang tidak bertugas per sesi bergantian sebagai piket/cadangan.<br />
+                        • Mengacak ruangan agar guru tidak selalu di ruangan yang sama.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Opsi 2: Rotasi Bergulir */}
+                <div
+                  onClick={() => setAutoMethod('rotasi_bergulir')}
+                  className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                    autoMethod === 'rotasi_bergulir'
+                      ? 'border-indigo-500 bg-indigo-50/70 shadow-xs'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="autoMethod"
+                      checked={autoMethod === 'rotasi_bergulir'}
+                      onChange={() => setAutoMethod('rotasi_bergulir')}
+                      className="mt-1 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                        <Repeat className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Rotasi Bergulir (Circular Shift Teratur)</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                        • Pergeseran kode pengawas secara sistematis dengan offset konstan di setiap sesi berikutnya.<br />
+                        • Pola matriks sangat rapi, berulang teratur, dan dapat diprediksi.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Catatan / Info */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-[11px] flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <p>
+                  Proses ini akan memperbarui penugasan kode pengawas pada seluruh sesi matriks saat ini. Setelah jadwal terbentuk, Anda tetap bisa mengedit kode sel ruangan mana pun secara manual.
+                </p>
+              </div>
+
+              {/* Tombol Aksi */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAutoModalOpen(false)}
+                  className="px-4 py-2 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-50 font-semibold"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerateAutoSchedule}
+                  className="px-5 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl font-bold shadow-md active:scale-95 transition flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Terapkan Jadwal Otomatis</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
