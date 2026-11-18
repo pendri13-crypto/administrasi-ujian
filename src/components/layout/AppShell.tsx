@@ -204,164 +204,204 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     ] : [])
   ];
 
+  const navRow1 = navItems.slice(0, 5); // Kartu Peserta, Label Meja, Nilai Per Kelas, Nilai Per Mapel, Daftar Hadir Ruang
+  const navRow2 = navItems.slice(5);    // Data Siswa, Data Pengawas, Jadwal Pengawas, Ruang, Jadwal
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50">
-      {/* Top Navbar Full Width, Tanpa Scrollbar, Semua 9 Menu Selalu Muncul (Hidden on print) */}
-      <header className="no-print bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 shadow-xs">
-        <div className="w-full px-2 sm:px-4 xl:px-6">
-          <div className="flex justify-between h-14 sm:h-16 items-center gap-1.5">
-            
-            {/* Brand Logo & Title */}
-            <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                  src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'} 
-                  alt="Logo Sekolah" 
-                  className="w-full h-full object-contain filter drop-shadow group-hover:scale-105 transition-transform" 
-                />
-              </div>
-              <div className="hidden sm:block leading-tight">
-                <h1 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight whitespace-nowrap">
+      {/* Top Navbar 2 Jajar & Lebih Lebar ke Bawah (Hidden on print) */}
+      <header className="no-print bg-white/95 backdrop-blur-md border-b border-slate-200/90 sticky top-0 z-50 shadow-xs">
+        
+        {/* Tingkat 1: Brand Sekolah & Logo (Kiri) + Profil Pengguna / Pengaturan / Keluar (Kanan) */}
+        <div className="w-full px-3 sm:px-5 lg:px-6 py-2.5 flex items-center justify-between border-b border-slate-100">
+          
+          {/* Brand Logo & Title */}
+          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group flex-shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'} 
+                alt="Logo Sekolah" 
+                className="w-full h-full object-contain filter drop-shadow group-hover:scale-105 transition-transform" 
+              />
+            </div>
+            <div className="leading-tight">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xs sm:text-sm md:text-base font-black text-slate-900 tracking-tight whitespace-nowrap">
                   Sistem Assesmen
                 </h1>
-                <p className="text-[10px] font-semibold text-slate-500 whitespace-nowrap">
-                  SMPN 1 Rajapolah
-                </p>
+                <span className="hidden sm:inline-block text-[10px] font-extrabold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-200">
+                  {schoolSettings.namaSekolah === 'SMP NEGERI 1 RAJAPOLAH' ? 'SMPN 1 Rajapolah' : schoolSettings.namaSekolah}
+                </span>
               </div>
-            </Link>
+              <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 whitespace-nowrap">
+                Tahun Pelajaran {schoolSettings.tahunAjaran || '2026/2027'} • Semester {schoolSettings.semester || 'Ganjil'}
+              </p>
+            </div>
+          </Link>
 
-            {/* Menu Navigasi Desktop: Semua 9 Menu Muncul Utuh Tanpa Scrollbar & Tanpa Terpotong */}
-            <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 flex-shrink-0">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-1.5 px-2 xl:px-2.5 2xl:px-3 py-1.5 text-[11px] xl:text-[11.5px] 2xl:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-200 ease-out transform active:scale-95 ${
-                      isActive 
-                        ? `${item.activeColor} scale-[1.02]` 
-                        : `${item.inactiveColor} hover:-translate-y-0.5 hover:shadow-xs`
-                    }`}
-                  >
-                    <Icon className={`w-3.5 h-3.5 xl:w-4 xl:h-4 transition-colors ${isActive ? 'text-white' : item.iconColor}`} />
-                    <span>
-                      {item.shortLabel ? (
-                        <>
-                          <span className="2xl:hidden">{item.shortLabel}</span>
-                          <span className="hidden 2xl:inline">{item.label}</span>
-                        </>
-                      ) : (
-                        item.label
-                      )}
-                    </span>
-                  </Link>
-                );
-              })}
-            </nav>
-
-            {/* User Session, Profile Dropdown & Logout Action */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              
-              {/* Profile Dropdown Menu */}
-              <div className="relative" ref={profileDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs ${
-                    profileDropdownOpen 
-                      ? 'bg-blue-50/90 border-blue-300 ring-2 ring-blue-400/20 text-blue-900' 
-                      : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                  aria-expanded={profileDropdownOpen}
-                  title="Menu Profil & Pengaturan"
-                >
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 flex-shrink-0">
-                    <UserCheck className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="font-bold text-slate-800 text-[11px] sm:text-xs max-w-[120px] sm:max-w-[160px] truncate">
-                    {currentUser.name}
-                  </span>
-                  <span className="text-[10px] bg-blue-100 text-blue-700 font-extrabold px-1.5 py-0.5 rounded-md hidden md:inline">
-                    {currentUser.role}
-                  </span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180 text-blue-600' : ''}`} />
-                </button>
-
-                {/* Dropdown Popup */}
-                {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    {/* Header Info Akun */}
-                    <div className="px-3.5 py-2.5 border-b border-slate-100 bg-slate-50/70 rounded-t-xl">
-                      <p className="text-xs font-extrabold text-slate-900 truncate">{currentUser.name}</p>
-                      <p className="text-[10px] text-slate-500 font-medium">@{currentUser.username}</p>
-                      <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-blue-100 text-blue-700 uppercase">
-                        {currentUser.role === 'admin' ? 'Administrator' : currentUser.role}
-                      </div>
-                    </div>
-
-                    {/* Menu Items dalam Profil */}
-                    <div className="p-1.5 space-y-1">
-                      {isAdmin(currentUser) && (
-                        <Link
-                          href="/pengaturan"
-                          onClick={() => setProfileDropdownOpen(false)}
-                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                            pathname === '/pengaturan'
-                              ? 'bg-violet-600 text-white shadow-sm'
-                              : 'text-slate-700 hover:bg-violet-50 hover:text-violet-700'
-                          }`}
-                        >
-                          <div className={`p-1.5 rounded-lg ${pathname === '/pengaturan' ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600'}`}>
-                            <Settings className="w-3.5 h-3.5" />
-                          </div>
-                          <div>
-                            <p className="leading-tight">Pengaturan Sistem</p>
-                            <p className={`text-[10px] font-normal ${pathname === '/pengaturan' ? 'text-violet-200' : 'text-slate-400'}`}>
-                              Kop, Ujian, TTD & Logo
-                            </p>
-                          </div>
-                        </Link>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileDropdownOpen(false);
-                          handleLogout();
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all text-left"
-                      >
-                        <div className="p-1.5 rounded-lg bg-rose-100 text-rose-600">
-                          <LogOut className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <p className="leading-tight">Keluar dari Sistem</p>
-                          <p className="text-[10px] font-normal text-slate-400">
-                            Akhiri sesi panitia asesmen
-                          </p>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Mobile Menu Toggle Button */}
+          {/* User Session, Profile Dropdown & Mobile Toggle */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            
+            {/* Profile Dropdown Menu */}
+            <div className="relative" ref={profileDropdownRef}>
               <button
                 type="button"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-1.5 rounded-xl text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="Toggle Menu"
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs ${
+                  profileDropdownOpen 
+                    ? 'bg-blue-50/90 border-blue-300 ring-2 ring-blue-400/20 text-blue-900' 
+                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+                aria-expanded={profileDropdownOpen}
+                title="Menu Profil & Pengaturan"
               >
-                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 flex-shrink-0">
+                  <UserCheck className="w-3.5 h-3.5" />
+                </div>
+                <span className="font-bold text-slate-800 text-[11px] sm:text-xs max-w-[120px] sm:max-w-[160px] truncate">
+                  {currentUser.name}
+                </span>
+                <span className="text-[10px] bg-blue-100 text-blue-700 font-extrabold px-1.5 py-0.5 rounded-md hidden md:inline">
+                  {currentUser.role}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180 text-blue-600' : ''}`} />
               </button>
+
+              {/* Dropdown Popup */}
+              {profileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  {/* Header Info Akun */}
+                  <div className="px-3.5 py-2.5 border-b border-slate-100 bg-slate-50/70 rounded-t-xl">
+                    <p className="text-xs font-extrabold text-slate-900 truncate">{currentUser.name}</p>
+                    <p className="text-[10px] text-slate-500 font-medium">@{currentUser.username}</p>
+                    <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-blue-100 text-blue-700 uppercase">
+                      {currentUser.role === 'admin' ? 'Administrator' : currentUser.role}
+                    </div>
+                  </div>
+
+                  {/* Menu Items dalam Profil */}
+                  <div className="p-1.5 space-y-1">
+                    {isAdmin(currentUser) && (
+                      <Link
+                        href="/pengaturan"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                          pathname === '/pengaturan'
+                            ? 'bg-violet-600 text-white shadow-sm'
+                            : 'text-slate-700 hover:bg-violet-50 hover:text-violet-700'
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-lg ${pathname === '/pengaturan' ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600'}`}>
+                          <Settings className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <p className="leading-tight">Pengaturan Sistem</p>
+                          <p className={`text-[10px] font-normal ${pathname === '/pengaturan' ? 'text-violet-200' : 'text-slate-400'}`}>
+                            Kop, Ujian, TTD & Logo
+                          </p>
+                        </div>
+                      </Link>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all text-left"
+                    >
+                      <div className="p-1.5 rounded-lg bg-rose-100 text-rose-600">
+                        <LogOut className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <p className="leading-tight">Keluar dari Sistem</p>
+                        <p className="text-[10px] font-normal text-slate-400">
+                          Akhiri sesi panitia asesmen
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Menu Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-1.5 rounded-xl text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Toggle Menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+
+        </div>
+
+        {/* Tingkat 2: Menu Navigasi 2 Jajar Lebar ke Bawah (Desktop) */}
+        <nav className="hidden lg:block w-full px-3 sm:px-5 lg:px-6 py-2 bg-slate-50/60 border-t border-slate-100">
+          <div className="space-y-1.5">
+            
+            {/* Jajar 1: Menu Administrasi & Dokumen Ujian (5 Menu) */}
+            <div className="flex items-center gap-2">
+              <span className="text-[9.5px] font-black text-slate-600 uppercase tracking-wider w-20 flex-shrink-0 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 inline-block" />
+                Ujian
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap flex-1">
+                {navRow1.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all duration-150 ease-out active:scale-95 ${
+                        isActive 
+                          ? `${item.activeColor} shadow-xs` 
+                          : `${item.inactiveColor} bg-white hover:shadow-2xs border border-slate-200/80`
+                      }`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : item.iconColor}`} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Jajar 2: Menu Master Data & Pengawas (5 Menu) */}
+            <div className="flex items-center gap-2">
+              <span className="text-[9.5px] font-black text-slate-600 uppercase tracking-wider w-20 flex-shrink-0 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 inline-block" />
+                Master
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap flex-1">
+                {navRow2.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all duration-150 ease-out active:scale-95 ${
+                        isActive 
+                          ? `${item.activeColor} shadow-xs` 
+                          : `${item.inactiveColor} bg-white hover:shadow-2xs border border-slate-200/80`
+                      }`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : item.iconColor}`} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
 
           </div>
-        </div>
+        </nav>
 
         {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
