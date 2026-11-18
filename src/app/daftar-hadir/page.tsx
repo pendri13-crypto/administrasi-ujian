@@ -21,7 +21,8 @@ import {
   EyeOff,
   TableProperties,
   FileSpreadsheet,
-  LayoutTemplate
+  LayoutTemplate,
+  PenTool
 } from 'lucide-react';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
 import { 
@@ -50,6 +51,7 @@ export default function DaftarHadirPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
   const [showNoPeserta, setShowNoPeserta] = useState<boolean>(false);
+  const [showTtdPengawas, setShowTtdPengawas] = useState<boolean>(false);
   const [templateMode, setTemplateMode] = useState<'multi' | 'single'>('multi'); // 'multi' (Sesuai Gambar Lampiran) atau 'single'
   const [printOrientation, setPrintOrientation] = useState<'landscape' | 'portrait'>('landscape');
 
@@ -479,6 +481,21 @@ export default function DaftarHadirPage() {
               )}
             </button>
 
+            {/* Toggle Tampilkan / Hilangkan TTD Pengawas */}
+            <button
+              type="button"
+              onClick={() => setShowTtdPengawas(!showTtdPengawas)}
+              title={showTtdPengawas ? "Tanda Tangan Pengawas Ditampilkan (Klik untuk hilangkan)" : "Tanda Tangan Pengawas Dihilangkan (Klik untuk tampilkan)"}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition ${
+                showTtdPengawas 
+                  ? 'bg-indigo-50 text-indigo-700 border-indigo-300' 
+                  : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'
+              }`}
+            >
+              <PenTool className={`w-3.5 h-3.5 ${showTtdPengawas ? 'text-indigo-600' : 'text-slate-500'}`} />
+              <span>TTD Pengawas: {showTtdPengawas ? 'Tampil' : 'Dihilangkan'}</span>
+            </button>
+
             {/* Pilihan Orientasi Kertas Cetak */}
             <button
               type="button"
@@ -709,35 +726,37 @@ export default function DaftarHadirPage() {
               </table>
             </div>
 
-            {/* Berita Acara Singkat & Tanda Tangan Pengawas */}
-            <div className="mt-4 pt-2 text-xs text-slate-900 font-medium">
-              <div className="grid grid-cols-2 gap-8 items-start">
-                <div className="border border-slate-900 rounded p-2.5 bg-slate-50/50 print:bg-transparent">
-                  <p className="font-bold mb-1 text-[11px] text-slate-950 uppercase">Catatan Pengawas Ruang:</p>
-                  <div className="text-[10px] space-y-1 text-slate-800">
-                    <p>&bull; Jumlah Peserta Seharusnya : <strong>{pesertaRuang.length}</strong> orang</p>
-                    <p>&bull; Jumlah Peserta Hadir : ......... orang</p>
-                    <p>&bull; Jumlah Peserta Tidak Hadir : ......... orang</p>
-                  </div>
-                </div>
-
-                <div className="flex justify-around text-center text-xs">
-                  <div>
-                    <p className="font-semibold">Pengawas 1,</p>
-                    <div className="h-10"></div>
-                    <p className="font-bold border-b border-slate-900 inline-block px-4 min-w-[140px]">(.....................................)</p>
-                    <p className="text-[9px] text-slate-600 mt-0.5">NIP.</p>
+            {/* Berita Acara Singkat & Tanda Tangan Pengawas (Opsional: Default Sembunyi) */}
+            {showTtdPengawas && (
+              <div className="mt-4 pt-2 text-xs text-slate-900 font-medium">
+                <div className="grid grid-cols-2 gap-8 items-start">
+                  <div className="border border-slate-900 rounded p-2.5 bg-slate-50/50 print:bg-transparent">
+                    <p className="font-bold mb-1 text-[11px] text-slate-950 uppercase">Catatan Pengawas Ruang:</p>
+                    <div className="text-[10px] space-y-1 text-slate-800">
+                      <p>&bull; Jumlah Peserta Seharusnya : <strong>{pesertaRuang.length}</strong> orang</p>
+                      <p>&bull; Jumlah Peserta Hadir : ......... orang</p>
+                      <p>&bull; Jumlah Peserta Tidak Hadir : ......... orang</p>
+                    </div>
                   </div>
 
-                  <div>
-                    <p className="font-semibold">Pengawas 2,</p>
-                    <div className="h-10"></div>
-                    <p className="font-bold border-b border-slate-900 inline-block px-4 min-w-[140px]">(.....................................)</p>
-                    <p className="text-[9px] text-slate-600 mt-0.5">NIP.</p>
+                  <div className="flex justify-around text-center text-xs">
+                    <div>
+                      <p className="font-semibold">Pengawas 1,</p>
+                      <div className="h-10"></div>
+                      <p className="font-bold border-b border-slate-900 inline-block px-4 min-w-[140px]">(.....................................)</p>
+                      <p className="text-[9px] text-slate-600 mt-0.5">NIP.</p>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold">Pengawas 2,</p>
+                      <div className="h-10"></div>
+                      <p className="font-bold border-b border-slate-900 inline-block px-4 min-w-[140px]">(.....................................)</p>
+                      <p className="text-[9px] text-slate-600 mt-0.5">NIP.</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         ) : (
           /* ============================================================== */
@@ -914,35 +933,37 @@ export default function DaftarHadirPage() {
               </table>
             </div>
 
-            {/* Berita Acara Singkat & Tanda Tangan Pengawas */}
-            <div className="mt-6 pt-3 border-t border-slate-300 text-xs text-slate-800">
-              <div className="grid grid-cols-2 gap-8">
-                <div className="border border-slate-300 rounded p-2.5 bg-slate-50/50">
-                  <p className="font-bold mb-1 text-[11px] text-slate-900 uppercase">Catatan Pengawas Ruang:</p>
-                  <div className="text-[10px] space-y-1 text-slate-700">
-                    <p>&bull; Jumlah Peserta Seharusnya : <strong>{pesertaRuang.length}</strong> orang</p>
-                    <p>&bull; Jumlah Peserta Hadir : ......... orang</p>
-                    <p>&bull; Jumlah Peserta Tidak Hadir : ......... orang</p>
-                  </div>
-                </div>
-
-                <div className="flex justify-around text-center text-xs">
-                  <div>
-                    <p>Pengawas 1,</p>
-                    <div className="h-12"></div>
-                    <p className="font-bold border-b border-slate-900 inline-block px-4">(.....................................)</p>
-                    <p className="text-[9px] text-slate-500 mt-0.5">NIP.</p>
+            {/* Berita Acara Singkat & Tanda Tangan Pengawas (Opsional: Default Sembunyi) */}
+            {showTtdPengawas && (
+              <div className="mt-6 pt-3 border-t border-slate-300 text-xs text-slate-800">
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="border border-slate-300 rounded p-2.5 bg-slate-50/50">
+                    <p className="font-bold mb-1 text-[11px] text-slate-900 uppercase">Catatan Pengawas Ruang:</p>
+                    <div className="text-[10px] space-y-1 text-slate-700">
+                      <p>&bull; Jumlah Peserta Seharusnya : <strong>{pesertaRuang.length}</strong> orang</p>
+                      <p>&bull; Jumlah Peserta Hadir : ......... orang</p>
+                      <p>&bull; Jumlah Peserta Tidak Hadir : ......... orang</p>
+                    </div>
                   </div>
 
-                  <div>
-                    <p>Pengawas 2,</p>
-                    <div className="h-12"></div>
-                    <p className="font-bold border-b border-slate-900 inline-block px-4">(.....................................)</p>
-                    <p className="text-[9px] text-slate-500 mt-0.5">NIP.</p>
+                  <div className="flex justify-around text-center text-xs">
+                    <div>
+                      <p>Pengawas 1,</p>
+                      <div className="h-12"></div>
+                      <p className="font-bold border-b border-slate-900 inline-block px-4">(.....................................)</p>
+                      <p className="text-[9px] text-slate-500 mt-0.5">NIP.</p>
+                    </div>
+
+                    <div>
+                      <p>Pengawas 2,</p>
+                      <div className="h-12"></div>
+                      <p className="font-bold border-b border-slate-900 inline-block px-4">(.....................................)</p>
+                      <p className="text-[9px] text-slate-500 mt-0.5">NIP.</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
