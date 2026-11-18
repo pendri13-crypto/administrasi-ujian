@@ -15,7 +15,8 @@ import {
   Shuffle,
   Repeat,
   CheckCircle2,
-  Users
+  Users,
+  AlertTriangle
 } from 'lucide-react';
 import { JadwalPengawasSession, Pengawas } from '@/types/database';
 import { 
@@ -82,6 +83,46 @@ export default function JadwalPengawasPage() {
     return map;
   }, [pengawasDataList]);
 
+  // Deteksi bentrok kode pengawas pada seluruh sesi jadwal
+  const sessionConflicts = useMemo(() => {
+    const conflicts: { sessionMapel: string; sesiId: number; kode: number; rooms: number[] }[] = [];
+    jadwalList.forEach((session) => {
+      const codeToRooms: { [kode: number]: number[] } = {};
+      for (let r = 1; r <= 33; r++) {
+        const k = session.ruang_pengawas?.[r];
+        if (k) {
+          if (!codeToRooms[k]) codeToRooms[k] = [];
+          codeToRooms[k].push(r);
+        }
+      }
+      Object.entries(codeToRooms).forEach(([kStr, rooms]) => {
+        if (rooms.length > 1) {
+          conflicts.push({
+            sessionMapel: session.mapel,
+            sesiId: session.id,
+            kode: Number(kStr),
+            rooms,
+          });
+        }
+      });
+    });
+    return conflicts;
+  }, [jadwalList]);
+
+  // Ruangan yang bentrok untuk sel yang sedang diedit pada modal
+  const cellConflictRooms = useMemo(() => {
+    if (!selectedCell) return [];
+    const session = jadwalList.find((s) => s.id === selectedCell.sessionId);
+    if (!session) return [];
+    const rooms: number[] = [];
+    for (let r = 1; r <= 33; r++) {
+      if (r !== selectedCell.ruangNum && session.ruang_pengawas?.[r] === Number(cellKodeInput)) {
+        rooms.push(r);
+      }
+    }
+    return rooms;
+  }, [selectedCell, cellKodeInput, jadwalList]);
+
   // Handle Edit Sel Cepat (Pilih Pengawas untuk Ruang Tertentu pada Sesi Tertentu)
   const handleOpenCellEdit = (sessionId: number, ruangNum: number, currentKode: number) => {
     setSelectedCell({ sessionId, ruangNum, currentKode });
@@ -92,6 +133,13 @@ export default function JadwalPengawasPage() {
   const handleSaveCell = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCell) return;
+
+    if (cellConflictRooms.length > 0) {
+      const teacherName = pengawasMap.get(Number(cellKodeInput))?.nama || `Guru Kode ${cellKodeInput}`;
+      if (!confirm(`⚠️ PERINGATAN BENTROK PENGAWAS:\n\n${teacherName} (Kode ${cellKodeInput}) saat ini sudah bertugas di Ruang ${cellConflictRooms.join(', ')} pada sesi ini.\n\nApakah Anda yakin tetap ingin menetapkannya ke Ruang ${selectedCell.ruangNum}?`)) {
+        return;
+      }
+    }
 
     const updated = jadwalList.map((s) => {
       if (s.id === selectedCell.sessionId) {
@@ -109,7 +157,12 @@ export default function JadwalPengawasPage() {
     saveStoredJadwalPengawas(updated);
     setJadwalList(updated);
     setIsCellModalOpen(false);
-    showToast(`Pengawas Ruang ${selectedCell.ruangNum} diubah ke Kode ${cellKodeInput}!`);
+
+    if (cellConflictRooms.length > 0) {
+      showToast(`⚠️ Perhatian: Kode ${cellKodeInput} kini bertugas ganda di Ruang ${selectedCell.ruangNum} & ${cellConflictRooms.join(', ')}!`);
+    } else {
+      showToast(`Pengawas Ruang ${selectedCell.ruangNum} diubah ke Kode ${cellKodeInput}!`);
+    }
   };
 
   // Handle Tambah / Edit Sesi
@@ -322,6 +375,47 @@ export default function JadwalPengawasPage() {
         </div>
       </div>
 
+      {/* Banner Peringatan / Status Bentrok Pengawas (Hanya Layar, Sembunyi saat Cetak) */}
+      {sessionConflicts.length > 0 ? (
+        <div className="print:hidden bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 text-rose-900 animate-in fade-in">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-rose-100 rounded-xl text-rose-700 flex-shrink-0 mt-0.5">
+              <AlertTriangle className="w-5 h-5 animate-bounce" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-rose-900 flex items-center gap-2">
+                Peringatan: Ditemukan {sessionConflicts.length} Bentrok Kode Pengawas!
+              </h3>
+              <p className="text-xs text-rose-700 mt-0.5">
+                Ada guru yang bertugas di 2 ruangan atau lebih pada sesi jam yang sama (sel kode ditandai warna merah pada tabel).
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {sessionConflicts.slice(0, 6).map((c, idx) => (
+                  <span key={idx} className="bg-rose-200/90 text-rose-950 px-2.5 py-0.5 rounded-lg text-[10px] font-bold border border-rose-300">
+                    {c.sessionMapel}: Kode {c.kode} ({pengawasMap.get(c.kode)?.nama?.split(' ')[0] || 'Guru'}) di Ruang {c.rooms.join(' & ')}
+                  </span>
+                ))}
+                {sessionConflicts.length > 6 && (
+                  <span className="text-[10px] text-rose-600 font-bold self-center">
+                    +{sessionConflicts.length - 6} sesi lainnya...
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="print:hidden bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-emerald-800 shadow-2xs">
+          <div className="flex items-center gap-2 font-bold">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>Semua Sesi Valid: Bebas Bentrok (Setiap ruangan diisi guru yang berbeda)</span>
+          </div>
+          <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
+            33 Ruang Unik
+          </span>
+        </div>
+      )}
+
       {/* Dynamic Print CSS untuk Format Landscape Kertas Penuh */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
@@ -441,14 +535,35 @@ export default function JadwalPengawasPage() {
                       const kode = session.ruang_pengawas?.[rNum];
                       const teacher = kode ? pengawasMap.get(kode) : null;
 
+                      // Cek apakah kode ini bertugas ganda pada sesi yang sama
+                      const duplicateCount = kode 
+                        ? Array.from({ length: 33 }, (_, i) => i + 1).filter(r => session.ruang_pengawas?.[r] === kode).length 
+                        : 0;
+                      const isDuplicate = duplicateCount > 1;
+
                       return (
                         <td
                           key={rNum}
                           onClick={() => handleOpenCellEdit(session.id, rNum, kode || 1)}
-                          title={teacher ? `Ruang ${rNum}: [${kode}] ${teacher.nama} (Klik untuk ganti)` : `Ruang ${rNum} (Klik untuk isi)`}
-                          className="border border-slate-950 py-0.5 px-0 text-center font-bold text-slate-950 cursor-pointer hover:bg-amber-100 print:cursor-default"
+                          title={
+                            isDuplicate
+                              ? `⚠️ BENTROK! Kode [${kode}] ${teacher?.nama || 'Guru'} bertugas di ${duplicateCount} ruangan pada sesi ini!`
+                              : teacher
+                              ? `Ruang ${rNum}: [${kode}] ${teacher.nama} (Klik untuk ganti)`
+                              : `Ruang ${rNum} (Klik untuk isi)`
+                          }
+                          className={`border border-slate-950 py-0.5 px-0 text-center font-bold cursor-pointer print:cursor-default transition-colors ${
+                            isDuplicate
+                              ? 'bg-rose-100 text-rose-900 ring-2 ring-rose-500 ring-inset font-black hover:bg-rose-200'
+                              : 'text-slate-950 hover:bg-amber-100'
+                          }`}
                         >
-                          {kode || '-'}
+                          <div className="relative inline-flex items-center justify-center w-full">
+                            <span>{kode || '-'}</span>
+                            {isDuplicate && (
+                              <span className="no-print absolute -top-1 -right-0.5 w-1.5 h-1.5 bg-rose-600 rounded-full" />
+                            )}
+                          </div>
                         </td>
                       );
                     })}
@@ -606,6 +721,22 @@ export default function JadwalPengawasPage() {
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-black text-center text-sm"
                 />
               </div>
+
+              {/* Notifikasi Peringatan Bentrok Kode */}
+              {cellConflictRooms.length > 0 && (
+                <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-900 text-xs flex items-start gap-2.5 animate-in fade-in">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5 animate-bounce" />
+                  <div>
+                    <p className="font-bold">⚠️ Perhatian: Terdeteksi Kode Sama!</p>
+                    <p className="text-[11px] text-rose-800 mt-0.5 leading-snug">
+                      Kode <strong>{cellKodeInput}</strong> ({pengawasMap.get(Number(cellKodeInput))?.nama || 'Guru'}) saat ini sudah ditugaskan di <strong>Ruang {cellConflictRooms.join(', ')}</strong> pada sesi jam ini.
+                    </p>
+                    <p className="text-[10px] text-rose-600 mt-1 font-semibold">
+                      Guru tidak dapat mengawas di 2 ruangan sekaligus pada waktu yang sama.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
