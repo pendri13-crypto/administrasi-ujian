@@ -276,8 +276,15 @@ export default function JadwalPengawasPage() {
             </p>
           </div>
 
-          {/* Spacer kanan agar judul benar-benar rata tengah */}
-          <div className="w-[60px] h-[65px] flex-shrink-0" />
+          {/* Logo Sekolah (Kanan) Menyesuaikan KOP */}
+          <div className="w-[60px] h-[65px] flex-shrink-0 flex items-center justify-center">
+            <AutoTrimmedLogo
+              src={schoolSettings.logoSekolahUrl}
+              fallbackSrc="/images/logo-smpn1-rajapolah.png"
+              alt="Logo Sekolah"
+              className="w-full h-full object-contain filter drop-shadow-sm select-none"
+            />
+          </div>
         </div>
 
         {/* Tabel Matriks Jadwal Mengawas 33 Ruangan */}

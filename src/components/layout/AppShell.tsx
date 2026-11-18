@@ -349,17 +349,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               </div>
 
-              {/* Tombol Keluar Langsung (Kini pasti tampil leluasa di samping Profil) */}
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 rounded-xl transition-all shadow-xs whitespace-nowrap active:scale-95"
-                title="Keluar dari sistem"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Keluar</span>
-              </button>
-
               {/* Mobile Menu Toggle Button */}
               <button
                 type="button"
