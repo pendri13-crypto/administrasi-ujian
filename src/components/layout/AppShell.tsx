@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -17,7 +17,8 @@ import {
   Calendar,
   CalendarCheck,
   Menu,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 import { getStoredUser, clearUserSession, isAdmin, AuthUser } from '@/lib/auth';
 import { SchoolSettings, DEFAULT_SCHOOL_SETTINGS, getStoredSchoolSettings } from '@/lib/school-settings';
@@ -28,11 +29,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMobileMenuOpen(false);
+    setProfileDropdownOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     const updateSettings = () => {
@@ -185,14 +201,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         inactiveColor: 'text-slate-700 hover:text-orange-600 hover:bg-orange-50/80',
         iconColor: 'text-orange-600',
       },
-      {
-        href: '/pengaturan',
-        label: 'Pengaturan',
-        icon: Settings,
-        activeColor: 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md shadow-violet-500/25 ring-2 ring-violet-400/30',
-        inactiveColor: 'text-slate-700 hover:text-violet-600 hover:bg-violet-50/80',
-        iconColor: 'text-violet-600',
-      },
     ] : [])
   ];
 
@@ -254,24 +262,102 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               })}
             </nav>
 
-            {/* User Session & Logout Action */}
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-              <div className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100/80 border border-slate-200 text-xs">
-                <UserCheck className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-                <span className="font-bold text-slate-800 text-[11px] hidden xl:inline max-w-[120px] truncate">{currentUser.name}</span>
-                <span className="text-[10px] bg-blue-100 text-blue-700 font-extrabold px-1.5 py-0.5 rounded-md">
-                  {currentUser.role}
-                </span>
+            {/* User Session, Profile Dropdown & Logout Action */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              
+              {/* Profile Dropdown Menu */}
+              <div className="relative" ref={profileDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs ${
+                    profileDropdownOpen 
+                      ? 'bg-blue-50/90 border-blue-300 ring-2 ring-blue-400/20 text-blue-900' 
+                      : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                  aria-expanded={profileDropdownOpen}
+                  title="Menu Profil & Pengaturan"
+                >
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 flex-shrink-0">
+                    <UserCheck className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="font-bold text-slate-800 text-[11px] sm:text-xs max-w-[120px] sm:max-w-[160px] truncate">
+                    {currentUser.name}
+                  </span>
+                  <span className="text-[10px] bg-blue-100 text-blue-700 font-extrabold px-1.5 py-0.5 rounded-md hidden md:inline">
+                    {currentUser.role}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180 text-blue-600' : ''}`} />
+                </button>
+
+                {/* Dropdown Popup */}
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    {/* Header Info Akun */}
+                    <div className="px-3.5 py-2.5 border-b border-slate-100 bg-slate-50/70 rounded-t-xl">
+                      <p className="text-xs font-extrabold text-slate-900 truncate">{currentUser.name}</p>
+                      <p className="text-[10px] text-slate-500 font-medium">@{currentUser.username}</p>
+                      <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-blue-100 text-blue-700 uppercase">
+                        {currentUser.role === 'admin' ? 'Administrator' : currentUser.role}
+                      </div>
+                    </div>
+
+                    {/* Menu Items dalam Profil */}
+                    <div className="p-1.5 space-y-1">
+                      {isAdmin(currentUser) && (
+                        <Link
+                          href="/pengaturan"
+                          onClick={() => setProfileDropdownOpen(false)}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                            pathname === '/pengaturan'
+                              ? 'bg-violet-600 text-white shadow-sm'
+                              : 'text-slate-700 hover:bg-violet-50 hover:text-violet-700'
+                          }`}
+                        >
+                          <div className={`p-1.5 rounded-lg ${pathname === '/pengaturan' ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-600'}`}>
+                            <Settings className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <p className="leading-tight">Pengaturan Sistem</p>
+                            <p className={`text-[10px] font-normal ${pathname === '/pengaturan' ? 'text-violet-200' : 'text-slate-400'}`}>
+                              Kop, Ujian, TTD & Logo
+                            </p>
+                          </div>
+                        </Link>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all text-left"
+                      >
+                        <div className="p-1.5 rounded-lg bg-rose-100 text-rose-600">
+                          <LogOut className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <p className="leading-tight">Keluar dari Sistem</p>
+                          <p className="text-[10px] font-normal text-slate-400">
+                            Akhiri sesi panitia asesmen
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {/* Tombol Keluar Langsung (Kini pasti tampil leluasa di samping Profil) */}
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 rounded-xl transition-all shadow-xs whitespace-nowrap"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 rounded-xl transition-all shadow-xs whitespace-nowrap active:scale-95"
                 title="Keluar dari sistem"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Keluar</span>
+                <span>Keluar</span>
               </button>
 
               {/* Mobile Menu Toggle Button */}
@@ -309,6 +395,31 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
+
+            {/* Menu Pengaturan di Mobile */}
+            {isAdmin(currentUser) && (
+              <Link
+                href="/pengaturan"
+                className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-all ${
+                  pathname === '/pengaturan'
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md'
+                    : 'text-slate-700 hover:text-violet-600 hover:bg-violet-50/80 bg-slate-50/50'
+                }`}
+              >
+                <Settings className="w-4 h-4 text-violet-600" />
+                <span>Pengaturan Sistem</span>
+              </Link>
+            )}
+
+            {/* Tombol Logout di Mobile */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-rose-200 mt-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Keluar dari Sistem</span>
+            </button>
           </div>
         )}
       </header>
