@@ -9,7 +9,8 @@ import {
   DEMO_NILAI, 
   DEMO_JADWAL,
   DEMO_UJIAN,
-  generatePesertaFromSiswa
+  generatePesertaFromSiswa,
+  getKkmByKelas
 } from '@/lib/demo-data';
 import { NilaiUjian, Siswa } from '@/types/database';
 import { Printer, Download, Award, TrendingUp, CheckCircle, AlertCircle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
@@ -72,6 +73,7 @@ export default function NilaiMapelPage() {
   const rawList = currentPeserta.map((peserta) => {
     const siswa = allSiswa.find(s => s.id === peserta.siswa_id || (peserta.siswa?.nisn && s.nisn === peserta.siswa.nisn));
     const kelas = DEMO_KELAS.find(k => k.id === siswa?.kelas_id);
+    const kkm = getKkmByKelas(kelas);
     const nilaiRecord = nilaiList.find(
       n => n.peserta_ujian_id === peserta.id && n.jadwal_ujian_id === jadwal?.id
     );
@@ -79,12 +81,13 @@ export default function NilaiMapelPage() {
     const nilaiPG = nilaiRecord ? nilaiRecord.nilai_pg : 0;
     const nilaiEsai = nilaiRecord ? nilaiRecord.nilai_esai : 0;
     const nilaiAkhir = nilaiRecord ? nilaiRecord.nilai_akhir : 0;
-    const tuntas = nilaiAkhir >= currentMapel.kkm;
+    const tuntas = nilaiAkhir >= kkm;
 
     return {
       noPeserta: peserta.no_peserta,
       siswa,
       kelas,
+      kkm,
       nilaiPG,
       nilaiEsai,
       nilaiAkhir,
@@ -259,6 +262,7 @@ export default function NilaiMapelPage() {
       'Nilai PG': item.nilaiPG,
       'Nilai Esai': item.nilaiEsai,
       'Nilai Akhir': item.nilaiAkhir,
+      'KKM': item.kkm,
       'Status KKM': item.tuntas ? 'TUNTAS' : 'REMEDIAL',
       'Keterangan': item.keterangan,
     }));
@@ -297,7 +301,7 @@ export default function NilaiMapelPage() {
               className="text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               {DEMO_MAPEL.map((m) => (
-                <option key={m.id} value={m.id}>{m.kode_mapel} - {m.nama_mapel} (KKM: {m.kkm})</option>
+                <option key={m.id} value={m.id}>{m.kode_mapel} - {m.nama_mapel}</option>
               ))}
             </select>
           </div>
@@ -399,7 +403,7 @@ export default function NilaiMapelPage() {
           </h3>
           <div className="mt-3 flex justify-center items-center gap-6 text-xs text-slate-800 font-medium">
             <span>Mata Pelajaran: <strong className="text-slate-900 font-bold">{currentMapel.nama_mapel} ({currentMapel.kode_mapel})</strong></span>
-            <span>Standar KKM: <strong className="text-blue-700 font-bold">{currentMapel.kkm}</strong></span>
+            <span>Standar KKM: <strong className="text-blue-700 font-bold">{selectedKelasId !== 'all' ? (DEMO_KELAS.find(k => k.id.toString() === selectedKelasId) ? `Kelas ${DEMO_KELAS.find(k => k.id.toString() === selectedKelasId)?.tingkat} (${getKkmByKelas(DEMO_KELAS.find(k => k.id.toString() === selectedKelasId))})` : '76') : 'VII: 76 | VIII: 78 | IX: 80'}</strong></span>
             <span>Waktu: <strong>{jadwal?.tanggal} ({jadwal?.jam_mulai} - {jadwal?.jam_selesai})</strong></span>
           </div>
         </div>
@@ -445,9 +449,9 @@ export default function NilaiMapelPage() {
                   </td>
                   <td className="border border-slate-300 px-2 py-2 text-center font-bold text-[10px]">
                     {row.tuntas ? (
-                      <span className="text-emerald-700">TUNTAS</span>
+                      <span className="text-emerald-700">TUNTAS (≥{row.kkm})</span>
                     ) : (
-                      <span className="text-rose-600">REMEDIAL</span>
+                      <span className="text-rose-600">REMEDIAL (&lt;{row.kkm})</span>
                     )}
                   </td>
                 </tr>

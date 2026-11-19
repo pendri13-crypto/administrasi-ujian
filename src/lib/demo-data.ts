@@ -63,19 +63,48 @@ export const DEMO_RUANG: Ruang[] = DEMO_KELAS.map((k, idx) => ({
   kapasitas: 36,
 }));
 
-// 11 Mata Pelajaran Resmi Sesuai Permintaan
+// Standar KKM Berdasarkan Angkatan (Tingkat) - Berlaku untuk Semua Mata Pelajaran
+export const KKM_ANGKATAN = {
+  '7': 76,
+  '8': 78,
+  '9': 80,
+} as const;
+
+export function getKkmByTingkat(tingkat?: string | number | null): number {
+  if (!tingkat) return 76;
+  const tStr = tingkat.toString().trim().toUpperCase();
+  if (tStr === '7' || tStr === 'VII' || tStr.startsWith('7') || tStr.startsWith('VII')) return 76;
+  if (tStr === '8' || tStr === 'VIII' || tStr.startsWith('8') || tStr.startsWith('VIII')) return 78;
+  if (tStr === '9' || tStr === 'IX' || tStr.startsWith('9') || tStr.startsWith('IX')) return 80;
+  return 76;
+}
+
+export function getKkmByKelas(kelas?: { tingkat?: string | number | null; nama_kelas?: string | null } | null): number {
+  if (!kelas) return 76;
+  if (kelas.tingkat) return getKkmByTingkat(kelas.tingkat);
+  if (kelas.nama_kelas) return getKkmByTingkat(kelas.nama_kelas);
+  return 76;
+}
+
+export function getKkmByKelasId(kelasId?: number | null, kelasList = DEMO_KELAS): number {
+  if (!kelasId) return 76;
+  const k = kelasList.find(c => c.id === kelasId);
+  return getKkmByKelas(k);
+}
+
+// 11 Mata Pelajaran Resmi Sesuai Permintaan (Default KKM dasar 76)
 export const DEMO_MAPEL: Mapel[] = [
-  { id: 1, kode_mapel: 'PAIBP', nama_mapel: 'PAIBP', kkm: 75.00 },
-  { id: 2, kode_mapel: 'PPKN', nama_mapel: 'PPKN', kkm: 75.00 },
-  { id: 3, kode_mapel: 'BIND', nama_mapel: 'Bahasa Indonesia', kkm: 75.00 },
-  { id: 4, kode_mapel: 'MTK', nama_mapel: 'Matematika', kkm: 70.00 },
-  { id: 5, kode_mapel: 'BING', nama_mapel: 'Bahasa Inggris', kkm: 75.00 },
-  { id: 6, kode_mapel: 'IPA', nama_mapel: 'IPA', kkm: 72.00 },
-  { id: 7, kode_mapel: 'IPS', nama_mapel: 'IPS', kkm: 75.00 },
-  { id: 8, kode_mapel: 'INF', nama_mapel: 'Informatika', kkm: 75.00 },
-  { id: 9, kode_mapel: 'SBP', nama_mapel: 'Seni Budaya dan Prakarya', kkm: 75.00 },
-  { id: 10, kode_mapel: 'PJOK', nama_mapel: 'PJOK', kkm: 75.00 },
-  { id: 11, kode_mapel: 'BSUN', nama_mapel: 'Bahasa Sunda', kkm: 75.00 },
+  { id: 1, kode_mapel: 'PAIBP', nama_mapel: 'PAIBP', kkm: 76.00 },
+  { id: 2, kode_mapel: 'PPKN', nama_mapel: 'PPKN', kkm: 76.00 },
+  { id: 3, kode_mapel: 'BIND', nama_mapel: 'Bahasa Indonesia', kkm: 76.00 },
+  { id: 4, kode_mapel: 'MTK', nama_mapel: 'Matematika', kkm: 76.00 },
+  { id: 5, kode_mapel: 'BING', nama_mapel: 'Bahasa Inggris', kkm: 76.00 },
+  { id: 6, kode_mapel: 'IPA', nama_mapel: 'IPA', kkm: 76.00 },
+  { id: 7, kode_mapel: 'IPS', nama_mapel: 'IPS', kkm: 76.00 },
+  { id: 8, kode_mapel: 'INF', nama_mapel: 'Informatika', kkm: 76.00 },
+  { id: 9, kode_mapel: 'SBP', nama_mapel: 'Seni Budaya dan Prakarya', kkm: 76.00 },
+  { id: 10, kode_mapel: 'PJOK', nama_mapel: 'PJOK', kkm: 76.00 },
+  { id: 11, kode_mapel: 'BSUN', nama_mapel: 'Bahasa Sunda', kkm: 76.00 },
 ];
 
 // Data Siswa Bersih (0 Data Dummy, siap diimpor dari Excel)

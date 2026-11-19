@@ -9,7 +9,8 @@ import {
   DEMO_NILAI, 
   DEMO_JADWAL, 
   DEMO_UJIAN,
-  generatePesertaFromSiswa
+  generatePesertaFromSiswa,
+  getKkmByKelas
 } from '@/lib/demo-data';
 import { NilaiUjian, Siswa } from '@/types/database';
 import { Printer, Download, CheckCircle, AlertTriangle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
@@ -62,6 +63,7 @@ export default function NilaiKelasPage() {
   };
 
   const currentKelas = DEMO_KELAS.find(k => k.id === selectedKelasId);
+  const kkmKelas = getKkmByKelas(currentKelas);
   const ujian = DEMO_UJIAN[0];
 
   // Siswa di kelas yang dipilih diurutkan A-Z berdasarkan Nama Lengkap
@@ -81,7 +83,7 @@ export default function NilaiKelasPage() {
 
     const nilaiPerMapel = DEMO_MAPEL.map((mapel) => {
       const jadwal = DEMO_JADWAL.find(j => j.mapel_id === mapel.id);
-      if (!peserta || !jadwal) return { mapelId: mapel.id, nilai: null, kkm: mapel.kkm, tuntas: false };
+      if (!peserta || !jadwal) return { mapelId: mapel.id, nilai: null, kkm: kkmKelas, tuntas: false };
 
       const record = nilaiList.find(
         n => n.peserta_ujian_id === peserta.id && n.jadwal_ujian_id === jadwal.id
@@ -91,7 +93,7 @@ export default function NilaiKelasPage() {
       if (nilai !== null) {
         totalNilai += nilai;
         countMapel++;
-        if (nilai < mapel.kkm) {
+        if (nilai < kkmKelas) {
           remedialCount++;
         }
       }
@@ -99,8 +101,8 @@ export default function NilaiKelasPage() {
       return {
         mapelId: mapel.id,
         nilai,
-        kkm: mapel.kkm,
-        tuntas: nilai !== null && nilai >= mapel.kkm,
+        kkm: kkmKelas,
+        tuntas: nilai !== null && nilai >= kkmKelas,
       };
     });
 
@@ -351,6 +353,7 @@ export default function NilaiKelasPage() {
           <div className="mt-3 flex justify-center items-center gap-6 text-xs text-slate-800 font-medium">
             <span>Kelas: <strong className="text-slate-900 font-bold">{currentKelas?.nama_kelas}</strong></span>
             <span>Tingkat: <strong className="text-slate-900 font-bold">{currentKelas?.tingkat}</strong></span>
+            <span>Standar KKM: <strong className="text-blue-700 font-bold">{kkmKelas}</strong></span>
             <span>Wali Kelas: <strong className="text-slate-900 font-bold">.......................................................</strong></span>
           </div>
         </div>
@@ -373,7 +376,7 @@ export default function NilaiKelasPage() {
                 {DEMO_MAPEL.map((mapel) => (
                   <th key={mapel.id} className="border border-slate-400 px-2 py-1">
                     <div>{mapel.kode_mapel}</div>
-                    <div className="text-[8px] font-normal text-slate-500">(KKM {mapel.kkm})</div>
+                    <div className="text-[8px] font-normal text-slate-500">(KKM {kkmKelas})</div>
                   </th>
                 ))}
               </tr>

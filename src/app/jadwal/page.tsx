@@ -428,7 +428,7 @@ export default function KelolaJadwalPage() {
         getDurasiMenit(j.jam_mulai, j.jam_selesai),
         mapelObj?.kode_mapel || '-',
         mapelObj?.nama_mapel || '-',
-        mapelObj?.kkm || 75,
+        'VII: 76, VIII: 78, IX: 80',
         `Sesi ${(j.sesi === 2 || (j.jam_mulai && j.jam_mulai.slice(0, 5) >= '09:45')) ? 2 : 1}`
       ]);
     });
@@ -803,9 +803,11 @@ export default function KelolaJadwalPage() {
                         })()}
                       </td>
 
-                      {/* KKM */}
-                      <td className="py-3 px-4 text-center font-bold font-mono text-slate-700">
-                        {mapelObj?.kkm ? mapelObj.kkm.toFixed(0) : '75'}
+                      {/* KKM Berdasarkan Angkatan */}
+                      <td className="py-3 px-3 text-center" title="Kelas VII: 76 | Kelas VIII: 78 | Kelas IX: 80">
+                        <span className="inline-flex items-center gap-1 font-bold font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-slate-800">
+                          76 / 78 / 80
+                        </span>
                       </td>
 
                       {/* Tombol Aksi (Hidden saat print) */}
