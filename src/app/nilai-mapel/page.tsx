@@ -26,6 +26,30 @@ export default function NilaiMapelPage() {
   const [allSiswa, setAllSiswa] = useState<Siswa[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+  const [localInputs, setLocalInputs] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    const handleNilaiUpdate = () => {
+      try {
+        const savedNilai = localStorage.getItem('adm_nilai_data');
+        if (savedNilai) {
+          const parsed = JSON.parse(savedNilai);
+          if (Array.isArray(parsed)) {
+            setNilaiList(parsed);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    window.addEventListener('nilai-data-updated', handleNilaiUpdate);
+    window.addEventListener('storage', handleNilaiUpdate);
+    return () => {
+      window.removeEventListener('nilai-data-updated', handleNilaiUpdate);
+      window.removeEventListener('storage', handleNilaiUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -84,6 +108,7 @@ export default function NilaiMapelPage() {
     const tuntas = nilaiAkhir >= kkm;
 
     return {
+      pesertaId: peserta.id,
       noPeserta: peserta.no_peserta,
       siswa,
       kelas,
@@ -95,6 +120,62 @@ export default function NilaiMapelPage() {
       keterangan: nilaiRecord ? nilaiRecord.keterangan : 'Belum Ada Nilai',
     };
   });
+
+  const handleClearLocalInput = (key: string) => {
+    setLocalInputs((prev) => {
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    });
+  };
+
+  const handleUpdateNilai = (pesertaId: number, field: 'nilai_pg' | 'nilai_esai', rawValue: string) => {
+    const key = `${pesertaId}_${field === 'nilai_pg' ? 'pg' : 'esai'}`;
+    setLocalInputs((prev) => ({ ...prev, [key]: rawValue }));
+
+    const numValue = rawValue === '' ? 0 : Math.max(0, Math.min(100, Number(rawValue) || 0));
+    const targetJadwalId = jadwal?.id || currentMapel.id;
+
+    setNilaiList((prevList) => {
+      const newList = [...prevList];
+      const existingIdx = newList.findIndex(
+        n => n.peserta_ujian_id === pesertaId && n.jadwal_ujian_id === targetJadwalId
+      );
+
+      if (existingIdx >= 0) {
+        const existing = newList[existingIdx];
+        const newPG = field === 'nilai_pg' ? numValue : existing.nilai_pg;
+        const newEsai = field === 'nilai_esai' ? numValue : existing.nilai_esai;
+        newList[existingIdx] = {
+          ...existing,
+          nilai_pg: newPG,
+          nilai_esai: newEsai,
+          nilai_akhir: newPG + newEsai,
+        };
+      } else {
+        const newPG = field === 'nilai_pg' ? numValue : 0;
+        const newEsai = field === 'nilai_esai' ? numValue : 0;
+        newList.push({
+          id: Date.now() + Math.random(),
+          peserta_ujian_id: pesertaId,
+          jadwal_ujian_id: targetJadwalId,
+          nilai_pg: newPG,
+          nilai_esai: newEsai,
+          nilai_akhir: newPG + newEsai,
+          keterangan: 'Hadir',
+        });
+      }
+
+      try {
+        localStorage.setItem('adm_nilai_data', JSON.stringify(newList));
+        window.dispatchEvent(new CustomEvent('nilai-data-updated'));
+      } catch (err) {
+        console.error('Failed to save nilai to localStorage', err);
+      }
+
+      return newList;
+    });
+  };
 
   // Urutkan siswa per kelas dan nama A-Z
   const sortedList = [...rawList]
@@ -442,8 +523,40 @@ export default function NilaiMapelPage() {
                   <td className="border border-slate-300 px-3 py-2 text-center font-mono text-slate-700">{row.siswa?.nis || row.siswa?.nisn || '-'}</td>
                   <td className="border border-slate-300 px-3 py-2 font-semibold text-slate-900">{row.siswa?.nama_lengkap}</td>
                   <td className="border border-slate-300 px-3 py-2 text-center font-medium">{row.kelas?.nama_kelas}</td>
-                  <td className="border border-slate-300 px-2 py-2 text-center font-mono">{row.nilaiPG}</td>
-                  <td className="border border-slate-300 px-2 py-2 text-center font-mono">{row.nilaiEsai}</td>
+                  <td className="border border-slate-300 p-1 text-center font-mono">
+                    <span className="hidden print:inline-block font-mono font-bold text-slate-800">
+                      {row.nilaiPG}
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="any"
+                      value={localInputs[`${row.pesertaId}_pg`] !== undefined ? localInputs[`${row.pesertaId}_pg`] : row.nilaiPG}
+                      placeholder="0"
+                      onChange={(e) => handleUpdateNilai(row.pesertaId, 'nilai_pg', e.target.value)}
+                      onBlur={() => handleClearLocalInput(`${row.pesertaId}_pg`)}
+                      className="print:hidden w-14 sm:w-16 text-center font-mono font-bold text-xs px-1 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white hover:border-slate-400 transition"
+                      title={`Ketik Nilai PG untuk ${row.siswa?.nama_lengkap}`}
+                    />
+                  </td>
+                  <td className="border border-slate-300 p-1 text-center font-mono">
+                    <span className="hidden print:inline-block font-mono font-bold text-slate-800">
+                      {row.nilaiEsai}
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="any"
+                      value={localInputs[`${row.pesertaId}_esai`] !== undefined ? localInputs[`${row.pesertaId}_esai`] : row.nilaiEsai}
+                      placeholder="0"
+                      onChange={(e) => handleUpdateNilai(row.pesertaId, 'nilai_esai', e.target.value)}
+                      onBlur={() => handleClearLocalInput(`${row.pesertaId}_esai`)}
+                      className="print:hidden w-14 sm:w-16 text-center font-mono font-bold text-xs px-1 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white hover:border-slate-400 transition"
+                      title={`Ketik Nilai Esai untuk ${row.siswa?.nama_lengkap}`}
+                    />
+                  </td>
                   <td className="border border-slate-300 px-2 py-2 text-center font-bold font-mono text-sm bg-slate-50">
                     {row.nilaiAkhir}
                   </td>

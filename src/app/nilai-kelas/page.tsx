@@ -57,6 +57,29 @@ export default function NilaiKelasPage() {
     }
   }, []);
 
+  useEffect(() => {
+    const handleNilaiUpdate = () => {
+      try {
+        const savedNilai = localStorage.getItem('adm_nilai_data');
+        if (savedNilai) {
+          const parsedNilai = JSON.parse(savedNilai);
+          if (Array.isArray(parsedNilai)) {
+            setNilaiList(parsedNilai);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    window.addEventListener('nilai-data-updated', handleNilaiUpdate);
+    window.addEventListener('storage', handleNilaiUpdate);
+    return () => {
+      window.removeEventListener('nilai-data-updated', handleNilaiUpdate);
+      window.removeEventListener('storage', handleNilaiUpdate);
+    };
+  }, []);
+
   const showToast = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
