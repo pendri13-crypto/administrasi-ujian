@@ -459,8 +459,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Footer (Hidden on print) */}
-      <footer className="no-print bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
+      <footer className="no-print bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500 space-y-1">
         <p>© 2026 Sistem Assesmen SMPN 1 Rajapolah • Terintegrasi Cloud Supabase & Vercel</p>
+        <p className="text-[11px] text-slate-400">
+          Software Engineer <span className="font-semibold text-slate-600">Pendri Prayoga, S.Kom</span>
+        </p>
       </footer>
     </div>
   );

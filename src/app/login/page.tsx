@@ -192,9 +192,12 @@ export default function LoginPage() {
         </div>
 
         {/* Footer info */}
-        <p className="text-center text-xs text-slate-500 mt-6">
-          © 2026 SMP Negeri 1 Rajapolah • Sistem Administrasi SAS Ganjil
-        </p>
+        <div className="text-center text-xs text-slate-500 mt-6 space-y-1">
+          <p>© 2026 SMP Negeri 1 Rajapolah • Sistem Administrasi SAS Ganjil</p>
+          <p className="text-[11px] text-slate-400">
+            Software Engineer <span className="font-medium text-slate-600">Pendri Prayoga, S.Kom</span>
+          </p>
+        </div>
       </div>
     </div>
   );
