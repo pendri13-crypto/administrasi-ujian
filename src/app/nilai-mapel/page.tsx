@@ -374,9 +374,15 @@ export default function NilaiMapelPage() {
       {/* Control Bar (Hidden on print) */}
       <div className="no-print bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-900">Daftar Nilai Per Mata Pelajaran</h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-xl font-extrabold text-slate-900">Daftar Nilai Per Mata Pelajaran</h2>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs" title="Setiap angka nilai yang diketik langsung tersimpan otomatis">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              Tersimpan Otomatis
+            </span>
+          </div>
           <p className="text-xs text-slate-500 mt-1">
-            Laporan hasil capaian asesmen mata pelajaran lengkap dengan perankingan & KKM.
+            Input manual nilai PG & Esai langsung tersimpan otomatis secara real-time dan terintegrasi dengan Rekap Nilai Per Kelas.
           </p>
         </div>
 
