@@ -21,7 +21,9 @@ import {
   CloudUpload,
   CloudDownload,
   RefreshCw,
-  FileJson
+  FileJson,
+  Sparkles,
+  ImagePlus
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { 
@@ -33,6 +35,12 @@ import {
   restoreBackupJSON 
 } from '@/lib/data-service';
 import { isSupabaseConfigured, supabaseUrl } from '@/lib/supabase';
+import { 
+  compressStudentPhoto, 
+  isLargeImageBase64, 
+  getBase64Size, 
+  formatBytes 
+} from '@/lib/image-compressor';
 
 /**
  * Normalisasi URL foto siswa.
@@ -55,55 +63,13 @@ function normalizePhotoUrl(rawUrl?: unknown): string | null {
   return url;
 }
 
-/**
- * Kompresi foto upload lokal (JPEG max 300x400) agar muat di localStorage dan cepat ditampilkan
- */
-async function compressImage(file: File, maxWidth = 300, maxHeight = 400, quality = 0.82): Promise<string> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        } else {
-          resolve(e.target?.result as string);
-        }
-      };
-      img.onerror = () => resolve(e.target?.result as string);
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = () => resolve('');
-    reader.readAsDataURL(file);
-  });
-}
-
 export default function SiswaPage() {
   const [siswaList, setSiswaList] = useState<Siswa[]>(DEMO_SISWA);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedKelas, setSelectedKelas] = useState<string>('all');
   const [notification, setNotification] = useState<string | null>(null);
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
+  const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
 
   // Load data tersimpan di browser (jika ada) dan sinkronkan dengan Supabase Cloud
   useEffect(() => {
@@ -280,20 +246,22 @@ export default function SiswaPage() {
     e.target.value = '';
   };
 
-  // Handle Upload Foto Lokal / Base64 Preview (dengan auto kompresi agar ringan)
+  // Handle Upload Foto Lokal (dengan Auto Kompresi Pas Foto 3x4 Ultra-Ringan)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, targetSiswaId?: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const compressedDataUrl = await compressImage(file);
+      const compressedDataUrl = await compressStudentPhoto(file);
       if (!compressedDataUrl) return;
+
+      const sizeStr = formatBytes(getBase64Size(compressedDataUrl));
 
       if (targetSiswaId) {
         // Ganti foto siswa yang sudah ada
         const targetSiswa = siswaList.find(s => s.id === targetSiswaId);
         saveAndSetSiswaList(prev => prev.map(s => s.id === targetSiswaId ? { ...s, foto_url: compressedDataUrl } : s));
-        showToast('Foto siswa berhasil diperbarui!');
+        showToast(`Foto berhasil dikompresi (${sizeStr}) & disimpan!`);
         if (targetSiswa) {
           updateSiswaPhotoInCloud({ id: targetSiswa.id, nisn: targetSiswa.nisn }, compressedDataUrl).catch(() => {});
         }
@@ -301,11 +269,126 @@ export default function SiswaPage() {
         // Preview untuk siswa baru
         setPreviewFoto(compressedDataUrl);
         setLinkFotoInput('');
+        showToast(`Foto siswa dikompresi otomatis (${sizeStr})!`);
       }
     } catch (err) {
       console.error('Gagal memproses upload foto:', err);
       alert('Gagal memproses file foto. Pastikan format file gambar valid.');
     }
+  };
+
+  // Handle Unggah Banyak Foto Sekaligus (Batch Upload & Auto-Compress)
+  // Nama file akan dicocokkan otomatis ke NISN, NIS, atau Nama Siswa
+  const handleBatchPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsOptimizing(true);
+    showToast(`Memproses & mengompresi ${files.length} foto otomatis...`);
+
+    let matchedCount = 0;
+    let totalSavedBytes = 0;
+    const updated = [...siswaList];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith('image/')) continue;
+
+      // Ambil nama file tanpa ekstensi (contoh "0081234567.jpg" -> "0081234567")
+      const filename = file.name.substring(0, file.name.lastIndexOf('.')).trim().toLowerCase();
+      const rawClean = filename.replace(/[^a-z0-9]/g, '');
+
+      // Cari siswa yang cocok
+      const matchedIdx = updated.findIndex(s => {
+        const nisnStr = String(s.nisn || '').trim().toLowerCase();
+        const nisStr = String(s.nis || '').trim().toLowerCase();
+        const namaClean = String(s.nama_lengkap || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        if (nisnStr && (nisnStr === filename || nisnStr === rawClean)) return true;
+        if (nisStr && (nisStr === filename || nisStr === rawClean)) return true;
+        if (namaClean && rawClean && (namaClean === rawClean || namaClean.includes(rawClean) || rawClean.includes(namaClean))) return true;
+        return false;
+      });
+
+      if (matchedIdx !== -1) {
+        try {
+          const originalSize = file.size;
+          const compressed = await compressStudentPhoto(file);
+          const compressedSize = getBase64Size(compressed);
+          totalSavedBytes += Math.max(0, originalSize - compressedSize);
+
+          updated[matchedIdx] = {
+            ...updated[matchedIdx],
+            foto_url: compressed
+          };
+          matchedCount++;
+        } catch (err) {
+          console.error(`Gagal mengompres foto ${file.name}:`, err);
+        }
+      }
+    }
+
+    saveAndSetSiswaList(updated);
+    if (isSupabaseConfigured && matchedCount > 0) {
+      pushSiswaToCloud(updated).catch(() => {});
+    }
+
+    setIsOptimizing(false);
+    e.target.value = '';
+
+    if (matchedCount > 0) {
+      showToast(`Sukses! ${matchedCount} foto siswa berhasil dipasangkan & dikompres otomatis. Hemat kuota: ${formatBytes(totalSavedBytes)}!`);
+    } else {
+      alert(`Dari ${files.length} file foto yang dipilih, tidak ada yang cocok dengan NISN/NIS/Nama siswa. Pastikan nama file foto menggunakan NISN siswa (contoh: 0081234567.jpg) atau Nama Siswa.`);
+    }
+  };
+
+  // Handle Optimalkan & Kompres Ulang Semua Foto yang Masih Berukuran Besar
+  const handleOptimizeAllPhotos = async () => {
+    const largePhotos = siswaList.filter(s => isLargeImageBase64(s.foto_url));
+    if (largePhotos.length === 0) {
+      showToast('Seluruh foto siswa sudah dalam ukuran terkompresi optimal (< 25 KB)! Kuota Supabase aman.');
+      return;
+    }
+
+    if (!confirm(`Ditemukan ${largePhotos.length} foto siswa berukuran besar.\n\nJalankan kompresi otomatis sekarang agar ukuran foto menjadi ultra-ringan (~10 KB) dan menghemat kuota Cloud Supabase?`)) {
+      return;
+    }
+
+    setIsOptimizing(true);
+    showToast(`Mengompresi ${largePhotos.length} foto secara otomatis...`);
+
+    let count = 0;
+    let savedBytes = 0;
+    const updated = [...siswaList];
+
+    for (let i = 0; i < updated.length; i++) {
+      const s = updated[i];
+      if (s.foto_url && isLargeImageBase64(s.foto_url)) {
+        try {
+          const oldSize = getBase64Size(s.foto_url);
+          const compressed = await compressStudentPhoto(s.foto_url);
+          const newSize = getBase64Size(compressed);
+          savedBytes += Math.max(0, oldSize - newSize);
+
+          updated[i] = {
+            ...s,
+            foto_url: compressed
+          };
+          count++;
+        } catch (err) {
+          console.error(`Gagal kompres foto siswa ${s.nama_lengkap}:`, err);
+        }
+      }
+    }
+
+    saveAndSetSiswaList(updated);
+    if (isSupabaseConfigured) {
+      await pushSiswaToCloud(updated);
+    }
+
+    setIsOptimizing(false);
+    showToast(`Optimasi selesai! ${count} foto berhasil dikompresi. Menghemat ${formatBytes(savedBytes)} ruang & kuota cloud!`);
   };
 
   // Handle Input Link Foto Manual (Google Drive / Web)
@@ -570,6 +653,30 @@ export default function SiswaPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Tombol Batch Upload Foto */}
+          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-300 rounded-lg text-xs font-bold shadow-sm transition" title="Pilih banyak file foto sekaligus dari folder di komputer (nama file disesuaikan dengan NISN atau Nama siswa)">
+            <ImagePlus className="w-4 h-4 text-indigo-600" />
+            Upload Banyak Foto
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleBatchPhotoUpload}
+              className="hidden"
+            />
+          </label>
+
+          {/* Tombol Optimasi & Kompres Foto */}
+          <button
+            onClick={handleOptimizeAllPhotos}
+            disabled={isOptimizing}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-300 rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-60"
+            title="Pindai dan kompres seluruh foto siswa berukuran besar menjadi pas foto ultra-ringan (~10 KB) untuk hemat kuota cloud"
+          >
+            <Sparkles className={`w-4 h-4 text-purple-600 ${isOptimizing ? 'animate-spin' : ''}`} />
+            <span>{isOptimizing ? 'Mengompres...' : '⚡ Kompres Semua Foto'}</span>
+          </button>
+
           {/* Tombol Unduh Template Excel */}
           <button
             onClick={handleDownloadTemplate}
@@ -637,6 +744,25 @@ export default function SiswaPage() {
           </button>
         </div>
       </div>
+
+      {/* Banner Optimasi Kuota jika ada foto besar */}
+      {siswaList.some(s => isLargeImageBase64(s.foto_url)) && (
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-purple-900 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0" />
+            <span>
+              <b>Perhatian Penggunaan Kuota:</b> Terdapat foto siswa yang belum terkompresi. Kompres sekarang agar ukuran foto menjadi ultra-ringan (~10 KB) dan mencegah penggunaan bandwidth PostgREST / Cloud berlebih.
+            </span>
+          </div>
+          <button
+            onClick={handleOptimizeAllPhotos}
+            disabled={isOptimizing}
+            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold rounded-lg text-xs whitespace-nowrap self-end sm:self-center transition shadow-xs disabled:opacity-60"
+          >
+            {isOptimizing ? 'Sedang Mengompres...' : '⚡ Kompres Sekarang'}
+          </button>
+        </div>
+      )}
 
       {/* Info Box Format Import */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3 text-xs text-amber-900">

@@ -113,10 +113,12 @@ ON CONFLICT (id) DO NOTHING;
 -- Menghapus SELECT policy publik pada storage.objects mencegah pihak luar melakukan listing/melihat seluruh isi folder.
 
 CREATE POLICY "Allow All Insert Foto Siswa" ON storage.objects
-FOR INSERT WITH CHECK (bucket_id = 'foto_siswa');
+FOR INSERT TO anon, authenticated
+WITH CHECK (bucket_id = 'foto_siswa');
 
 CREATE POLICY "Allow All Update Foto Siswa" ON storage.objects
-FOR UPDATE USING (bucket_id = 'foto_siswa');
+FOR UPDATE TO anon, authenticated
+USING (bucket_id = 'foto_siswa');
 
 -- ============================================================
 -- DATA CONTOH (SEED DATA)
