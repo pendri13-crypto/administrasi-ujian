@@ -10,7 +10,8 @@ import {
   DEMO_JADWAL, 
   DEMO_UJIAN,
   generatePesertaFromSiswa,
-  getKkmByKelas
+  getKkmByKelas,
+  hitungNilaiAkhir
 } from '@/lib/demo-data';
 import { NilaiUjian, Siswa } from '@/types/database';
 import { Printer, Download, CheckCircle, AlertTriangle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
@@ -112,7 +113,14 @@ export default function NilaiKelasPage() {
         n => n.peserta_ujian_id === peserta.id && n.jadwal_ujian_id === jadwal.id
       );
 
-      const nilai = record ? record.nilai_akhir : null;
+      let nilai: number | null = null;
+      if (record) {
+        if (record.nilai_pg !== undefined || record.nilai_esai !== undefined) {
+          nilai = hitungNilaiAkhir(record.nilai_pg ?? 0, record.nilai_esai ?? 0);
+        } else {
+          nilai = record.nilai_akhir ?? null;
+        }
+      }
       if (nilai !== null) {
         totalNilai += nilai;
         countMapel++;

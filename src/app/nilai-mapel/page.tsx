@@ -10,7 +10,8 @@ import {
   DEMO_JADWAL,
   DEMO_UJIAN,
   generatePesertaFromSiswa,
-  getKkmByKelas
+  getKkmByKelas,
+  hitungNilaiAkhir
 } from '@/lib/demo-data';
 import { NilaiUjian, Siswa } from '@/types/database';
 import { Printer, Download, Award, TrendingUp, CheckCircle, AlertCircle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
@@ -102,9 +103,9 @@ export default function NilaiMapelPage() {
       n => n.peserta_ujian_id === peserta.id && n.jadwal_ujian_id === jadwal?.id
     );
 
-    const nilaiPG = nilaiRecord ? nilaiRecord.nilai_pg : 0;
-    const nilaiEsai = nilaiRecord ? nilaiRecord.nilai_esai : 0;
-    const nilaiAkhir = nilaiRecord ? nilaiRecord.nilai_akhir : 0;
+    const nilaiPG = nilaiRecord ? (nilaiRecord.nilai_pg ?? 0) : 0;
+    const nilaiEsai = nilaiRecord ? (nilaiRecord.nilai_esai ?? 0) : 0;
+    const nilaiAkhir = hitungNilaiAkhir(nilaiPG, nilaiEsai);
     const tuntas = nilaiAkhir >= kkm;
 
     return {
@@ -151,24 +152,26 @@ export default function NilaiMapelPage() {
 
       if (existingIdx >= 0) {
         const existing = newList[existingIdx];
-        const newPG = field === 'nilai_pg' ? numValue : existing.nilai_pg;
-        const newEsai = field === 'nilai_esai' ? numValue : existing.nilai_esai;
+        const newPG = field === 'nilai_pg' ? numValue : (existing.nilai_pg ?? 0);
+        const newEsai = field === 'nilai_esai' ? numValue : (existing.nilai_esai ?? 0);
+        const newTotal = hitungNilaiAkhir(newPG, newEsai);
         newList[existingIdx] = {
           ...existing,
           nilai_pg: newPG,
           nilai_esai: newEsai,
-          nilai_akhir: newPG + newEsai,
+          nilai_akhir: newTotal,
         };
       } else {
         const newPG = field === 'nilai_pg' ? numValue : 0;
         const newEsai = field === 'nilai_esai' ? numValue : 0;
+        const newTotal = hitungNilaiAkhir(newPG, newEsai);
         newList.push({
           id: Date.now() + Math.random(),
           peserta_ujian_id: pesertaId,
           jadwal_ujian_id: targetJadwalId,
           nilai_pg: newPG,
           nilai_esai: newEsai,
-          nilai_akhir: newPG + newEsai,
+          nilai_akhir: newTotal,
           keterangan: 'Hadir',
         });
       }
@@ -292,7 +295,7 @@ export default function NilaiMapelPage() {
             if (peserta && jadwal) {
               const pg = Number(row['Nilai PG'] || row['nilai_pg'] || 0) || 0;
               const esai = Number(row['Nilai Esai'] || row['nilai_esai'] || 0) || 0;
-              const total = pg + esai;
+              const total = hitungNilaiAkhir(pg, esai);
               const ket = (row['Keterangan'] || 'Hadir') as 'Hadir' | 'Susulan' | 'Tidak Hadir';
 
               const existingIdx = newList.findIndex(
@@ -514,7 +517,10 @@ export default function NilaiMapelPage() {
                 <th className="border border-slate-400 px-3 py-3 w-20">Kelas</th>
                 <th className="border border-slate-400 px-3 py-3 w-28 sm:w-32 bg-amber-50/70 text-amber-950 font-extrabold">Nilai PG</th>
                 <th className="border border-slate-400 px-3 py-3 w-28 sm:w-32 bg-amber-50/70 text-amber-950 font-extrabold">Nilai Esai</th>
-                <th className="border border-slate-400 px-3 py-3 w-24 sm:w-28 bg-blue-50/70 text-blue-950 font-extrabold">Nilai Akhir</th>
+                <th className="border border-slate-400 px-3 py-3 w-28 sm:w-32 bg-blue-50/70 text-blue-950 font-extrabold" title="Jika PG & Esai terisi: 40% PG + 60% Esai. Jika salah satu terisi: nilai yang diisi.">
+                  <div>Nilai Akhir</div>
+                  <div className="text-[9px] font-normal text-blue-800 tracking-tight lowercase font-sans">(40% pg + 60% esai)</div>
+                </th>
                 <th className="border border-slate-400 px-3 py-3 w-28 sm:w-32">Status KKM</th>
               </tr>
             </thead>

@@ -215,3 +215,27 @@ export const DEMO_PESERTA: PesertaUjian[] = generatePesertaFromSiswa(DEMO_SISWA)
 
 // Nilai Ujian Bersih (0 Data Dummy, siap diisi/diimpor dari Excel)
 export const DEMO_NILAI: NilaiUjian[] = [];
+
+/**
+ * Menghitung Nilai Akhir sesuai aturan pembobotan:
+ * 1. Jika Nilai PG dan Nilai Esai keduanya diisi (> 0):
+ *    Nilai Akhir = 40% Nilai PG + 60% Nilai Esai
+ * 2. Jika hanya salah satu yang diisi:
+ *    Nilai Akhir = Nilai yang diisi
+ * 3. Jika keduanya 0 / kosong:
+ *    Nilai Akhir = 0
+ */
+export function hitungNilaiAkhir(pg: number = 0, esai: number = 0): number {
+  const numPG = Number(pg) || 0;
+  const numEsai = Number(esai) || 0;
+
+  if (numPG > 0 && numEsai > 0) {
+    const total = (0.4 * numPG) + (0.6 * numEsai);
+    return Math.round(total * 10) / 10;
+  } else if (numPG > 0) {
+    return numPG;
+  } else if (numEsai > 0) {
+    return numEsai;
+  }
+  return 0;
+}
