@@ -130,10 +130,17 @@ export default function NilaiMapelPage() {
   };
 
   const handleUpdateNilai = (pesertaId: number, field: 'nilai_pg' | 'nilai_esai', rawValue: string) => {
-    const key = `${pesertaId}_${field === 'nilai_pg' ? 'pg' : 'esai'}`;
-    setLocalInputs((prev) => ({ ...prev, [key]: rawValue }));
+    // Bersihkan leading zero jika ada angka lanjutan (contoh "090" -> "90"), tapi tetap izinkan "0" atau desimal "0.5"
+    let cleanValue = rawValue;
+    if (cleanValue.length > 1 && cleanValue.startsWith('0') && !cleanValue.startsWith('0.')) {
+      cleanValue = cleanValue.replace(/^0+/, '');
+      if (cleanValue === '') cleanValue = '0';
+    }
 
-    const numValue = rawValue === '' ? 0 : Math.max(0, Math.min(100, Number(rawValue) || 0));
+    const key = `${pesertaId}_${field === 'nilai_pg' ? 'pg' : 'esai'}`;
+    setLocalInputs((prev) => ({ ...prev, [key]: cleanValue }));
+
+    const numValue = cleanValue === '' ? 0 : Math.max(0, Math.min(100, Number(cleanValue) || 0));
     const targetJadwalId = jadwal?.id || currentMapel.id;
 
     setNilaiList((prevList) => {
@@ -493,16 +500,16 @@ export default function NilaiMapelPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse border border-slate-400 text-xs">
             <thead>
-              <tr className="bg-slate-100 text-slate-800 uppercase font-bold text-[10px] tracking-wider text-center">
-                <th className="border border-slate-400 px-2 py-2.5 w-12">No</th>
-                <th className="border border-slate-400 px-3 py-2.5 w-28">No. Peserta</th>
-                <th className="border border-slate-400 px-3 py-2.5 w-24">NIS</th>
-                <th className="border border-slate-400 px-3 py-2.5 text-left">Nama Lengkap Siswa</th>
-                <th className="border border-slate-400 px-3 py-2.5 w-20">Kelas</th>
-                <th className="border border-slate-400 px-2 py-2.5 w-16">Nilai PG</th>
-                <th className="border border-slate-400 px-2 py-2.5 w-16">Nilai Esai</th>
-                <th className="border border-slate-400 px-2 py-2.5 w-20">Nilai Akhir</th>
-                <th className="border border-slate-400 px-2 py-2.5 w-24">Status KKM</th>
+              <tr className="bg-slate-100 text-slate-800 uppercase font-bold text-[11px] tracking-wider text-center">
+                <th className="border border-slate-400 px-2 py-3 w-12">No</th>
+                <th className="border border-slate-400 px-3 py-3 w-28">No. Peserta</th>
+                <th className="border border-slate-400 px-3 py-3 w-24">NIS</th>
+                <th className="border border-slate-400 px-3 py-3 text-left">Nama Lengkap Siswa</th>
+                <th className="border border-slate-400 px-3 py-3 w-20">Kelas</th>
+                <th className="border border-slate-400 px-3 py-3 w-28 sm:w-32 bg-amber-50/70 text-amber-950 font-extrabold">Nilai PG</th>
+                <th className="border border-slate-400 px-3 py-3 w-28 sm:w-32 bg-amber-50/70 text-amber-950 font-extrabold">Nilai Esai</th>
+                <th className="border border-slate-400 px-3 py-3 w-24 sm:w-28 bg-blue-50/70 text-blue-950 font-extrabold">Nilai Akhir</th>
+                <th className="border border-slate-400 px-3 py-3 w-28 sm:w-32">Status KKM</th>
               </tr>
             </thead>
             <tbody>
@@ -515,16 +522,16 @@ export default function NilaiMapelPage() {
                 </tr>
               )}
               {sortedList.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-50">
-                  <td className="border border-slate-300 px-2 py-2 text-center font-medium">
+                <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                  <td className="border border-slate-300 px-2 py-2.5 text-center font-medium">
                     {idx + 1}
                   </td>
-                  <td className="border border-slate-300 px-3 py-2 text-center font-mono text-slate-700">{row.noPeserta}</td>
-                  <td className="border border-slate-300 px-3 py-2 text-center font-mono text-slate-700">{row.siswa?.nis || row.siswa?.nisn || '-'}</td>
-                  <td className="border border-slate-300 px-3 py-2 font-semibold text-slate-900">{row.siswa?.nama_lengkap}</td>
-                  <td className="border border-slate-300 px-3 py-2 text-center font-medium">{row.kelas?.nama_kelas}</td>
-                  <td className="border border-slate-300 p-1 text-center font-mono">
-                    <span className="hidden print:inline-block font-mono font-bold text-slate-800">
+                  <td className="border border-slate-300 px-3 py-2.5 text-center font-mono text-slate-700">{row.noPeserta}</td>
+                  <td className="border border-slate-300 px-3 py-2.5 text-center font-mono text-slate-700">{row.siswa?.nis || row.siswa?.nisn || '-'}</td>
+                  <td className="border border-slate-300 px-3 py-2.5 font-semibold text-slate-900">{row.siswa?.nama_lengkap}</td>
+                  <td className="border border-slate-300 px-3 py-2.5 text-center font-medium">{row.kelas?.nama_kelas}</td>
+                  <td className="border border-slate-300 p-2 text-center font-mono bg-amber-50/20">
+                    <span className="hidden print:inline-block font-mono font-bold text-base text-slate-800">
                       {row.nilaiPG}
                     </span>
                     <input
@@ -534,14 +541,15 @@ export default function NilaiMapelPage() {
                       step="any"
                       value={localInputs[`${row.pesertaId}_pg`] !== undefined ? localInputs[`${row.pesertaId}_pg`] : row.nilaiPG}
                       placeholder="0"
+                      onFocus={(e) => e.target.select()}
                       onChange={(e) => handleUpdateNilai(row.pesertaId, 'nilai_pg', e.target.value)}
                       onBlur={() => handleClearLocalInput(`${row.pesertaId}_pg`)}
-                      className="print:hidden w-14 sm:w-16 text-center font-mono font-bold text-xs px-1 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white hover:border-slate-400 transition"
+                      className="print:hidden w-20 sm:w-24 text-center font-mono font-extrabold text-base py-1.5 px-2 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white hover:border-slate-400 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       title={`Ketik Nilai PG untuk ${row.siswa?.nama_lengkap}`}
                     />
                   </td>
-                  <td className="border border-slate-300 p-1 text-center font-mono">
-                    <span className="hidden print:inline-block font-mono font-bold text-slate-800">
+                  <td className="border border-slate-300 p-2 text-center font-mono bg-amber-50/20">
+                    <span className="hidden print:inline-block font-mono font-bold text-base text-slate-800">
                       {row.nilaiEsai}
                     </span>
                     <input
@@ -551,20 +559,25 @@ export default function NilaiMapelPage() {
                       step="any"
                       value={localInputs[`${row.pesertaId}_esai`] !== undefined ? localInputs[`${row.pesertaId}_esai`] : row.nilaiEsai}
                       placeholder="0"
+                      onFocus={(e) => e.target.select()}
                       onChange={(e) => handleUpdateNilai(row.pesertaId, 'nilai_esai', e.target.value)}
                       onBlur={() => handleClearLocalInput(`${row.pesertaId}_esai`)}
-                      className="print:hidden w-14 sm:w-16 text-center font-mono font-bold text-xs px-1 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white hover:border-slate-400 transition"
+                      className="print:hidden w-20 sm:w-24 text-center font-mono font-extrabold text-base py-1.5 px-2 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white hover:border-slate-400 shadow-2xs transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       title={`Ketik Nilai Esai untuk ${row.siswa?.nama_lengkap}`}
                     />
                   </td>
-                  <td className="border border-slate-300 px-2 py-2 text-center font-bold font-mono text-sm bg-slate-50">
+                  <td className="border border-slate-300 px-3 py-2.5 text-center font-black font-mono text-base text-slate-900 bg-blue-50/30">
                     {row.nilaiAkhir}
                   </td>
-                  <td className="border border-slate-300 px-2 py-2 text-center font-bold text-[10px]">
+                  <td className="border border-slate-300 px-2 py-2.5 text-center font-bold text-xs">
                     {row.tuntas ? (
-                      <span className="text-emerald-700">TUNTAS (≥{row.kkm})</span>
+                      <span className="inline-block px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold text-[11px]">
+                        TUNTAS (≥{row.kkm})
+                      </span>
                     ) : (
-                      <span className="text-rose-600">REMEDIAL (&lt;{row.kkm})</span>
+                      <span className="inline-block px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 font-extrabold text-[11px]">
+                        REMEDIAL (&lt;{row.kkm})
+                      </span>
                     )}
                   </td>
                 </tr>
