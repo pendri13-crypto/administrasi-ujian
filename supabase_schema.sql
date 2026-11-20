@@ -107,9 +107,10 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('foto_siswa', 'foto_siswa', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Kebijakan akses (RLS) untuk storage
-CREATE POLICY "Public Read Foto Siswa" ON storage.objects
-FOR SELECT USING (bucket_id = 'foto_siswa');
+-- Catatan Keamanan Supabase:
+-- Karena bucket berstatus publik (public = true), foto siswa otomatis dapat ditampilkan
+-- via Public URL (di kartu peserta, daftar hadir, dll.) tanpa perlu SELECT policy.
+-- Menghapus SELECT policy publik pada storage.objects mencegah pihak luar melakukan listing/melihat seluruh isi folder.
 
 CREATE POLICY "Allow All Insert Foto Siswa" ON storage.objects
 FOR INSERT WITH CHECK (bucket_id = 'foto_siswa');
