@@ -598,6 +598,29 @@ export default function NilaiMapelPage() {
           </table>
         </div>
 
+        {/* Ringkasan Statistik Nilai (Di Bawah Tabel, Di Atas Tanda Tangan) */}
+        <div className="mt-5 mb-2 text-xs text-slate-800">
+          <table className="border-collapse text-xs">
+            <tbody>
+              <tr>
+                <td className="py-0.5 pr-4 font-bold text-slate-800">Nilai Tertinggi</td>
+                <td className="py-0.5 px-1 font-bold text-slate-900">:</td>
+                <td className="py-0.5 pl-2 font-black font-mono text-slate-900">{maxNilai}</td>
+              </tr>
+              <tr>
+                <td className="py-0.5 pr-4 font-bold text-slate-800">Nilai Terendah</td>
+                <td className="py-0.5 px-1 font-bold text-slate-900">:</td>
+                <td className="py-0.5 pl-2 font-black font-mono text-slate-900">{minNilai}</td>
+              </tr>
+              <tr>
+                <td className="py-0.5 pr-4 font-bold text-slate-800">Nilai Rata-rata</td>
+                <td className="py-0.5 px-1 font-bold text-slate-900">:</td>
+                <td className="py-0.5 pl-2 font-black font-mono text-slate-900">{avgNilai}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         {/* Kolom Tanda Tangan */}
         <div className="mt-8 pt-4 flex justify-between items-start text-xs text-slate-800">
           <div>

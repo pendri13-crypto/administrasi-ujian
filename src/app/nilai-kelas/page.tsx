@@ -151,6 +151,14 @@ export default function NilaiKelasPage() {
     };
   });
 
+  // Statistik Nilai Kelas (Nilai Tertinggi, Nilai Terendah, Nilai Rata-rata)
+  const validRataRata = rows.map(r => Number(r.rataRata)).filter(v => v > 0);
+  const maxNilai = validRataRata.length > 0 ? Math.max(...validRataRata).toFixed(1) : '0';
+  const minNilai = validRataRata.length > 0 ? Math.min(...validRataRata).toFixed(1) : '0';
+  const avgNilai = validRataRata.length > 0 
+    ? (validRataRata.reduce((acc, curr) => acc + curr, 0) / validRataRata.length).toFixed(1) 
+    : '0.0';
+
   const handleDownloadTemplate = () => {
     const templateData = siswaList.map((siswa, idx) => {
       const item: Record<string, string | number> = {
@@ -460,6 +468,29 @@ export default function NilaiKelasPage() {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Ringkasan Statistik Nilai (Di Bawah Tabel, Di Atas Tanda Tangan) */}
+        <div className="mt-5 mb-2 text-xs text-slate-800">
+          <table className="border-collapse text-xs">
+            <tbody>
+              <tr>
+                <td className="py-0.5 pr-4 font-bold text-slate-800">Nilai Tertinggi</td>
+                <td className="py-0.5 px-1 font-bold text-slate-900">:</td>
+                <td className="py-0.5 pl-2 font-black font-mono text-slate-900">{maxNilai}</td>
+              </tr>
+              <tr>
+                <td className="py-0.5 pr-4 font-bold text-slate-800">Nilai Terendah</td>
+                <td className="py-0.5 px-1 font-bold text-slate-900">:</td>
+                <td className="py-0.5 pl-2 font-black font-mono text-slate-900">{minNilai}</td>
+              </tr>
+              <tr>
+                <td className="py-0.5 pr-4 font-bold text-slate-800">Nilai Rata-rata</td>
+                <td className="py-0.5 px-1 font-bold text-slate-900">:</td>
+                <td className="py-0.5 pl-2 font-black font-mono text-slate-900">{avgNilai}</td>
+              </tr>
             </tbody>
           </table>
         </div>
