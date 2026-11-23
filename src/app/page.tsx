@@ -67,45 +67,49 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Banner / Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 sm:p-8 text-white shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+      {/* Banner / Header (Deep Pine & Sage Green Theme) */}
+      <div className="bg-gradient-to-br from-[#082218] via-[#0d2d22] to-[#143b2e] rounded-2xl p-6 sm:p-8 text-white shadow-xl border border-emerald-800/40 relative overflow-hidden">
+        {/* Subtle decorative background glow */}
+        <div className="absolute -right-16 -top-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute right-1/3 -bottom-20 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/30 text-blue-100 border border-blue-400/20 mb-3">
-              <Calendar className="w-3.5 h-3.5" /> Agenda Aktif: {schoolSettings.namaUjian} ({schoolSettings.semester}) • TP {schoolSettings.tahunAjaran}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 mb-3 shadow-xs">
+              <Calendar className="w-3.5 h-3.5 text-emerald-300" /> Agenda Aktif: {schoolSettings.namaUjian} ({schoolSettings.semester}) • TP {schoolSettings.tahunAjaran}
             </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-xs">
               Sistem Assesmen SMPN 1 Rajapolah
             </h1>
-            <p className="mt-2 text-blue-100 text-sm sm:text-base leading-relaxed">
+            <p className="mt-2 text-emerald-100/90 text-sm sm:text-base leading-relaxed">
               Kelola kartu peserta dengan foto siswa, cetak daftar hadir ujian per ruangan, 
               serta cetak rekapitulasi nilai per kelas dan per mata pelajaran secara otomatis.
             </p>
           </div>
-          <div className="hidden sm:flex flex-shrink-0 items-center justify-center p-3 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20 shadow-inner">
+          <div className="hidden sm:flex flex-shrink-0 items-center justify-center p-3 bg-white/10 rounded-2xl backdrop-blur-sm border border-emerald-400/30 shadow-inner">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={schoolSettings.logoSekolahUrl || '/images/logo-smpn1-rajapolah.png'} alt="Logo Sekolah" className="w-24 h-24 object-contain drop-shadow-xl" />
           </div>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-blue-500/30">
+        <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-emerald-800/50">
           <div>
-            <p className="text-xs text-blue-200">Total Siswa</p>
-            <p className="text-2xl font-bold mt-0.5">{totalSiswa}</p>
+            <p className="text-xs font-medium text-emerald-200/80">Total Siswa</p>
+            <p className="text-2xl font-bold mt-0.5 text-white">{totalSiswa}</p>
           </div>
           <div>
-            <p className="text-xs text-blue-200">Jumlah Rombel</p>
-            <p className="text-2xl font-bold mt-0.5">{DEMO_KELAS.length} Kelas</p>
+            <p className="text-xs font-medium text-emerald-200/80">Jumlah Rombel</p>
+            <p className="text-2xl font-bold mt-0.5 text-white">{DEMO_KELAS.length} Kelas</p>
           </div>
           <div>
-            <p className="text-xs text-blue-200">Ruang Ujian</p>
-            <p className="text-2xl font-bold mt-0.5">{totalRuang} Ruang</p>
+            <p className="text-xs font-medium text-emerald-200/80">Ruang Ujian</p>
+            <p className="text-2xl font-bold mt-0.5 text-white">{totalRuang} Ruang</p>
           </div>
           <div>
-            <p className="text-xs text-blue-200">Status Database</p>
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-300 mt-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Siap Digunakan
+            <p className="text-xs font-medium text-emerald-200/80">Status Database</p>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-300 mt-1">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Siap Digunakan
             </span>
           </div>
         </div>
