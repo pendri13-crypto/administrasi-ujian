@@ -19,6 +19,7 @@ import * as XLSX from 'xlsx';
 import { fetchSiswaFromCloud } from '@/lib/data-service';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { getStoredSchoolSettings, DEFAULT_SCHOOL_SETTINGS, SchoolSettings } from '@/lib/school-settings';
+import { AutoTrimmedLogo } from '@/components/AutoTrimmedLogo';
 
 export default function NilaiKelasPage() {
   const [selectedKelasId, setSelectedKelasId] = useState<number>(1);
@@ -28,6 +29,11 @@ export default function NilaiKelasPage() {
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
 
   useEffect(() => {
+    const handleSettingsUpdate = () => {
+      setSchoolSettings(getStoredSchoolSettings());
+    };
+    window.addEventListener('school-settings-updated', handleSettingsUpdate);
+
     try {
       setSchoolSettings(getStoredSchoolSettings());
       const saved = localStorage.getItem('adm_siswa_data');
@@ -56,6 +62,10 @@ export default function NilaiKelasPage() {
     } catch (e) {
       console.error(e);
     }
+
+    return () => {
+      window.removeEventListener('school-settings-updated', handleSettingsUpdate);
+    };
   }, []);
 
   useEffect(() => {
@@ -381,15 +391,44 @@ export default function NilaiKelasPage() {
       {/* Dokumen Laporan Siap Cetak */}
       <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm print:border-none print:shadow-none print:p-0">
         
-        {/* Kop Surat / Header Laporan */}
-        <div className="border-b-2 border-slate-900 pb-4 mb-6 text-center">
-          <h2 className="text-lg font-black tracking-tight text-slate-900 uppercase">
-            DAFTAR NILAI DAN LEGER UJIAN PER KELAS
-          </h2>
-          <h3 className="text-sm font-bold text-slate-700 uppercase mt-0.5">
-            {ujian.nama_ujian} • TAHUN AJARAN 2026/2027
-          </h3>
-          <div className="mt-3 flex justify-center items-center gap-6 text-xs text-slate-800 font-medium">
+        {/* Kop Surat / Header Laporan Resmi dengan Logo Pemda & Sekolah */}
+        <div className="border-b-2 border-slate-900 pb-3 mb-6">
+          <div className="flex items-center justify-between gap-4 mb-2">
+            {/* Logo Kiri: Pemda / Dinas */}
+            <div className="w-[58px] sm:w-[68px] h-[58px] sm:h-[68px] flex-shrink-0 flex items-center justify-center">
+              <AutoTrimmedLogo
+                src={schoolSettings.logoPemdaUrl || schoolSettings.logoTasikmalayaUrl}
+                fallbackSrc="/images/logo-tasikmalaya.png"
+                alt="Logo Pemda"
+                className="w-full h-full object-contain filter drop-shadow-sm select-none"
+              />
+            </div>
+
+            {/* Teks Kop Tengah */}
+            <div className="flex-1 text-center font-bold text-slate-950 space-y-0.5 px-2">
+              <h2 className="text-base sm:text-lg font-black tracking-wide text-slate-950 uppercase">
+                DAFTAR NILAI DAN LEGER UJIAN PER KELAS
+              </h2>
+              <p className="text-xs sm:text-sm font-black text-slate-900 uppercase">
+                {schoolSettings.namaSekolah === 'SMP NEGERI 1 RAJAPOLAH' ? 'SMPN 1 RAJAPOLAH' : (schoolSettings.namaSekolah || 'SMPN 1 RAJAPOLAH')}
+              </p>
+              <h3 className="text-xs sm:text-sm font-bold text-slate-800 uppercase">
+                {schoolSettings.namaUjian || ujian.nama_ujian} • TAHUN PELAJARAN {schoolSettings.tahunAjaran || '2026/2027'}
+              </h3>
+            </div>
+
+            {/* Logo Kanan: Sekolah (SMPN 1 Rajapolah) */}
+            <div className="w-[58px] sm:w-[68px] h-[58px] sm:h-[68px] flex-shrink-0 flex items-center justify-center">
+              <AutoTrimmedLogo
+                src={schoolSettings.logoSekolahUrl}
+                fallbackSrc="/images/logo-smpn1-rajapolah.png"
+                alt="Logo Sekolah"
+                className="w-full h-full object-contain filter drop-shadow-sm select-none"
+              />
+            </div>
+          </div>
+
+          <div className="mt-2.5 pt-2 border-t border-slate-300 flex flex-wrap justify-center items-center gap-4 sm:gap-6 text-xs text-slate-800 font-medium">
             <span>Kelas: <strong className="text-slate-900 font-bold">{currentKelas?.nama_kelas}</strong></span>
             <span>Tingkat: <strong className="text-slate-900 font-bold">{currentKelas?.tingkat}</strong></span>
             <span>Standar KKM: <strong className="text-blue-700 font-bold">{kkmKelas}</strong></span>
