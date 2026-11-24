@@ -52,9 +52,15 @@ export function getStoredSchoolSettings(): SchoolSettings {
       ? rawSekolah 
       : DEFAULT_SCHOOL_SETTINGS.logoSekolahUrl;
     const tampilkanNoPeserta = parsed.tampilkanNoPeserta ?? false;
+    let namaKepsek = parsed.namaKepsek || DEFAULT_SCHOOL_SETTINGS.namaKepsek;
+    // Normalisasi gelar M.Pd. agar tidak tertulis M.PD. atau M.PD
+    if (namaKepsek && /M\.PD\.?/i.test(namaKepsek)) {
+      namaKepsek = namaKepsek.replace(/M\.PD\.?/i, 'M.Pd.');
+    }
     return {
       ...DEFAULT_SCHOOL_SETTINGS,
       ...parsed,
+      namaKepsek,
       tampilkanNoPeserta,
       logoPemdaUrl: logoPemda,
       logoTasikmalayaUrl: logoPemda,
@@ -67,8 +73,13 @@ export function getStoredSchoolSettings(): SchoolSettings {
 
 export function saveStoredSchoolSettings(settings: SchoolSettings): void {
   if (typeof window !== 'undefined') {
+    let namaKepsek = settings.namaKepsek;
+    if (namaKepsek && /M\.PD\.?/i.test(namaKepsek)) {
+      namaKepsek = namaKepsek.replace(/M\.PD\.?/i, 'M.Pd.');
+    }
     const toSave: SchoolSettings = {
       ...settings,
+      namaKepsek,
       logoTasikmalayaUrl: settings.logoPemdaUrl,
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(toSave));

@@ -657,11 +657,11 @@ export default function JadwalPengawasPage() {
                 )}
               </div>
 
-              <p className="font-bold underline uppercase tracking-wide">
-                {schoolSettings.namaKepsek || 'H. UCU KARNI, M.Pd'}
+              <p className="font-bold underline tracking-wide">
+                {schoolSettings.namaKepsek || 'H. UCU KARNI, M.Pd.'}
               </p>
               <p className="text-[8.5px] font-mono text-slate-700">
-                NIP {schoolSettings.nipKepsek || '19671116 199203 1 005'}
+                NIP. {schoolSettings.nipKepsek || '19671116 199203 1 005'}
               </p>
             </div>
 
