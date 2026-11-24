@@ -2,7 +2,7 @@ export interface SchoolSettings {
   namaInstansi: string;
   namaSekolah: string;
   alamatSekolah: string;
-  jenisAsesmen: 'SAS' | 'SAT';
+  jenisAsesmen: 'SAS' | 'SAT' | 'SAJ';
   namaUjian: string;
   tahunAjaran: string;
   semester: string;

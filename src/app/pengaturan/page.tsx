@@ -61,7 +61,7 @@ export default function PengaturanAdminPage() {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  const handleJenisAsesmenChange = (jenis: 'SAS' | 'SAT') => {
+  const handleJenisAsesmenChange = (jenis: 'SAS' | 'SAT' | 'SAJ') => {
     if (jenis === 'SAS') {
       setSettings(prev => ({
         ...prev,
@@ -69,11 +69,18 @@ export default function PengaturanAdminPage() {
         namaUjian: 'SUMATIF AKHIR SEMESTER (SAS)',
         semester: prev.semester === 'Genap' ? 'Ganjil' : prev.semester,
       }));
-    } else {
+    } else if (jenis === 'SAT') {
       setSettings(prev => ({
         ...prev,
         jenisAsesmen: 'SAT',
         namaUjian: 'SUMATIF AKHIR TAHUN (SAT)',
+        semester: 'Genap',
+      }));
+    } else if (jenis === 'SAJ') {
+      setSettings(prev => ({
+        ...prev,
+        jenisAsesmen: 'SAJ',
+        namaUjian: 'SUMATIF AKHIR JENJANG (SAJ)',
         semester: 'Genap',
       }));
     }
@@ -259,7 +266,7 @@ export default function PengaturanAdminPage() {
               Pengaturan Ujian & Identitas Sekolah
             </h1>
             <p className="mt-1 text-slate-300 text-xs sm:text-sm">
-              Kelola Tahun Ajaran, status asesmen SAS/SAT, data Kepala Sekolah, upload tanda tangan, dan titimangsa cetak.
+              Kelola Tahun Ajaran, status asesmen SAS/SAT/SAJ, data Kepala Sekolah, upload tanda tangan, dan titimangsa cetak.
             </p>
           </div>
 
@@ -290,22 +297,22 @@ export default function PengaturanAdminPage() {
         {/* Kolom Kiri: Form Pengaturan (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           
-          {/* 1. Pengaturan Tahun Ajaran & Status Asesmen (SAS / SAT) */}
+          {/* 1. Pengaturan Tahun Ajaran & Status Asesmen (SAS / SAT / SAJ) */}
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <Calendar className="w-5 h-5 text-blue-600" />
               <div>
                 <h2 className="text-sm font-bold text-slate-900">1 & 2. Tahun Ajaran & Jenis Asesmen</h2>
-                <p className="text-[11px] text-slate-500">Atur periode tahun pelajaran dan ganti status antara SAS atau SAT</p>
+                <p className="text-[11px] text-slate-500">Atur periode tahun pelajaran dan ganti status antara SAS, SAT, atau SAJ</p>
               </div>
             </div>
 
-            {/* Status Asesmen: SAS vs SAT (Poin 2) */}
+            {/* Status Asesmen: SAS vs SAT vs SAJ (Poin 2) */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
                 Jenis / Status Asesmen (Poin 2)
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => handleJenisAsesmenChange('SAS')}
@@ -346,6 +353,27 @@ export default function PengaturanAdminPage() {
                     Sumatif Akhir Tahun
                   </p>
                   <span className="text-[10px] text-slate-500 mt-0.5">Penilaian Kenaikan Kelas (Genap)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleJenisAsesmenChange('SAJ')}
+                  className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                    settings.jenisAsesmen === 'SAJ'
+                      ? 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/30'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-emerald-900">SAJ</span>
+                    {settings.jenisAsesmen === 'SAJ' && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    )}
+                  </div>
+                  <p className="text-[11px] font-semibold text-slate-700 mt-1">
+                    Sumatif Akhir Jenjang
+                  </p>
+                  <span className="text-[10px] text-slate-500 mt-0.5">Penilaian Kelulusan Siswa (Kelas IX)</span>
                 </button>
               </div>
             </div>
@@ -856,7 +884,7 @@ export default function PengaturanAdminPage() {
                 <li><strong>Halaman Login</strong> (Logo sekolah 100% tersinkronisasi)</li>
                 <li><strong>Header Navbar & Beranda</strong> (Logo sekolah & Identitas)</li>
                 <li><strong>Kartu Peserta Ujian</strong> (Kop PEMDA & Sekolah, TTD, Titimangsa)</li>
-                <li><strong>Cetak Label Meja</strong> (Tahun Ajaran & SAS/SAT)</li>
+                <li><strong>Cetak Label Meja</strong> (Tahun Ajaran & SAS/SAT/SAJ)</li>
                 <li><strong>Daftar Hadir Ruang</strong> (Kop & Tanggal Ujian)</li>
               </ul>
             </div>

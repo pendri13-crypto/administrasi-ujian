@@ -384,7 +384,7 @@ export default function Dashboard() {
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                Tahun Ajaran, status SAS/SAT, Nama/NIP Kepsek, TTD, & titimangsa.
+                Tahun Ajaran, status SAS/SAT/SAJ, Nama/NIP Kepsek, TTD, & titimangsa.
               </p>
             </div>
           </div>
