@@ -214,7 +214,18 @@ export default function SiswaPage() {
     if (result.success) {
       showToast(`Sukses! ${result.count} data siswa tersimpan di Cloud Supabase.`);
     } else {
-      alert('Gagal mengirim ke cloud: ' + result.error);
+      if (result.error?.includes('violates row-level security policy') || result.error?.includes('42501')) {
+        alert(
+          'Gagal mengirim ke Cloud Supabase (Izin Akses Dibatasi RLS):\n\n' +
+          'Database Supabase membatasi izin simpan (Row-Level Security).\n\n' +
+          'Solusi: Buka SQL Editor di https://supabase.com, lalu jalankan script berikut:\n' +
+          'ALTER TABLE siswa DISABLE ROW LEVEL SECURITY;\n' +
+          'ALTER TABLE kelas DISABLE ROW LEVEL SECURITY;\n' +
+          'ALTER TABLE ruang DISABLE ROW LEVEL SECURITY;'
+        );
+      } else {
+        alert('Gagal mengirim ke cloud: ' + result.error);
+      }
     }
   };
 
@@ -222,11 +233,17 @@ export default function SiswaPage() {
     setIsCloudSyncing(true);
     const cloudData = await fetchSiswaFromCloud();
     setIsCloudSyncing(false);
-    if (cloudData) {
+    if (cloudData && cloudData.length > 0) {
       setSiswaList(cloudData);
       showToast(`Sukses! ${cloudData.length} data siswa ditarik dari Cloud Supabase.`);
+    } else if (cloudData && cloudData.length === 0) {
+      alert(
+        'Database di Cloud Supabase saat ini masih kosong (0 siswa).\n\n' +
+        'Silakan buka PC utama Anda (yang sudah memiliki data siswa), lalu klik tombol "Kirim ke Cloud" terlebih dahulu agar data tersimpan di Supabase dan bisa ditarik oleh PC ini.\n\n' +
+        'Atau gunakan fitur "Ekspor Data / Cadangkan" di PC utama dan impor ke PC ini.'
+      );
     } else {
-      alert('Gagal mengambil data dari cloud atau koneksi terputus.');
+      alert('Gagal mengambil data dari cloud atau koneksi terputus. Pastikan koneksi internet aktif.');
     }
   };
 

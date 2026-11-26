@@ -578,7 +578,7 @@ export async function fetchSiswaFromCloud(): Promise<Siswa[] | null> {
 
       if (error) {
         console.error('Error fetching siswa from Supabase:', error);
-        break;
+        return null;
       }
 
       if (!data || data.length === 0) break;
@@ -586,6 +586,11 @@ export async function fetchSiswaFromCloud(): Promise<Siswa[] | null> {
 
       if (data.length < pageSize) break;
       from += pageSize;
+    }
+
+    // Jika berhasil query namun di Cloud belum ada data siswa (0 siswa)
+    if (allData.length === 0) {
+      return [];
     }
 
     if (allData.length > 0) {

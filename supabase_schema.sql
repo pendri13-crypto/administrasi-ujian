@@ -247,3 +247,19 @@ INSERT INTO nilai_ujian (peserta_ujian_id, jadwal_ujian_id, nilai_pg, nilai_esai
 (3, 2, 30.00, 25.00, 55.00, 'Hadir'),
 (4, 2, 48.00, 40.00, 88.00, 'Hadir');
 
+-- ============================================================
+-- PENGATURAN HAK AKSES TABEL (ROW LEVEL SECURITY / SYNC ANTAR-PC)
+-- ============================================================
+-- Jalankan perintah ini di Supabase SQL Editor agar seluruh PC/Laptop
+-- dapat melakukan sinkronisasi 'Kirim ke Cloud' dan 'Tarik dari Cloud' tanpa diblokir:
+ALTER TABLE IF EXISTS kelas DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS ruang DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS siswa DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS mapel DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS jadwal_ujian DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS peserta_ujian DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS nilai_ujian DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS tahun_ajaran DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS ujian DISABLE ROW LEVEL SECURITY;
+
+
